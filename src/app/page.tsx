@@ -107,7 +107,7 @@ export default async function Home() {
       
       <main>
         {/* Hero Section with Search Widget */}
-        <section className="relative min-h-[800px] flex flex-col justify-center pt-24 pb-12">
+        <section className="relative min-h-[850px] flex flex-col justify-center pt-24 pb-12 overflow-hidden">
           {/* Background Image */}
           <div className="absolute inset-0 bg-slate-950">
             <Image
@@ -115,28 +115,28 @@ export default async function Home() {
               alt="Premium rental car"
               fill
               priority
-              className="object-cover object-center opacity-60"
+              className="object-cover object-center opacity-50 scale-105 animate-[pulse_20s_ease-in-out_infinite_alternate]"
             />
-            {/* Sixt-style dark gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-slate-950/90 via-transparent to-slate-950/90" />
+            {/* Dark gradient overlay for modern look */}
+            <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-950/40 to-slate-50" />
           </div>
 
           {/* Hero Content */}
-          <div className="relative mx-auto max-w-5xl px-4 w-full flex flex-col items-center text-center space-y-12">
+          <div className="relative mx-auto max-w-6xl px-4 w-full flex flex-col items-center text-center space-y-14 z-10">
             
-            <div className="space-y-6 max-w-3xl mt-12">
-              <h1 className="text-5xl font-extrabold text-white sm:text-6xl lg:text-7xl tracking-tight leading-tight">
+            <div className="space-y-6 max-w-4xl mt-16">
+              <h1 className="text-5xl font-black text-white sm:text-7xl lg:text-8xl tracking-tighter leading-[1.1] animate-slide-up">
                 Premium car rental.<br />
-                <span className="text-[var(--primary)]">Without the premium price.</span>
+                <span className="text-primary text-gradient">Without the premium price.</span>
               </h1>
               
-              <p className="text-xl text-slate-300 max-w-2xl mx-auto font-medium">
+              <p className="text-xl text-slate-300 max-w-2xl mx-auto font-medium animate-fade-in" style={{ animationDelay: '200ms', animationFillMode: 'both' }}>
                 Book directly with verified Australian operators. Transparent pricing, instant confirmation, zero hidden fees.
               </p>
             </div>
 
             {/* Centered Search Widget */}
-            <div className="w-full">
+            <div className="w-full max-w-5xl animate-scale-in" style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
               <SearchWidget variant="hero" />
             </div>
           </div>
@@ -146,7 +146,7 @@ export default async function Home() {
         <TrustSignalsSection />
 
         {/* Promotional Banners */}
-        <section className="py-16 bg-slate-50">
+        <section className="py-24 bg-slate-50">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="grid gap-6 lg:grid-cols-2">
               <PromoCard
@@ -187,16 +187,17 @@ export default async function Home() {
         <HowItWorksSection />
 
         {/* Featured Vehicles Section */}
-        <section className="py-16 bg-slate-50">
+        <section className="py-24 bg-slate-50 relative">
+          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex items-end justify-between mb-10">
+            <div className="flex items-end justify-between mb-12">
               <div>
-                <h2 className="text-3xl font-bold text-slate-900 mb-2">Featured vehicles</h2>
-                <p className="text-slate-600">Hand-picked vehicles from our top-rated vendors</p>
+                <h2 className="text-4xl font-black text-slate-900 mb-3 font-heading tracking-tight">Featured vehicles</h2>
+                <p className="text-lg text-slate-500 font-medium">Hand-picked vehicles from our top-rated vendors</p>
               </div>
               <Link
                 href="/search"
-                className="hidden sm:inline-flex items-center gap-2 text-amber-600 font-semibold hover:text-amber-700 transition-colors"
+                className="hidden sm:inline-flex items-center gap-2 text-primary font-bold hover:text-primary/80 transition-colors"
               >
                 View all vehicles
                 <ArrowRight className="h-5 w-5" />
@@ -204,19 +205,19 @@ export default async function Home() {
             </div>
 
             {featuredVehicles.length === 0 ? (
-              <div className="text-center py-16 bg-white rounded-2xl border border-slate-200">
-                <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-amber-50 mb-4">
-                  <Car className="h-10 w-10 text-amber-500" />
+              <div className="text-center py-20 bg-white rounded-[2rem] border border-slate-200 shadow-sm">
+                <div className="inline-flex h-24 w-24 items-center justify-center rounded-2xl bg-primary/10 mb-6 shadow-inner">
+                  <Car className="h-12 w-12 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold text-slate-900 mb-2">
+                <h3 className="text-2xl font-bold text-slate-900 mb-3 font-heading">
                   Vehicles coming soon
                 </h3>
-                <p className="text-slate-600 max-w-md mx-auto mb-6">
+                <p className="text-lg text-slate-500 max-w-md mx-auto mb-8">
                   Our vendors are adding their fleets. Check back soon or browse all available locations.
                 </p>
                 <Link
                   href="/search"
-                  className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-6 py-3 font-semibold text-slate-950 hover:bg-amber-400 transition-colors"
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-4 font-bold text-primary-foreground hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 hover:-translate-y-0.5"
                 >
                   Browse locations
                   <ArrowRight className="h-5 w-5" />
@@ -226,13 +227,13 @@ export default async function Home() {
               <>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {featuredVehicles.map((vehicle, index) => (
-                    <VehicleCard key={vehicle.id} vehicle={vehicle} priority={index < 3} />
+                    <VehicleCard key={vehicle.id} vehicle={vehicle} priority={index < 3} variant={index === 0 ? "featured" : "default"} />
                   ))}
                 </div>
-                <div className="mt-8 text-center sm:hidden">
+                <div className="mt-10 text-center sm:hidden">
                   <Link
                     href="/search"
-                    className="inline-flex items-center gap-2 text-amber-600 font-semibold"
+                    className="inline-flex items-center gap-2 text-primary font-bold"
                   >
                     View all vehicles
                     <ArrowRight className="h-5 w-5" />
@@ -244,16 +245,17 @@ export default async function Home() {
         </section>
 
         {/* Popular Locations Section */}
-        <section className="py-16 bg-white">
+        <section className="py-24 bg-white relative">
+          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex items-end justify-between mb-10">
+            <div className="flex items-end justify-between mb-12">
               <div>
-                <h2 className="text-3xl font-bold text-slate-900 mb-2">Popular locations</h2>
-                <p className="text-slate-600">Explore rentals in Australia&apos;s top destinations</p>
+                <h2 className="text-4xl font-black text-slate-900 mb-3 font-heading tracking-tight">Popular locations</h2>
+                <p className="text-lg text-slate-500 font-medium">Explore rentals in Australia&apos;s top destinations</p>
               </div>
               <Link
                 href="/search"
-                className="hidden sm:inline-flex items-center gap-2 text-amber-600 font-semibold hover:text-amber-700 transition-colors"
+                className="hidden sm:inline-flex items-center gap-2 text-primary font-bold hover:text-primary/80 transition-colors"
               >
                 View all locations
                 <ArrowRight className="h-5 w-5" />
@@ -276,18 +278,19 @@ export default async function Home() {
         </section>
 
         {/* Testimonials Section */}
-        <section className="py-16 bg-slate-50">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-slate-900 mb-4">
+        <section className="py-24 bg-slate-50 relative overflow-hidden">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
+          <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-black text-slate-900 mb-4 font-heading tracking-tight">
                 What our customers say
               </h2>
-              <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              <p className="text-xl text-slate-500 max-w-2xl mx-auto font-medium">
                 Real reviews from real customers who rented through Carhire.
               </p>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-8 md:grid-cols-3">
               {testimonials.map((testimonial, index) => (
                 <TestimonialCard
                   key={index}
@@ -304,51 +307,54 @@ export default async function Home() {
         </section>
 
         {/* Business Solutions Section */}
-        <section className="py-20 bg-slate-950">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
-              <div className="space-y-6">
-                <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/20 px-4 py-2 text-sm font-medium text-amber-400">
-                  <Briefcase className="h-4 w-4" />
+        <section className="py-24 bg-slate-950 relative overflow-hidden">
+          {/* Accent glow */}
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+          
+          <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
+              <div className="space-y-8">
+                <div className="inline-flex items-center gap-2 rounded-full bg-primary/20 border border-primary/20 px-5 py-2 text-sm font-bold text-primary shadow-sm">
+                  <Briefcase className="h-4.5 w-4.5" />
                   For businesses
                 </div>
                 
-                <h2 className="text-3xl font-bold text-white sm:text-4xl">
+                <h2 className="text-4xl font-black text-white sm:text-5xl font-heading tracking-tight">
                   Carhire for Business
                 </h2>
                 
-                <p className="text-lg text-slate-400 leading-relaxed">
+                <p className="text-xl text-slate-400 leading-relaxed font-medium">
                   Corporate travel and fleet solutions for businesses of all sizes. 
                   Dedicated support, flexible billing, and exclusive rates.
                 </p>
 
-                <div className="space-y-4">
+                <div className="space-y-5">
                   {[
                     { icon: Briefcase, text: "Corporate accounts with centralized billing" },
                     { icon: Headphones, text: "Dedicated account manager and 24/7 support" },
                     { icon: TrendingUp, text: "Volume discounts and exclusive corporate rates" },
                     { icon: CheckCircle2, text: "Flexible cancellation and modification policies" },
                   ].map((feature, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20">
-                        <feature.icon className="h-4 w-4 text-amber-500" />
+                    <div key={index} className="flex items-center gap-4">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20 shadow-inner">
+                        <feature.icon className="h-5 w-5 text-primary" />
                       </div>
-                      <span className="text-slate-300">{feature.text}</span>
+                      <span className="text-lg text-slate-300 font-medium">{feature.text}</span>
                     </div>
                   ))}
                 </div>
 
-                <div className="flex flex-wrap gap-4 pt-4">
+                <div className="flex flex-wrap gap-4 pt-6">
                   <Link
                     href="/vendor/onboarding"
-                    className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-6 py-3 text-base font-semibold text-slate-950 shadow-lg shadow-amber-500/25 hover:bg-amber-400 transition-all"
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-4 text-lg font-bold text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 hover:-translate-y-0.5 transition-all"
                   >
                     Register your business
                     <ArrowRight className="h-5 w-5" />
                   </Link>
                   <Link
                     href="/contact"
-                    className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-6 py-3 text-base font-semibold text-white hover:bg-slate-800 transition-all"
+                    className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-700 px-8 py-4 text-lg font-bold text-white hover:bg-slate-800 hover:border-slate-600 transition-all"
                   >
                     Contact sales
                   </Link>
@@ -356,23 +362,24 @@ export default async function Home() {
               </div>
 
               <div className="relative">
-                <div className="aspect-[4/3] overflow-hidden rounded-2xl">
+                <div className="aspect-[4/3] overflow-hidden rounded-[2rem] shadow-2xl ring-1 ring-white/10">
                   <Image
                     src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80"
                     alt="Business fleet solutions"
                     fill
                     className="object-cover"
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent" />
                 </div>
                 {/* Floating Stats Card */}
-                <div className="absolute -bottom-6 -left-6 bg-white rounded-xl p-6 shadow-xl">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
-                      <TrendingUp className="h-6 w-6 text-emerald-600" />
+                <div className="absolute -bottom-8 -left-8 bg-white rounded-[1.5rem] p-6 shadow-2xl border border-slate-100 animate-slide-up">
+                  <div className="flex items-center gap-5">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-emerald-100 shadow-inner">
+                      <TrendingUp className="h-8 w-8 text-emerald-600" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-slate-900">30%</p>
-                      <p className="text-sm text-slate-600">Average savings for corporate clients</p>
+                      <p className="text-3xl font-black text-slate-900 tracking-tight">30%</p>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mt-1">Average savings</p>
                     </div>
                   </div>
                 </div>

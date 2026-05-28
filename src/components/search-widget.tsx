@@ -4,16 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { MapPin, Calendar, Car, Search, ChevronDown, X } from "lucide-react";
 import { LocationAutocomplete } from "./LocationAutocomplete";
-const cities = [
-  "Sydney",
-  "Melbourne", 
-  "Brisbane",
-  "Perth",
-  "Adelaide",
-  "Gold Coast",
-  "Canberra",
-  "Darwin",
-];
 
 const categories = [
   { value: "", label: "All Categories" },
@@ -35,7 +25,6 @@ export function SearchWidget({ variant = "hero", className = "" }: SearchWidgetP
   const [pickupDate, setPickupDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
   const [category, setCategory] = useState("");
-  const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [differentReturn, setDifferentReturn] = useState(false);
 
   const isHero = variant === "hero";
@@ -56,14 +45,14 @@ export function SearchWidget({ variant = "hero", className = "" }: SearchWidgetP
     <div className={`${className}`}>
       {/* Main Search Container */}
       <div className={`
-        ${isHero ? "bg-white rounded-2xl shadow-2xl p-6 md:p-8" : ""}
-        ${isCompact ? "bg-white rounded-xl shadow-lg p-4" : ""}
-        ${variant === "sidebar" ? "space-y-4" : ""}
+        ${isHero ? "glass rounded-[2rem] shadow-2xl p-6 md:p-8 border border-white/20" : ""}
+        ${isCompact ? "bg-white rounded-2xl shadow-lg p-5 border border-slate-100" : ""}
+        ${variant === "sidebar" ? "space-y-5" : ""}
       `}>
         {isHero && (
           <div className="mb-6">
-            <h2 className="text-xl font-semibold text-slate-900">Find your perfect rental</h2>
-            <p className="text-sm text-slate-500 mt-1">Compare vehicles from verified local operators</p>
+            <h2 className="text-2xl font-bold text-slate-900 font-heading tracking-tight">Find your perfect rental</h2>
+            <p className="text-sm font-medium text-slate-600 mt-1">Compare vehicles from verified local operators</p>
           </div>
         )}
 
@@ -73,8 +62,8 @@ export function SearchWidget({ variant = "hero", className = "" }: SearchWidgetP
           ${isCompact ? "sm:grid-cols-2 lg:grid-cols-4" : ""}
         `}>
           {/* Location Input */}
-          <div className="relative">
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">
+          <div className="relative group">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ml-1">
               Pickup Location
             </label>
             <LocationAutocomplete 
@@ -90,50 +79,50 @@ export function SearchWidget({ variant = "hero", className = "" }: SearchWidgetP
           </div>
 
           {/* Pickup Date */}
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">
+          <div className="relative group">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ml-1">
               Pickup Date
             </label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-amber-500" />
+              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-primary group-focus-within:text-primary transition-colors" />
               <input
                 type="date"
                 value={pickupDate}
                 onChange={(e) => setPickupDate(e.target.value)}
                 min={new Date().toISOString().split("T")[0]}
-                className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 py-3 text-sm text-slate-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all"
+                className="w-full rounded-xl border-2 border-transparent bg-slate-50/80 hover:bg-slate-100 pl-11 pr-4 py-3.5 text-sm font-medium text-slate-900 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"
               />
             </div>
           </div>
 
           {/* Return Date */}
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">
+          <div className="relative group">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ml-1">
               Return Date
             </label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-amber-500" />
+              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-primary group-focus-within:text-primary transition-colors" />
               <input
                 type="date"
                 value={returnDate}
                 onChange={(e) => setReturnDate(e.target.value)}
                 min={pickupDate || new Date().toISOString().split("T")[0]}
-                className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 py-3 text-sm text-slate-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all"
+                className="w-full rounded-xl border-2 border-transparent bg-slate-50/80 hover:bg-slate-100 pl-11 pr-4 py-3.5 text-sm font-medium text-slate-900 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"
               />
             </div>
           </div>
 
           {/* Category Select */}
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">
+          <div className="relative group">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ml-1">
               Vehicle Type
             </label>
             <div className="relative">
-              <Car className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-amber-500" />
+              <Car className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-primary group-focus-within:text-primary transition-colors" />
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-8 py-3 text-sm text-slate-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all appearance-none cursor-pointer"
+                className="w-full rounded-xl border-2 border-transparent bg-slate-50/80 hover:bg-slate-100 pl-11 pr-10 py-3.5 text-sm font-medium text-slate-900 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none cursor-pointer"
               >
                 {categories.map((cat) => (
                   <option key={cat.value} value={cat.value}>
@@ -141,81 +130,81 @@ export function SearchWidget({ variant = "hero", className = "" }: SearchWidgetP
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+              <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-slate-400 pointer-events-none" />
             </div>
           </div>
         </div>
 
         {/* Different Return Location Toggle */}
         {isHero && (
-          <div className="mt-4 flex items-center gap-2">
+          <div className="mt-5 flex items-center gap-2">
             <button
               onClick={() => setDifferentReturn(!differentReturn)}
               className={`
-                flex items-center gap-2 text-sm font-medium transition-colors
-                ${differentReturn ? "text-amber-600" : "text-slate-500 hover:text-slate-700"}
+                flex items-center gap-2.5 text-sm font-bold transition-colors
+                ${differentReturn ? "text-primary" : "text-slate-600 hover:text-slate-900"}
               `}
             >
               <div className={`
-                w-4 h-4 rounded border-2 flex items-center justify-center transition-colors
-                ${differentReturn ? "bg-amber-500 border-amber-500" : "border-slate-300"}
+                w-4.5 h-4.5 rounded border-2 flex items-center justify-center transition-all
+                ${differentReturn ? "bg-primary border-primary shadow-sm" : "border-slate-300 bg-white"}
               `}>
                 {differentReturn && <div className="w-2 h-2 bg-white rounded-sm" />}
               </div>
-              Different return location
+              Return to a different location
             </button>
           </div>
         )}
 
         {/* Search Button */}
-        <div className={`${variant !== "sidebar" ? "mt-6" : "mt-4"}`}>
+        <div className={`${variant !== "sidebar" ? "mt-8" : "mt-6"}`}>
           <Link
             href={buildSearchUrl()}
             className={`
-              flex items-center justify-center gap-2 rounded-lg font-semibold text-white
-              bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500
-              shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/30
-              transition-all duration-200
-              ${isHero ? "w-full md:w-auto md:inline-flex px-8 py-4 text-base" : ""}
-              ${isCompact ? "w-full py-3 text-sm" : ""}
-              ${variant === "sidebar" ? "w-full py-3 text-sm" : ""}
+              flex items-center justify-center gap-2.5 rounded-xl font-bold text-primary-foreground
+              bg-primary hover:bg-primary/90 hover:-translate-y-0.5
+              shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30
+              transition-all duration-300
+              ${isHero ? "w-full md:w-auto md:inline-flex px-10 py-4.5 text-lg" : ""}
+              ${isCompact ? "w-full py-3.5 text-sm" : ""}
+              ${variant === "sidebar" ? "w-full py-3.5 text-sm" : ""}
             `}
           >
             <Search className="h-5 w-5" />
-            Show Cars
+            Show Vehicles
           </Link>
         </div>
 
         {/* Active Filters Display */}
         {hasSearchParams && isHero && (
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className="text-xs text-slate-500">Active filters:</span>
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mr-1">Active filters:</span>
             {location && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-700 text-xs rounded-full">
-                <MapPin className="h-3 w-3" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 border border-primary/10 text-primary text-xs font-bold rounded-lg shadow-sm">
+                <MapPin className="h-3.5 w-3.5" />
                 {location}
-                <button onClick={() => setLocation("")} className="hover:text-amber-900">
-                  <X className="h-3 w-3" />
+                <button onClick={() => setLocation("")} className="hover:text-primary/70 transition-colors ml-0.5">
+                  <X className="h-3.5 w-3.5" />
                 </button>
               </span>
             )}
             {category && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-700 text-xs rounded-full">
-                <Car className="h-3 w-3" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 border border-primary/10 text-primary text-xs font-bold rounded-lg shadow-sm">
+                <Car className="h-3.5 w-3.5" />
                 {category}
-                <button onClick={() => setCategory("")} className="hover:text-amber-900">
-                  <X className="h-3 w-3" />
+                <button onClick={() => setCategory("")} className="hover:text-primary/70 transition-colors ml-0.5">
+                  <X className="h-3.5 w-3.5" />
                 </button>
               </span>
             )}
             {(pickupDate || returnDate) && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-700 text-xs rounded-full">
-                <Calendar className="h-3 w-3" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 border border-primary/10 text-primary text-xs font-bold rounded-lg shadow-sm">
+                <Calendar className="h-3.5 w-3.5" />
                 {pickupDate && new Date(pickupDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
                 {pickupDate && returnDate && " - "}
                 {returnDate && new Date(returnDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
-                <button onClick={() => { setPickupDate(""); setReturnDate(""); }} className="hover:text-amber-900">
-                  <X className="h-3 w-3" />
+                <button onClick={() => { setPickupDate(""); setReturnDate(""); }} className="hover:text-primary/70 transition-colors ml-0.5">
+                  <X className="h-3.5 w-3.5" />
                 </button>
               </span>
             )}

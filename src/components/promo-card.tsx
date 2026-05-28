@@ -26,24 +26,24 @@ export function PromoCard({
   variant = "medium",
   discount,
 }: PromoCardProps) {
-  const heightClass = variant === "large" ? "min-h-[400px]" : variant === "medium" ? "min-h-[280px]" : "min-h-[200px]";
-  const paddingClass = variant === "large" ? "p-8 md:p-12" : variant === "medium" ? "p-6 md:p-8" : "p-5";
-  const titleSize = variant === "large" ? "text-3xl md:text-4xl" : variant === "medium" ? "text-2xl md:text-3xl" : "text-xl";
+  const heightClass = variant === "large" ? "min-h-[440px]" : variant === "medium" ? "min-h-[300px]" : "min-h-[220px]";
+  const paddingClass = variant === "large" ? "p-10 md:p-14" : variant === "medium" ? "p-8 md:p-10" : "p-6";
+  const titleSize = variant === "large" ? "text-4xl md:text-5xl" : variant === "medium" ? "text-3xl md:text-4xl" : "text-2xl";
 
   return (
     <div className={`
-      relative overflow-hidden rounded-2xl ${heightClass} ${paddingClass}
-      group card-lift
+      relative overflow-hidden rounded-[2rem] ${heightClass} ${paddingClass}
+      group card-lift ring-1 ring-white/10
       ${!bgImage ? bgColor : ""}
     `}>
       {/* Background Image */}
       {bgImage && (
         <>
           <div 
-            className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+            className="absolute inset-0 bg-cover bg-center transition-transform duration-700 ease-out group-hover:scale-110"
             style={{ backgroundImage: `url(${bgImage})` }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent transition-opacity duration-500 group-hover:opacity-90" />
         </>
       )}
 
@@ -51,42 +51,45 @@ export function PromoCard({
       <div className="relative z-10 flex flex-col h-full justify-end">
         {/* Discount Badge */}
         {discount && (
-          <div className="mb-4">
-            <span className="inline-block px-3 py-1 bg-amber-500 text-slate-950 text-sm font-bold rounded-full">
+          <div className="mb-5 animate-slide-up" style={{ animationDelay: '100ms' }}>
+            <span className="inline-block px-4 py-1.5 bg-primary text-primary-foreground text-xs font-black uppercase tracking-widest rounded-full shadow-lg shadow-primary/20">
               {discount}
             </span>
           </div>
         )}
 
         {/* Title */}
-        <h3 className={`${titleSize} font-bold text-white mb-2`}>
+        <h3 className={`${titleSize} font-black text-white mb-3 font-heading tracking-tight animate-slide-up`} style={{ animationDelay: '150ms' }}>
           {title}
         </h3>
 
         {/* Subtitle */}
-        <p className="text-lg text-white/90 font-medium mb-2">
+        <p className="text-xl text-white/90 font-medium mb-3 animate-slide-up" style={{ animationDelay: '200ms' }}>
           {subtitle}
         </p>
 
         {/* Description */}
         {description && (
-          <p className="text-sm text-white/70 mb-6 max-w-md">
+          <p className="text-base text-white/70 mb-8 max-w-md animate-slide-up" style={{ animationDelay: '250ms' }}>
             {description}
           </p>
         )}
 
         {/* CTA */}
-        <Link
-          href={ctaHref}
-          className={`
-            inline-flex items-center gap-2 font-semibold text-white
-            hover:gap-3 transition-all duration-200
-            ${variant === "large" ? "text-base mt-4" : "text-sm mt-3"}
-          `}
-        >
-          {ctaText}
-          <ArrowRight className="h-5 w-5" />
-        </Link>
+        <div className="mt-auto pt-4 animate-slide-up" style={{ animationDelay: '300ms' }}>
+          <Link
+            href={ctaHref}
+            className={`
+              inline-flex items-center justify-center gap-2 font-bold transition-all duration-300
+              rounded-xl backdrop-blur-md border border-white/20
+              bg-white/10 text-white hover:bg-white hover:text-slate-950
+              ${variant === "large" ? "px-8 py-4 text-lg" : "px-6 py-3 text-base"}
+            `}
+          >
+            {ctaText}
+            <ArrowRight className="h-5 w-5" />
+          </Link>
+        </div>
       </div>
     </div>
   );
