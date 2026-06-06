@@ -64,6 +64,7 @@ export default function VehicleForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [pendingUploads, setPendingUploads] = useState<File[]>([]);
 
   async function handleSubmit(formData: FormData) {
     setIsSubmitting(true);
@@ -76,18 +77,47 @@ export default function VehicleForm({
         ? await updateVehicle(formData)
         : await createVehicle(formData);
 
-      if (result.success) {
-        setMessage({
-          type: "success",
-          text: editVehicle ? "Vehicle updated successfully!" : "Vehicle created successfully!",
-        });
-        if (!editVehicle) {
-          // Immediately redirect to edit mode so user can upload images
-          router.push(`/vendor/vehicles?org=${organizationId}&edit=${result.vehicleId}`);
-        }
-      } else {
+      if (!result.success) {
         setMessage({ type: "error", text: result.error });
+        setIsSubmitting(false);
+        return;
       }
+
+      const vehicleId = editVehicle ? editVehicle.id : result.vehicleId;
+
+      if (pendingUploads.length > 0) {
+        setUploadingImage(true);
+        let uploadErrors = 0;
+        
+        for (const file of pendingUploads) {
+          const imgFormData = new FormData();
+          imgFormData.append("vehicleId", vehicleId);
+          imgFormData.append("organizationId", organizationId);
+          imgFormData.append("file", file);
+          
+          try {
+            const upRes = await uploadVehicleImage(imgFormData);
+            if (!upRes.success) uploadErrors++;
+          } catch {
+            uploadErrors++;
+          }
+        }
+        
+        setUploadingImage(false);
+        
+        if (uploadErrors > 0) {
+           setMessage({ type: "error", text: `Vehicle saved, but ${uploadErrors} images failed to upload.` });
+           router.push(`/vendor/vehicles?org=${organizationId}&edit=${vehicleId}`);
+           return;
+        }
+      }
+
+      setMessage({
+        type: "success",
+        text: editVehicle ? "Vehicle updated successfully!" : "Vehicle created successfully!",
+      });
+      
+      router.push(`/vendor/vehicles?org=${organizationId}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setMessage({ type: "error", text: `Error: ${msg}` });
@@ -96,26 +126,7 @@ export default function VehicleForm({
     }
   }
 
-  async function handleImageUpload(formData: FormData) {
-    if (!editVehicle) return;
 
-    setUploadingImage(true);
-    setMessage(null);
-
-    try {
-      const result = await uploadVehicleImage(formData);
-
-      if (result.success) {
-        setMessage({ type: "success", text: "Image uploaded successfully! Awaiting admin approval." });
-      } else {
-        setMessage({ type: "error", text: result.error });
-      }
-    } catch {
-      setMessage({ type: "error", text: "Image upload failed" });
-    } finally {
-      setUploadingImage(false);
-    }
-  }
 
   async function handleDeleteImage(imageId: string) {
     if (!editVehicle || !confirm("Delete this image?")) return;
@@ -444,10 +455,12 @@ export default function VehicleForm({
             disabled={isSubmitting || (isAtLimit && !editVehicle)}
             className="rounded-md bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:bg-slate-400"
           >
-            {isSubmitting
-              ? editVehicle
-                ? "Updating..."
-                : "Saving..."
+            {isSubmitting || uploadingImage
+              ? uploadingImage
+                ? "Uploading Images..."
+                : editVehicle
+                  ? "Updating..."
+                  : "Saving..."
               : editVehicle
                 ? "Update Vehicle"
                 : "Save as Pending Listing"}
@@ -468,107 +481,105 @@ export default function VehicleForm({
       <div className="mt-8 border-t border-slate-200 pt-8">
         <h3 className="text-lg font-semibold">Vehicle Images</h3>
         <p className="mt-1 text-sm text-slate-600">
-          Upload up to 10 images. Images require admin approval before appearing in search.
+          Upload up to 10 images. You can select multiple files at once.
         </p>
 
-        {!editVehicle ? (
-          <div className="mt-4 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-            <p className="text-sm font-medium text-slate-600">
-              You must save the vehicle details before uploading images.
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Click &quot;Save as Pending Listing&quot; to unlock image uploads.
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Existing Images */}
-            {editImages.length > 0 && (
-              <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-                {editImages.map((img) => (
-                  <div key={img.id} className="relative">
-                    {img.url ? (
-                      <div className="relative aspect-square overflow-hidden rounded-lg">
-                        <Image
-                          src={img.url}
-                          alt={img.alt_text || "Vehicle image"}
-                          fill
-                          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
-                          className="object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex aspect-square items-center justify-center rounded-lg bg-slate-100">
-                        <span className="text-slate-400">Image</span>
-                      </div>
-                    )}
-                    <div className="absolute right-2 top-2 flex gap-1">
-                      {!img.approved && (
-                        <span className="rounded-full bg-amber-500 px-2 py-1 text-xs text-white">
-                          Pending
-                        </span>
-                      )}
-                      <button
-                        onClick={() => handleDeleteImage(img.id)}
-                        className="rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
-                        title="Delete image"
-                      >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
+        {/* Existing Images */}
+        {editImages.length > 0 && (
+          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+            {editImages.map((img) => (
+              <div key={img.id} className="relative">
+                {img.url ? (
+                  <div className="relative aspect-square overflow-hidden rounded-lg border border-slate-200">
+                    <Image
+                      src={img.url}
+                      alt={img.alt_text || "Vehicle image"}
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                      className="object-cover"
+                    />
                   </div>
-                ))}
+                ) : (
+                  <div className="flex aspect-square items-center justify-center rounded-lg bg-slate-100 border border-slate-200">
+                    <span className="text-slate-400">Image</span>
+                  </div>
+                )}
+                <div className="absolute right-2 top-2 flex gap-1">
+                  {!img.approved && (
+                    <span className="rounded-full bg-amber-500 px-2 py-1 text-xs text-white">
+                      Pending
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteImage(img.id)}
+                    className="rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                    title="Delete image"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-            )}
-
-            {/* Upload Form */}
-            <form
-              action={handleImageUpload}
-              className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end"
-            >
-              <input type="hidden" name="vehicleId" value={editVehicle.id} />
-              <input type="hidden" name="organizationId" value={organizationId} />
-
-              <label className="flex-1">
-                <span className="text-sm font-medium text-slate-700">Image File</span>
-                <input
-                  type="file"
-                  name="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  required
-                  className="mt-1 block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:text-white hover:file:bg-slate-800"
-                />
-              </label>
-
-              <label className="flex-1">
-                <span className="text-sm font-medium text-slate-700">Alt Text (Optional)</span>
-                <input
-                  type="text"
-                  name="altText"
-                  maxLength={200}
-                  placeholder="Describe the image for accessibility"
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-                />
-              </label>
-
-              <button
-                type="submit"
-                disabled={uploadingImage || editImages.length >= 10}
-                className="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:bg-slate-400"
-              >
-                {uploadingImage ? "Uploading..." : "Upload Image"}
-              </button>
-            </form>
-
-            {editImages.length >= 10 && (
-              <p className="mt-2 text-sm text-amber-600">
-                Maximum 10 images per vehicle reached. Delete existing images to upload new ones.
-              </p>
-            )}
-          </>
+            ))}
+          </div>
         )}
+
+        {/* Pending Uploads Preview */}
+        {pendingUploads.length > 0 && (
+          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+            {pendingUploads.map((file, idx) => (
+              <div key={idx} className="relative aspect-square overflow-hidden rounded-lg border border-slate-200">
+                <Image
+                  src={URL.createObjectURL(file)}
+                  alt="Pending upload"
+                  fill
+                  className="object-cover opacity-70"
+                />
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="rounded bg-black/50 px-2 py-1 text-xs text-white">Pending Save</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPendingUploads(prev => prev.filter((_, i) => i !== idx))}
+                  className="absolute right-2 top-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600 z-10"
+                  title="Remove image"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Upload Selection */}
+        <div className="mt-4 flex flex-col gap-3">
+          <label className="block w-full sm:w-1/2">
+            <span className="text-sm font-medium text-slate-700">Add Images</span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              disabled={editImages.length + pendingUploads.length >= 10 || isSubmitting || uploadingImage}
+              onChange={(e) => {
+                if (e.target.files) {
+                  setPendingUploads(prev => [...prev, ...Array.from(e.target.files!)]);
+                  e.target.value = ""; // Reset input so same files can be selected again if removed
+                }
+              }}
+              className="mt-1 block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:text-white hover:file:bg-slate-800 disabled:opacity-50"
+            />
+          </label>
+
+          {editImages.length + pendingUploads.length >= 10 && (
+            <p className="mt-2 text-sm text-amber-600">
+              Maximum 10 images per vehicle reached. Remove images to add new ones.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
