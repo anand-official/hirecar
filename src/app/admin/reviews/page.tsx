@@ -101,15 +101,15 @@ export default async function AdminReviewsPage({ searchParams }: AdminReviewsPag
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-lg border border-slate-800 bg-slate-950 p-6 shadow-sm">
         <h1 className="text-2xl font-semibold">Review Moderation</h1>
-        <p className="mt-2 text-slate-600">
+        <p className="mt-2 text-slate-400">
           Moderate customer reviews before they are shown publicly. All reviews are screened for authenticity.
         </p>
       </section>
 
       {/* Status Tabs */}
-      <div className="flex gap-2 border-b border-slate-200">
+      <div className="flex gap-2 border-b border-slate-800">
         {[
           { key: "pending", label: "Pending", count: counts.pending },
           { key: "approved", label: "Approved", count: counts.approved },
@@ -120,15 +120,15 @@ export default async function AdminReviewsPage({ searchParams }: AdminReviewsPag
             href={`/admin/reviews?status=${tab.key}`}
             className={`border-b-2 px-4 py-2 text-sm font-medium ${
               statusFilter === tab.key
-                ? "border-slate-950 text-slate-950"
-                : "border-transparent text-slate-600 hover:text-slate-800"
+                ? "border-white text-white"
+                : "border-transparent text-slate-400 hover:text-slate-200"
             }`}
           >
             {tab.label}
             {tab.count > 0 && (
               <span
                 className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
-                  statusFilter === tab.key ? "bg-slate-950 text-white" : "bg-slate-200 text-slate-700"
+                  statusFilter === tab.key ? "bg-slate-950 text-white" : "bg-slate-800 text-slate-300"
                 }`}
               >
                 {tab.count}
@@ -141,8 +141,8 @@ export default async function AdminReviewsPage({ searchParams }: AdminReviewsPag
       {/* Reviews List */}
       <div className="space-y-4">
         {reviews?.length === 0 ? (
-          <div className="rounded-lg border border-slate-200 bg-white p-8 text-center">
-            <p className="text-slate-500">No {statusFilter} reviews found.</p>
+          <div className="rounded-lg border border-slate-800 bg-slate-950 p-8 text-center">
+            <p className="text-slate-400">No {statusFilter} reviews found.</p>
           </div>
         ) : (
           reviews?.map((review) => {
@@ -157,7 +157,7 @@ export default async function AdminReviewsPage({ searchParams }: AdminReviewsPag
             return (
               <div
                 key={review.id}
-                className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+                className="rounded-lg border border-slate-800 bg-slate-950 p-6 shadow-sm"
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
@@ -166,10 +166,10 @@ export default async function AdminReviewsPage({ searchParams }: AdminReviewsPag
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                           review.status === "approved"
-                            ? "bg-green-100 text-green-800"
+                            ? "bg-green-900/30 text-green-400"
                             : review.status === "pending"
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-red-100 text-red-800"
+                              ? "bg-amber-900/30 text-amber-400"
+                              : "bg-red-900/30 text-red-400"
                         }`}
                       >
                         {review.status}
@@ -184,10 +184,10 @@ export default async function AdminReviewsPage({ searchParams }: AdminReviewsPag
                           ★
                         </span>
                       ))}
-                      <span className="ml-2 text-sm text-slate-600">({review.rating}/5)</span>
+                      <span className="ml-2 text-sm text-slate-400">({review.rating}/5)</span>
                     </div>
-                    <p className="mt-3 text-slate-700">{review.body}</p>
-                    <div className="mt-3 text-sm text-slate-600">
+                    <p className="mt-3 text-slate-300">{review.body}</p>
+                    <div className="mt-3 text-sm text-slate-400">
                       <p>
                         <span className="font-medium">Vendor:</span>{" "}
                         <Link href={`/vendors/${org.slug}`} className="text-blue-600 hover:underline">
@@ -200,7 +200,7 @@ export default async function AdminReviewsPage({ searchParams }: AdminReviewsPag
                         </p>
                       )}
                     </div>
-                    <p className="mt-2 text-xs text-slate-500">
+                    <p className="mt-2 text-xs text-slate-400">
                       Submitted {new Date(review.created_at).toLocaleDateString("en-AU")}
                     </p>
                   </div>
