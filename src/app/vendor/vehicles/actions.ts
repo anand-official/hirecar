@@ -72,17 +72,19 @@ export async function createVehicle(formData: FormData): Promise<VehicleActionRe
     const data = parseResult.data;
     const supabase = createAdminClient();
 
-    // Verify branch belongs to organization
-    const { data: branch } = await supabase
-      .from("branches")
-      .select("id")
-      .eq("id", branchId)
-      .eq("organization_id", organizationId)
+    // Verify branch belongs to organization and get org status
+    const { data: orgData } = await supabase
+      .from("organizations")
+      .select("status, branches!inner(id)")
+      .eq("id", organizationId)
+      .eq("branches.id", branchId)
       .single();
 
-    if (!branch) {
-      return { success: false, error: "Invalid branch for this organization" };
+    if (!orgData) {
+      return { success: false, error: "Invalid branch or organization" };
     }
+
+    const vehicleStatus = orgData.status === "approved" ? "approved" : "pending";
 
     // Create vehicle with pending status (requires admin approval)
     const { data: vehicle, error } = await supabase
@@ -111,7 +113,7 @@ export async function createVehicle(formData: FormData): Promise<VehicleActionRe
         monthly_rate_aud: data.monthlyRateAud,
         weekend_rate_aud: data.weekendRateAud,
         notes: data.notes,
-        status: "pending",
+        status: vehicleStatus,
       })
       .select("id")
       .single();
@@ -192,10 +194,10 @@ export async function updateVehicle(formData: FormData): Promise<VehicleActionRe
   const data = parseResult.data;
   const supabase = createAdminClient();
 
-  // Verify vehicle belongs to organization and get current status
+  // Verify vehicle belongs to organization and get current org status
   const { data: existingVehicle } = await supabase
     .from("vehicles")
-    .select("id, branch_id, status")
+    .select("id, branch_id, status, organizations!inner(status)")
     .eq("id", vehicleId)
     .eq("organization_id", organizationId)
     .single();
@@ -203,6 +205,8 @@ export async function updateVehicle(formData: FormData): Promise<VehicleActionRe
   if (!existingVehicle) {
     return { success: false, error: "Vehicle not found or does not belong to your organization" };
   }
+
+  const isOrgApproved = (existingVehicle.organizations as unknown as { status: string }).status === "approved";
 
   // Build update object with only provided fields
   const updateData: Record<string, unknown> = {};
@@ -249,11 +253,17 @@ export async function updateVehicle(formData: FormData): Promise<VehicleActionRe
   if (Object.keys(updateData).length > 0) {
     updateData.updated_at = new Date().toISOString();
 
-    // Revert to pending if material changes on approved vehicle
-    if (existingVehicle.status === "approved" && hasMaterialChanges) {
-      updateData.status = "pending";
-      // Clear suspended_at if it was set
+    if (isOrgApproved) {
+      // Vendor is approved, so vehicle is always approved
+      updateData.status = "approved";
       updateData.suspended_at = null;
+    } else {
+      // Revert to pending if material changes on approved vehicle
+      if (existingVehicle.status === "approved" && hasMaterialChanges) {
+        updateData.status = "pending";
+        // Clear suspended_at if it was set
+        updateData.suspended_at = null;
+      }
     }
 
     const { error } = await supabase.from("vehicles").update(updateData).eq("id", vehicleId);

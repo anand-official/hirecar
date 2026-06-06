@@ -57,10 +57,10 @@ export async function uploadVehicleImage(
 
   const supabase = createAdminClient();
 
-  // Verify vehicle belongs to organization
+  // Verify vehicle belongs to organization and get org status
   const { data: vehicle, error: vehicleError } = await supabase
     .from("vehicles")
-    .select("id, status")
+    .select("id, status, organizations!inner(status)")
     .eq("id", vehicleId)
     .eq("organization_id", organizationId)
     .single();
@@ -74,9 +74,12 @@ export async function uploadVehicleImage(
   const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
   const storagePath = `${organizationId}/${vehicleId}/${timestamp}-${sanitizedFilename}`;
 
-  // Upload to Supabase Storage (pending bucket - requires admin approval)
+  const isOrgApproved = (vehicle.organizations as unknown as { status: string }).status === "approved";
+  const bucketName = isOrgApproved ? "vehicle-images" : "pending-vehicle-images";
+
+  // Upload to Supabase Storage
   const { error: uploadError } = await supabase.storage
-    .from("pending-vehicle-images")
+    .from(bucketName)
     .upload(storagePath, file, {
       contentType: file.type,
       cacheControl: "3600",
@@ -104,14 +107,14 @@ export async function uploadVehicleImage(
       storage_path: storagePath,
       alt_text: altText,
       sort_order: nextSortOrder,
-      approved: false, // Requires admin approval
+      approved: isOrgApproved,
     })
     .select("id")
     .single();
 
   if (dbError) {
     // Try to clean up the uploaded file
-    await supabase.storage.from("pending-vehicle-images").remove([storagePath]);
+    await supabase.storage.from(bucketName).remove([storagePath]);
     return { success: false, error: `Database error: ${dbError.message}` };
   }
 
@@ -129,8 +132,8 @@ export async function uploadVehicleImage(
     },
   });
 
-  // Create fraud flag for moderation queue if this is a new vehicle
-  if (vehicle.status === "pending") {
+  // Create fraud flag for moderation queue if this is a new vehicle AND vendor is not approved
+  if (vehicle.status === "pending" && !isOrgApproved) {
     await supabase.from("fraud_flags").insert({
       resource_type: "vehicle_image",
       resource_id: imageRecord.id,
