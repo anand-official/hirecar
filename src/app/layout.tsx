@@ -81,7 +81,7 @@ export default function RootLayout({
       className={`${inter.variable} ${outfit.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <head>
+      <body className="min-h-full bg-slate-50 text-slate-950 font-sans tracking-tight">
         {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
           <>
             <Script
@@ -100,8 +100,6 @@ export default function RootLayout({
             </Script>
           </>
         )}
-      </head>
-      <body className="min-h-full bg-slate-50 text-slate-950 font-sans tracking-tight">
         {children}
         <Toaster richColors position="top-right" />
       </body>
