@@ -265,6 +265,50 @@ const policies: Record<string, Policy> = {
       },
     ],
   },
+  rules: {
+    title: "Rules and Guidelines",
+    summary:
+      "These rules and guidelines help ensure a safe, legal, and respectful experience for both customers and vendors across the Hire Car marketplace, in accordance with Australian law.",
+    sections: [
+      {
+        heading: "Driver Eligibility & Licensing",
+        body: [
+          "Customers must hold a valid, unexpired, and unrestricted driver's license suitable for the class of vehicle they intend to hire.",
+          "Learner permits and provisional licenses (P-plates) may be accepted by some vendors at their sole discretion, subject to additional conditions, fees, or higher insurance excesses. Customers must disclose their license status prior to booking.",
+          "International renters must hold a valid driver's license in English or an International Driving Permit (IDP) accompanied by their original license.",
+        ],
+      },
+      {
+        heading: "Road Safety & Compliance",
+        body: [
+          "All vehicles must be driven on the left side of the road, in strict compliance with Australian road rules and speed limits.",
+          "Seatbelts must be worn by the driver and all passengers at all times. Drivers must ensure children are seated in approved, correctly fitted child restraints according to age and size regulations.",
+          "It is strictly prohibited to drive under the influence of drugs or alcohol. The legal Blood Alcohol Concentration (BAC) limit in Australia is 0.05% for fully licensed drivers, and 0.00% for provisional or commercial drivers.",
+        ],
+      },
+      {
+        heading: "Tolls, Fines, and Infringements",
+        body: [
+          "Customers are personally responsible for all tolls, parking fines, speeding tickets, and traffic infringements incurred during the rental period.",
+          "Vendors reserve the right to pass on the cost of any infringements to the customer, often accompanied by an administration fee as outlined in the vendor's specific rental agreement.",
+        ],
+      },
+      {
+        heading: "Vehicle Use and Care",
+        body: [
+          "Vehicles must be used only for their intended purpose. Off-roading, driving on unsealed roads, or beach driving is prohibited unless explicitly authorised by the vendor in writing (e.g., for specific 4WD rentals).",
+          "Smoking or vaping inside rental vehicles is strictly prohibited. Vendors may charge professional cleaning fees if evidence of smoking, excessive dirt, or pet hair (where pets are not approved) is found.",
+        ],
+      },
+      {
+        heading: "Accidents and Reporting",
+        body: [
+          "In the event of an accident, customers must stop, assist anyone injured, and report the incident to the police if required by state law (e.g., if there are injuries or significant property damage).",
+          "Customers must promptly report any accidents, theft, or mechanical issues to the vendor and must not abandon the vehicle or arrange independent repairs without the vendor's consent.",
+        ],
+      },
+    ],
+  },
   disclaimer: {
     title: "Customer Disclaimer",
     summary:

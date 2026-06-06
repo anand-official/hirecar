@@ -33,6 +33,7 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile, in
   const [endDate, setEndDate] = useState("");
   const [message, setMessage] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [licenseConfirmed, setLicenseConfirmed] = useState(false);
 
   const handleQuickSubmit = async () => {
     setIsSubmitting(true);
@@ -149,9 +150,22 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile, in
         
         {error && <p className="mt-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">{error}</p>}
         
+        <label className="mt-6 flex items-start gap-3 text-sm text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-100 cursor-pointer">
+          <input 
+            type="checkbox" 
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" 
+            checked={licenseConfirmed}
+            onChange={(e) => setLicenseConfirmed(e.target.checked)}
+            required 
+          />
+          <span className="leading-snug">
+            I confirm I hold a valid, unrestricted driver&apos;s license and understand the vendor will require it upon pickup.
+          </span>
+        </label>
+
         <button 
           onClick={handleQuickSubmit}
-          disabled={isSubmitting}
+          disabled={isSubmitting || !licenseConfirmed}
           className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#ea580c] to-amber-500 px-4 py-3.5 text-base font-bold text-white shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 transition-all"
         >
           {isSubmitting ? (
@@ -251,9 +265,22 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile, in
           value={message}
           onChange={(e) => setMessage(e.target.value)}
         />
-        <label className="flex items-start gap-3 text-sm text-slate-600 mt-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
+        <label className="flex items-start gap-3 text-sm text-slate-600 mt-2 bg-slate-50 p-4 rounded-xl border border-slate-100 cursor-pointer">
           <input type="checkbox" className="mt-0.5 h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" required />
           <span className="leading-snug">I agree for Hire Car to share my enquiry details with this verified local vendor.</span>
+        </label>
+        
+        <label className="flex items-start gap-3 text-sm text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-100 cursor-pointer">
+          <input 
+            type="checkbox" 
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" 
+            checked={licenseConfirmed}
+            onChange={(e) => setLicenseConfirmed(e.target.checked)}
+            required 
+          />
+          <span className="leading-snug">
+            I confirm I hold a valid, unrestricted driver&apos;s license and understand the vendor will require it upon pickup.
+          </span>
         </label>
         
         <div className="flex justify-center">
@@ -265,7 +292,7 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile, in
 
         <button
           type="submit"
-          disabled={isSubmitting || !turnstileToken}
+          disabled={isSubmitting || !turnstileToken || !licenseConfirmed}
           className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#ea580c] to-amber-500 px-4 py-3.5 text-base font-bold text-white shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 transition-all"
         >
           {isSubmitting ? (
