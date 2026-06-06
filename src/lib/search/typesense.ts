@@ -170,6 +170,31 @@ export async function searchVehicles(
 
     const vehicles = results.hits?.map((hit) => hit.document) ?? [];
 
+    if (vehicles.length > 0) {
+      const supabase = createAdminClient();
+      const vehicleIds = vehicles.map(v => v.id);
+      
+      const { data: imagesData } = await supabase
+        .from("vehicle_images")
+        .select("vehicle_id, storage_path")
+        .in("vehicle_id", vehicleIds)
+        .eq("approved", true)
+        .order("sort_order", { ascending: true });
+
+      if (imagesData && imagesData.length > 0) {
+        vehicles.forEach(v => {
+          const img = imagesData.find(i => i.vehicle_id === v.id);
+          if (img) {
+            v.imageUrl = supabase.storage.from("vehicle-images").getPublicUrl(img.storage_path).data.publicUrl;
+          } else {
+            v.imageUrl = "/vehicle-placeholder.jpg";
+          }
+        });
+      } else {
+        vehicles.forEach(v => { v.imageUrl = "/vehicle-placeholder.jpg"; });
+      }
+    }
+
     return {
       vehicles,
       total: results.found ?? 0,
@@ -223,7 +248,8 @@ async function fallbackDatabaseSearch(
       instant_book,
       status,
       organizations!inner(id, name, slug, status),
-      branches!inner(id, name, city, state, status)
+      branches!inner(id, name, city, state, status),
+      vehicle_images(storage_path, sort_order)
     `,
       { count: "exact" },
     )
@@ -291,6 +317,14 @@ async function fallbackDatabaseSearch(
     data?.map((v) => {
       const org = v.organizations as unknown as { name: string; slug: string };
       const branch = v.branches as unknown as { name: string; city: string; state: string };
+      
+      let imageUrl = "/vehicle-placeholder.jpg";
+      const images = (v.vehicle_images as unknown as { storage_path: string; sort_order: number }[]) ?? [];
+      if (images.length > 0) {
+        // Find the image with the lowest sort_order (already ordered by supabase if possible, but safe to sort)
+        images.sort((a, b) => a.sort_order - b.sort_order);
+        imageUrl = supabase.storage.from("vehicle-images").getPublicUrl(images[0].storage_path).data.publicUrl;
+      }
 
       return {
         id: v.id,
@@ -309,7 +343,7 @@ async function fallbackDatabaseSearch(
         instantBook: v.instant_book,
         city: branch.city,
         state: branch.state,
-        imageUrl: "/vehicle-placeholder.jpg", // Placeholder - images stored separately
+        imageUrl,
         vendorName: org.name,
         vendorSlug: org.slug,
         branchName: branch.name,
