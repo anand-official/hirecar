@@ -121,7 +121,7 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile, in
         </p>
         {isLoggedIn && (
           <button
-            onClick={() => router.push("/messages")}
+            onClick={() => router.push("/customer/enquiries")}
             className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
           >
             <MessageCircle className="h-4 w-4" />
