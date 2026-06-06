@@ -7,27 +7,24 @@ export const metadata = {
   title: "Fraud & Abuse",
 };
 
-interface AdminFraudPageProps {
-  searchParams: Promise<{ id?: string; close?: string }>;
-}
-
-async function closeFraudFlag(flagId: string) {
+async function updateFraudFlagStatus(action: "close" | "reopen", flagId: string) {
   "use server";
 
   const user = await requireAdmin();
   const supabase = createAdminClient();
+  const isClosing = action === "close";
 
   const { error } = await supabase
     .from("fraud_flags")
     .update({
-      status: "closed",
-      reviewed_by: user.id,
-      reviewed_at: new Date().toISOString(),
+      status: isClosing ? "closed" : "open",
+      reviewed_by: isClosing ? user.id : null,
+      reviewed_at: isClosing ? new Date().toISOString() : null,
     })
     .eq("id", flagId);
 
   if (error) {
-    throw new Error(`Failed to close flag: ${error.message}`);
+    throw new Error(`Failed to ${action} flag: ${error.message}`);
   }
 
   // Add moderation note
@@ -35,13 +32,15 @@ async function closeFraudFlag(flagId: string) {
     resource_type: "fraud_flag",
     resource_id: flagId,
     author_user_id: user.id,
-    body: "[CLOSED] Fraud flag investigated and closed",
+    body: isClosing
+      ? "[CLOSED] Fraud flag investigated and closed"
+      : "[REOPENED] Fraud flag reopened for further review",
   });
 
   // Log audit event
   await supabase.from("audit_logs").insert({
     actor_user_id: user.id,
-    action: "fraud_flag_closed",
+    action: isClosing ? "fraud_flag_closed" : "fraud_flag_reopened",
     resource_type: "fraud_flag",
     resource_id: flagId,
   });
@@ -50,15 +49,9 @@ async function closeFraudFlag(flagId: string) {
   revalidatePath("/admin");
 }
 
-export default async function AdminFraudPage({ searchParams }: AdminFraudPageProps) {
+export default async function AdminFraudPage() {
   await requireAdmin();
-  const params = await searchParams;
   const supabase = createAdminClient();
-
-  // Process close action
-  if (params.close) {
-    await closeFraudFlag(params.close);
-  }
 
   // Fetch fraud flags
   const { data: flags, error } = await supabase
@@ -88,7 +81,7 @@ export default async function AdminFraudPage({ searchParams }: AdminFraudPagePro
         const { data } = await supabase.from("organizations").select("name").eq("id", flag.resource_id).single();
         vendorName = data?.name ?? null;
         vendorId = flag.resource_id;
-      } else if (flag.resource_type === "vehicle") {
+      } else if (flag.resource_type === "vehicle" || flag.resource_type === "lead_attempt") {
         const { data } = await supabase
           .from("vehicles")
           .select("title, organization_id, organizations(name)")
@@ -223,12 +216,14 @@ export default async function AdminFraudPage({ searchParams }: AdminFraudPagePro
                 <div className="flex gap-2">
                   {flag.status === "open" && (
                     <>
-                      <Link
-                        href={`/admin/fraud?close=${flag.id}`}
-                        className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-                      >
-                        Close Flag
-                      </Link>
+                      <form action={updateFraudFlagStatus.bind(null, "close", flag.id)}>
+                        <button
+                          type="submit"
+                          className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                        >
+                          Close Flag
+                        </button>
+                      </form>
                       <Link
                         href={`/admin/audit?type=${flag.resource_type}&id=${flag.resource_id}`}
                         className="rounded-md border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
@@ -239,18 +234,22 @@ export default async function AdminFraudPage({ searchParams }: AdminFraudPagePro
                   )}
                   {flag.status === "reviewing" && (
                     <>
-                      <Link
-                        href={`/admin/fraud?close=${flag.id}`}
-                        className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-                      >
-                        Close Flag
-                      </Link>
-                      <Link
-                        href={`/admin/fraud?reopen=${flag.id}`}
-                        className="rounded-md border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
-                      >
-                        Reopen
-                      </Link>
+                      <form action={updateFraudFlagStatus.bind(null, "close", flag.id)}>
+                        <button
+                          type="submit"
+                          className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                        >
+                          Close Flag
+                        </button>
+                      </form>
+                      <form action={updateFraudFlagStatus.bind(null, "reopen", flag.id)}>
+                        <button
+                          type="submit"
+                          className="rounded-md border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
+                        >
+                          Reopen
+                        </button>
+                      </form>
                     </>
                   )}
                 </div>

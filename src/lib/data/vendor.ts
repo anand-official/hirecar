@@ -246,9 +246,7 @@ export async function getOrganizationLeads(
 
   const leads: LeadWithVehicle[] =
     data?.map((lead) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const vehicle = lead.vehicles as unknown as { title: string } | null;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const events = (lead.lead_events as unknown as Array<{
         id: string;
         event_type: string;

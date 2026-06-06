@@ -1,36 +1,62 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendLeadAlert } from "@/lib/email/resend";
-import { clientIp } from "@/lib/security/rate-limit";
+import { clientIp, hashIpForStorage } from "@/lib/security/rate-limit";
 import { rateLimitSlidingWindow } from "@/lib/security/rate-limit-redis";
 import { verifyTurnstile } from "@/lib/security/turnstile";
 import { leadSchema } from "@/lib/validation/schemas";
 
 export async function POST(request: NextRequest) {
   const ip = clientIp(request.headers);
+  const ipHash = hashIpForStorage(ip);
 
-  // Use distributed Redis rate limiting (falls back to memory if Redis unavailable)
-  const limit = await rateLimitSlidingWindow(`lead:${ip}`, 5, 60_000);
+  // Use distributed Redis rate limiting by IP (falls back to memory if Redis unavailable)
+  const ipLimit = await rateLimitSlidingWindow(`lead:ip:${ip}`, 5, 60_000);
 
-  if (!limit.allowed) {
+  if (!ipLimit.allowed) {
+    console.info(`[Lead API] Rate limit hit for IP ${ip}`);
     return NextResponse.json(
       {
         error: "Too many lead submissions",
-        retryAfter: limit.retryAfter,
+        retryAfter: ipLimit.retryAfter,
       },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfter || 60) } },
+      { status: 429, headers: { "Retry-After": String(ipLimit.retryAfter || 60) } },
     );
   }
 
-  const payload = leadSchema.safeParse(await request.json());
+  let rawBody;
+  try {
+    rawBody = await request.json();
+  } catch {
+    console.info(`[Lead API] Invalid JSON body from IP ${ip}`);
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const payload = leadSchema.safeParse(rawBody);
 
   if (!payload.success) {
+    console.info(`[Lead API] Validation failed for IP ${ip}: ${payload.error.message}`);
     return NextResponse.json({ error: payload.error.flatten() }, { status: 400 });
+  }
+
+  // Rate limit by email to prevent distributed botting
+  const emailLimit = await rateLimitSlidingWindow(`lead:email:${payload.data.email}`, 3, 60_000);
+  
+  if (!emailLimit.allowed) {
+    console.info(`[Lead API] Rate limit hit for email ${payload.data.email}`);
+    return NextResponse.json(
+      {
+        error: "Too many lead submissions for this email",
+        retryAfter: emailLimit.retryAfter,
+      },
+      { status: 429, headers: { "Retry-After": String(emailLimit.retryAfter || 60) } },
+    );
   }
 
   const challenge = await verifyTurnstile(payload.data.turnstileToken, ip);
 
   if (!challenge.ok) {
+    console.info(`[Lead API] Turnstile challenge failed for IP ${ip}`);
     return NextResponse.json({ error: "Security challenge failed" }, { status: 403 });
   }
 
@@ -46,6 +72,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (vehicleError || !vehicle) {
+    console.info(`[Lead API] Vehicle not found or not approved: ${payload.data.vehicleId}`);
     return NextResponse.json(
       { error: "Invalid vehicle or vehicle not available" },
       { status: 400 },
@@ -61,6 +88,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (orgError || !organization) {
+    console.info(`[Lead API] Organization not found or not approved: ${payload.data.vendorId}`);
     return NextResponse.json(
       { error: "Invalid vendor or vendor not available" },
       { status: 400 },
@@ -79,10 +107,12 @@ export async function POST(request: NextRequest) {
   const requestedCity = payload.data.pickupCity.toLowerCase();
 
   if (!validCities.has(requestedCity)) {
+    console.info(`[Lead API] Spam attempt detected: City ${payload.data.pickupCity} not valid for vendor ${payload.data.vendorId}`);
+    
     // Log potential spam/fraud attempt
     await supabase.from("fraud_flags").insert({
-      resource_type: "lead",
-      resource_id: "pending", // Will be updated after lead creation if we allow it
+      resource_type: "lead_attempt",
+      resource_id: payload.data.vehicleId,
       severity: "medium",
       reason: `Pickup city "${payload.data.pickupCity}" does not match vendor's branch cities: ${Array.from(validCities).join(", ")}`,
       status: "open",
@@ -104,6 +134,7 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (duplicateLead) {
+    console.info(`[Lead API] Duplicate lead blocked for email ${payload.data.email} and vehicle ${payload.data.vehicleId}`);
     return NextResponse.json(
       { error: "Duplicate lead detected. Please wait before submitting again." },
       { status: 429 },
@@ -122,13 +153,14 @@ export async function POST(request: NextRequest) {
       start_date: payload.data.startDate,
       end_date: payload.data.endDate,
       message: payload.data.message,
-      ip_hash: ip,
+      ip_hash: ipHash,
       status: "new",
     })
     .select("id")
     .single();
 
   if (error) {
+    console.error(`[Lead API] Failed to save lead: ${error.message}`);
     return NextResponse.json({ error: "Unable to save lead" }, { status: 500 });
   }
 
@@ -136,17 +168,24 @@ export async function POST(request: NextRequest) {
   await supabase.from("lead_events").insert({
     lead_id: lead.id,
     event_type: "submitted",
-    metadata: { ip_hash: ip },
+    metadata: { ip_hash: ipHash },
   });
 
   // Send lead alert to vendor's actual billing email
   const vendorEmail = organization.billing_email;
   if (vendorEmail) {
-    await sendLeadAlert({
-      to: vendorEmail,
-      vehicleTitle: vehicle.title,
-      customerName: payload.data.name,
-    });
+    try {
+      await sendLeadAlert({
+        to: vendorEmail,
+        vehicleTitle: vehicle.title,
+        customerName: payload.data.name,
+      });
+      console.info(`[Lead API] Successfully processed lead ${lead.id} and sent alert to ${vendorEmail}`);
+    } catch (emailErr) {
+      console.error(`[Lead API] Lead ${lead.id} created but failed to send email:`, emailErr);
+    }
+  } else {
+    console.info(`[Lead API] Successfully processed lead ${lead.id} but vendor has no billing email`);
   }
 
   return NextResponse.json({ id: lead.id }, { status: 201 });

@@ -19,37 +19,38 @@ export function TestimonialCard({
   vehicleType,
   variant = "default" 
 }: TestimonialCardProps) {
+  // Truncate quote to max 280 characters
+  const displayQuote = quote.length > 280 ? quote.slice(0, 277) + "..." : quote;
+
   if (variant === "featured") {
     return (
-      <div className="relative bg-white rounded-2xl p-8 shadow-lg border border-slate-100">
-        <Quote className="absolute top-6 right-6 h-10 w-10 text-amber-200" />
+      <div className="relative bg-white rounded-xl p-8 border border-border shadow-sm">
+        <Quote className="absolute top-6 right-6 h-8 w-8 text-primary/15" aria-hidden="true" />
         
-        {/* Rating */}
-        <div className="flex gap-1 mb-4">
+        {/* Star Rating */}
+        <div className="flex gap-1 mb-4" role="img" aria-label={`${rating} out of 5 stars`}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Star 
               key={i} 
               className={`h-5 w-5 ${i < rating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`} 
+              aria-hidden="true"
             />
           ))}
         </div>
 
         {/* Quote */}
-        <blockquote className="text-lg text-slate-700 leading-relaxed mb-6">
-          &ldquo;{quote}&rdquo;
+        <blockquote className="text-base text-foreground/80 leading-relaxed mb-6">
+          &ldquo;{displayQuote}&rdquo;
         </blockquote>
 
-        {/* Author */}
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700 font-semibold text-lg">
+        {/* Reviewer Name & Location */}
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm">
             {author.charAt(0)}
           </div>
           <div>
-            <p className="font-semibold text-slate-900">{author}</p>
-            <p className="text-sm text-slate-500">{location}</p>
-            {vehicleType && (
-              <p className="text-xs text-amber-600 mt-0.5">Rented: {vehicleType}</p>
-            )}
+            <p className="font-semibold text-foreground text-sm">{author}</p>
+            <p className="text-sm text-muted-foreground">{location}</p>
           </div>
         </div>
       </div>
@@ -58,30 +59,31 @@ export function TestimonialCard({
 
   if (variant === "compact") {
     return (
-      <div className="bg-slate-50 rounded-lg p-4 border border-slate-100">
-        {/* Rating */}
-        <div className="flex gap-0.5 mb-2">
+      <div className="bg-muted rounded-lg p-4 border border-border">
+        {/* Star Rating */}
+        <div className="flex gap-0.5 mb-2" role="img" aria-label={`${rating} out of 5 stars`}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Star 
               key={i} 
               className={`h-3 w-3 ${i < rating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`} 
+              aria-hidden="true"
             />
           ))}
         </div>
 
         {/* Quote */}
-        <blockquote className="text-sm text-slate-600 leading-relaxed mb-3">
-          &ldquo;{quote}&rdquo;
+        <blockquote className="text-sm text-foreground/70 leading-relaxed mb-3">
+          &ldquo;{displayQuote}&rdquo;
         </blockquote>
 
-        {/* Author */}
+        {/* Reviewer Name & Location */}
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-amber-700 font-semibold text-sm">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs">
             {author.charAt(0)}
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-900">{author}</p>
-            <p className="text-xs text-slate-500">{location}</p>
+            <p className="text-sm font-semibold text-foreground">{author}</p>
+            <p className="text-xs text-muted-foreground">{location}</p>
           </div>
         </div>
       </div>
@@ -89,32 +91,33 @@ export function TestimonialCard({
   }
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 card-lift">
-      {/* Rating */}
-      <div className="flex gap-1 mb-3">
+    <div className="bg-white rounded-xl p-6 border border-border shadow-sm">
+      {/* Star Rating */}
+      <div className="flex gap-1 mb-3" role="img" aria-label={`${rating} out of 5 stars`}>
         {Array.from({ length: 5 }).map((_, i) => (
           <Star 
             key={i} 
             className={`h-4 w-4 ${i < rating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`} 
+            aria-hidden="true"
           />
         ))}
       </div>
 
       {/* Quote */}
-      <blockquote className="text-slate-700 leading-relaxed mb-4">
-        &ldquo;{quote}&rdquo;
+      <blockquote className="text-foreground/80 leading-relaxed mb-4">
+        &ldquo;{displayQuote}&rdquo;
       </blockquote>
 
-      {/* Author */}
+      {/* Reviewer Name & Location */}
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-700 font-semibold">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm">
           {author.charAt(0)}
         </div>
         <div>
-          <p className="font-semibold text-slate-900 text-sm">{author}</p>
-          <p className="text-xs text-slate-500">{location}</p>
+          <p className="font-semibold text-foreground text-sm">{author}</p>
+          <p className="text-xs text-muted-foreground">{location}</p>
           {vehicleType && (
-            <p className="text-xs text-amber-600">Rented: {vehicleType}</p>
+            <p className="text-xs text-primary/70">Rented: {vehicleType}</p>
           )}
         </div>
       </div>

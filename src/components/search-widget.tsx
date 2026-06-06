@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { MapPin, Calendar, Car, Search, ChevronDown, X } from "lucide-react";
+import { Search, ChevronDown, MapPin, Calendar, Car } from "lucide-react";
 import { LocationAutocomplete } from "./LocationAutocomplete";
 
 const categories = [
@@ -25,7 +25,6 @@ export function SearchWidget({ variant = "hero", className = "" }: SearchWidgetP
   const [pickupDate, setPickupDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
   const [category, setCategory] = useState("");
-  const [differentReturn, setDifferentReturn] = useState(false);
 
   const isHero = variant === "hero";
   const isCompact = variant === "compact";
@@ -39,90 +38,71 @@ export function SearchWidget({ variant = "hero", className = "" }: SearchWidgetP
     return `/search?${params.toString()}`;
   };
 
-  const hasSearchParams = location || category || pickupDate;
-
-  return (
-    <div className={`${className}`}>
-      {/* Main Search Container */}
-      <div className={`
-        ${isHero ? "glass rounded-[2rem] shadow-2xl p-6 md:p-8 border border-white/20" : ""}
-        ${isCompact ? "bg-white rounded-2xl shadow-lg p-5 border border-slate-100" : ""}
-        ${variant === "sidebar" ? "space-y-5" : ""}
-      `}>
-        {isHero && (
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-slate-900 font-heading tracking-tight">Find your perfect rental</h2>
-            <p className="text-sm font-medium text-slate-600 mt-1">Compare vehicles from verified local operators</p>
-          </div>
-        )}
-
-        <div className={`
-          ${variant !== "sidebar" ? "grid gap-4" : "space-y-4"}
-          ${isHero ? "md:grid-cols-2 lg:grid-cols-4" : ""}
-          ${isCompact ? "sm:grid-cols-2 lg:grid-cols-4" : ""}
-        `}>
-          {/* Location Input */}
-          <div className="relative group">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ml-1">
+  if (isHero) {
+    return (
+      <div className={`${className} relative w-full max-w-5xl mx-auto`}>
+        {/* Sleek Horizontal Pill Container */}
+        <div className="bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.2)] rounded-[2.5rem] md:rounded-full p-2.5 flex flex-col md:flex-row items-center divide-y md:divide-y-0 md:divide-x divide-slate-100 border border-slate-100/50 backdrop-blur-2xl">
+          
+          {/* Location Segment */}
+          <div className="flex-1 w-full flex flex-col justify-center px-6 py-3 md:py-0 hover:bg-slate-50/50 rounded-t-[2rem] md:rounded-l-full md:rounded-r-none transition-colors group">
+            <label className="text-[11px] font-black tracking-widest text-slate-800 uppercase mb-1 flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-[#ea580c]" />
               Pickup Location
             </label>
             <LocationAutocomplete 
-              onSelect={(res: any) => {
+              onSelect={(res) => {
                 if (res?.features?.[0]?.properties?.name) {
                   setLocation(res.features[0].properties.name);
-                } else if (res?.features?.[0]?.place_name) {
-                  setLocation(res.features[0].place_name.split(",")[0]);
                 }
               }} 
-              placeholder={location || "City or airport"} 
+              placeholder="City or airport"
+              hideIcon={true}
+              inputClassName="w-full bg-transparent border-none p-0 focus:ring-0 text-slate-600 font-medium placeholder:text-slate-400 outline-none truncate"
             />
           </div>
 
-          {/* Pickup Date */}
-          <div className="relative group">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ml-1">
-              Pickup Date
+          {/* Pickup Date Segment */}
+          <div className="flex-[0.8] w-full flex flex-col justify-center px-6 py-3 md:py-0 hover:bg-slate-50/50 transition-colors">
+            <label className="text-[11px] font-black tracking-widest text-slate-800 uppercase mb-1 flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5 text-[#ea580c]" />
+              Pickup
             </label>
-            <div className="relative">
-              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-primary group-focus-within:text-primary transition-colors" />
-              <input
-                type="date"
-                value={pickupDate}
-                onChange={(e) => setPickupDate(e.target.value)}
-                min={new Date().toISOString().split("T")[0]}
-                className="w-full rounded-xl border-2 border-transparent bg-slate-50/80 hover:bg-slate-100 pl-11 pr-4 py-3.5 text-sm font-medium text-slate-900 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"
-              />
-            </div>
+            <input
+              type="date"
+              value={pickupDate}
+              onChange={(e) => setPickupDate(e.target.value)}
+              min={new Date().toISOString().split("T")[0]}
+              className="w-full bg-transparent border-none p-0 focus:ring-0 text-slate-600 font-medium outline-none appearance-none"
+            />
           </div>
 
-          {/* Return Date */}
-          <div className="relative group">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ml-1">
-              Return Date
+          {/* Return Date Segment */}
+          <div className="flex-[0.8] w-full flex flex-col justify-center px-6 py-3 md:py-0 hover:bg-slate-50/50 transition-colors">
+            <label className="text-[11px] font-black tracking-widest text-slate-800 uppercase mb-1 flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5 text-[#ea580c]" />
+              Return
             </label>
-            <div className="relative">
-              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-primary group-focus-within:text-primary transition-colors" />
-              <input
-                type="date"
-                value={returnDate}
-                onChange={(e) => setReturnDate(e.target.value)}
-                min={pickupDate || new Date().toISOString().split("T")[0]}
-                className="w-full rounded-xl border-2 border-transparent bg-slate-50/80 hover:bg-slate-100 pl-11 pr-4 py-3.5 text-sm font-medium text-slate-900 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"
-              />
-            </div>
+            <input
+              type="date"
+              value={returnDate}
+              onChange={(e) => setReturnDate(e.target.value)}
+              min={pickupDate || new Date().toISOString().split("T")[0]}
+              className="w-full bg-transparent border-none p-0 focus:ring-0 text-slate-600 font-medium outline-none appearance-none"
+            />
           </div>
 
-          {/* Category Select */}
-          <div className="relative group">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ml-1">
-              Vehicle Type
+          {/* Vehicle Type Segment */}
+          <div className="flex-[0.8] w-full flex flex-col justify-center px-6 py-3 md:py-0 hover:bg-slate-50/50 transition-colors relative">
+            <label className="text-[11px] font-black tracking-widest text-slate-800 uppercase mb-1 flex items-center gap-1.5">
+              <Car className="h-3.5 w-3.5 text-[#ea580c]" />
+              Vehicle
             </label>
             <div className="relative">
-              <Car className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-primary group-focus-within:text-primary transition-colors" />
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full rounded-xl border-2 border-transparent bg-slate-50/80 hover:bg-slate-100 pl-11 pr-10 py-3.5 text-sm font-medium text-slate-900 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none cursor-pointer"
+                className="w-full bg-transparent border-none p-0 focus:ring-0 text-slate-600 font-medium outline-none pr-8 appearance-none cursor-pointer"
               >
                 {categories.map((cat) => (
                   <option key={cat.value} value={cat.value}>
@@ -130,86 +110,80 @@ export function SearchWidget({ variant = "hero", className = "" }: SearchWidgetP
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-slate-400 pointer-events-none" />
+              <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
             </div>
           </div>
-        </div>
 
-        {/* Different Return Location Toggle */}
-        {isHero && (
-          <div className="mt-5 flex items-center gap-2">
-            <button
-              onClick={() => setDifferentReturn(!differentReturn)}
-              className={`
-                flex items-center gap-2.5 text-sm font-bold transition-colors
-                ${differentReturn ? "text-primary" : "text-slate-600 hover:text-slate-900"}
-              `}
+          {/* Search Button */}
+          <div className="w-full md:w-auto p-2">
+            <Link
+              href={buildSearchUrl()}
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#ea580c] to-amber-500 hover:from-[#c2410c] hover:to-[#ea580c] text-white font-bold h-14 md:h-[68px] px-8 rounded-[1.5rem] md:rounded-full shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5 transition-all whitespace-nowrap"
             >
-              <div className={`
-                w-4.5 h-4.5 rounded border-2 flex items-center justify-center transition-all
-                ${differentReturn ? "bg-primary border-primary shadow-sm" : "border-slate-300 bg-white"}
-              `}>
-                {differentReturn && <div className="w-2 h-2 bg-white rounded-sm" />}
-              </div>
-              Return to a different location
-            </button>
+              <Search className="h-5 w-5" strokeWidth={2.5} />
+              <span className="md:hidden lg:inline">Search</span>
+            </Link>
           </div>
-        )}
-
-        {/* Search Button */}
-        <div className={`${variant !== "sidebar" ? "mt-8" : "mt-6"}`}>
-          <Link
-            href={buildSearchUrl()}
-            className={`
-              flex items-center justify-center gap-2.5 rounded-xl font-bold text-primary-foreground
-              bg-primary hover:bg-primary/90 hover:-translate-y-0.5
-              shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30
-              transition-all duration-300
-              ${isHero ? "w-full md:w-auto md:inline-flex px-10 py-4.5 text-lg" : ""}
-              ${isCompact ? "w-full py-3.5 text-sm" : ""}
-              ${variant === "sidebar" ? "w-full py-3.5 text-sm" : ""}
-            `}
-          >
-            <Search className="h-5 w-5" />
-            Show Vehicles
-          </Link>
         </div>
 
-        {/* Active Filters Display */}
-        {hasSearchParams && isHero && (
-          <div className="mt-5 flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mr-1">Active filters:</span>
-            {location && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 border border-primary/10 text-primary text-xs font-bold rounded-lg shadow-sm">
-                <MapPin className="h-3.5 w-3.5" />
-                {location}
-                <button onClick={() => setLocation("")} className="hover:text-primary/70 transition-colors ml-0.5">
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </span>
-            )}
-            {category && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 border border-primary/10 text-primary text-xs font-bold rounded-lg shadow-sm">
-                <Car className="h-3.5 w-3.5" />
-                {category}
-                <button onClick={() => setCategory("")} className="hover:text-primary/70 transition-colors ml-0.5">
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </span>
-            )}
-            {(pickupDate || returnDate) && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 border border-primary/10 text-primary text-xs font-bold rounded-lg shadow-sm">
-                <Calendar className="h-3.5 w-3.5" />
-                {pickupDate && new Date(pickupDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
-                {pickupDate && returnDate && " - "}
-                {returnDate && new Date(returnDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
-                <button onClick={() => { setPickupDate(""); setReturnDate(""); }} className="hover:text-primary/70 transition-colors ml-0.5">
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </span>
-            )}
-          </div>
-        )}
+        {/* Small accessory link below removed for now */}
+      </div>
+    );
+  }
+
+  // Compact or Sidebar Variant
+  return (
+    <div className={`${className}`}>
+      <div className={`
+        ${isCompact ? "bg-white p-4 shadow-xl rounded-2xl flex flex-col sm:flex-row gap-4 items-center" : ""}
+        ${variant === "sidebar" ? "bg-white p-6 shadow-xl rounded-2xl flex flex-col gap-4" : ""}
+      `}>
+        <div className="flex-1 w-full bg-slate-50 relative px-4 py-3 rounded-xl border border-slate-200 focus-within:border-primary transition-colors">
+          <label className="block text-xs font-bold text-slate-500 mb-1">
+            WHERE
+          </label>
+          <LocationAutocomplete 
+            onSelect={(res) => {
+              if (res?.features?.[0]?.properties?.name) {
+                setLocation(res.features[0].properties.name);
+              }
+            }} 
+            placeholder={location || "City or airport"} 
+            hideIcon={true}
+            inputClassName="w-full bg-transparent border-none p-0 focus:ring-0 text-slate-900 font-medium placeholder:text-slate-400 outline-none"
+          />
+        </div>
+
+        <div className="flex-1 w-full bg-slate-50 relative px-4 py-3 rounded-xl border border-slate-200 focus-within:border-primary transition-colors">
+          <label className="block text-xs font-bold text-slate-500 mb-1">
+            PICKUP
+          </label>
+          <input
+            type="date"
+            value={pickupDate}
+            onChange={(e) => setPickupDate(e.target.value)}
+            className="w-full bg-transparent border-none p-0 focus:ring-0 text-slate-900 font-medium outline-none"
+          />
+        </div>
+
+        <div className="flex-1 w-full bg-slate-50 relative px-4 py-3 rounded-xl border border-slate-200 focus-within:border-primary transition-colors">
+          <label className="block text-xs font-bold text-slate-500 mb-1">
+            RETURN
+          </label>
+          <input
+            type="date"
+            value={returnDate}
+            onChange={(e) => setReturnDate(e.target.value)}
+            className="w-full bg-transparent border-none p-0 focus:ring-0 text-slate-900 font-medium outline-none"
+          />
+        </div>
+
+        <Link
+          href={buildSearchUrl()}
+          className="flex items-center justify-center bg-[#ea580c] hover:bg-[#c2410c] text-white px-8 py-4 rounded-xl font-bold shadow-md hover:shadow-lg transition-all w-full md:w-auto"
+        >
+          {variant === "sidebar" ? "Search" : <Search className="h-5 w-5" />}
+        </Link>
       </div>
     </div>
   );

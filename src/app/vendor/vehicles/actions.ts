@@ -42,6 +42,9 @@ export async function createVehicle(formData: FormData): Promise<VehicleActionRe
     transmission: formData.get("transmission"),
     category: formData.get("category"),
     pricePerDayAud: formData.get("pricePerDayAud"),
+    dailyDistanceLimitKm: formData.get("dailyDistanceLimitKm") || null,
+    extraDistanceFeeAud: formData.get("extraDistanceFeeAud") || null,
+    instantBook: formData.get("instantBook") === "true" || formData.get("instantBook") === "on",
   });
 
   if (!parseResult.success) {
@@ -79,6 +82,9 @@ export async function createVehicle(formData: FormData): Promise<VehicleActionRe
       transmission: data.transmission,
       category: data.category,
       price_per_day_aud: data.pricePerDayAud,
+      daily_distance_limit_km: data.dailyDistanceLimitKm,
+      extra_distance_fee_aud: data.extraDistanceFeeAud,
+      instant_book: data.instantBook,
       status: "pending",
     })
     .select("id")
@@ -135,6 +141,9 @@ export async function updateVehicle(formData: FormData): Promise<VehicleActionRe
     transmission: formData.get("transmission") || undefined,
     category: formData.get("category") || undefined,
     pricePerDayAud: formData.get("pricePerDayAud") || undefined,
+    dailyDistanceLimitKm: formData.get("dailyDistanceLimitKm") || null,
+    extraDistanceFeeAud: formData.get("extraDistanceFeeAud") || null,
+    instantBook: formData.has("instantBook") ? (formData.get("instantBook") === "true" || formData.get("instantBook") === "on") : undefined,
   });
 
   if (!parseResult.success) {
@@ -167,6 +176,9 @@ export async function updateVehicle(formData: FormData): Promise<VehicleActionRe
   if (data.transmission) updateData.transmission = data.transmission;
   if (data.category) updateData.category = data.category;
   if (data.pricePerDayAud) updateData.price_per_day_aud = data.pricePerDayAud;
+  if (data.dailyDistanceLimitKm !== undefined) updateData.daily_distance_limit_km = data.dailyDistanceLimitKm;
+  if (data.extraDistanceFeeAud !== undefined) updateData.extra_distance_fee_aud = data.extraDistanceFeeAud;
+  if (data.instantBook !== undefined) updateData.instant_book = data.instantBook;
   if (data.branchId) {
     // Verify new branch belongs to organization
     const { data: branch } = await supabase

@@ -1,3 +1,5 @@
+import { createHash, createHmac } from "crypto";
+
 type Bucket = {
   count: number;
   resetAt: number;
@@ -28,4 +30,14 @@ export function clientIp(headers: Headers) {
     headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     "unknown"
   );
+}
+
+export function hashIpForStorage(ip: string) {
+  const secret = process.env.IP_HASH_SECRET;
+
+  if (secret) {
+    return createHmac("sha256", secret).update(ip).digest("hex");
+  }
+
+  return createHash("sha256").update(ip).digest("hex");
 }

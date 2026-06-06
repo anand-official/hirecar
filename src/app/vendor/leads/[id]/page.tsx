@@ -44,7 +44,7 @@ export default async function VendorChatRoomPage({
     .eq("lead_id", lead.id)
     .order("created_at", { ascending: true });
 
-  const vehicle = lead.vehicles as any;
+  const vehicle = lead.vehicles as unknown as { title: string; price_per_day_aud: number } | null;
 
   return (
     <div className="space-y-6">

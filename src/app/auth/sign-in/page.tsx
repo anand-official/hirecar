@@ -11,7 +11,7 @@ export default function SignInPage() {
 
   async function signIn() {
     if (!selectedRole) {
-      setError("Please select how you want to use Carhire.");
+      setError("Please select how you want to use Hire Car.");
       return;
     }
 
@@ -55,7 +55,7 @@ export default function SignInPage() {
             <ShieldCheck className="h-8 w-8" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">
-            Welcome to Carhire
+            Welcome to Hire Car
           </h1>
           <p className="mt-3 text-lg text-slate-600">
             How would you like to use our platform today?
@@ -119,19 +119,69 @@ export default function SignInPage() {
 
         {error ? <p className="mb-6 text-center text-sm font-medium text-red-600 animate-fade-in">{error}</p> : null}
 
-        <div className="flex justify-center">
-          <button
-            onClick={signIn}
-            disabled={!selectedRole || isSubmitting}
-            className={`group flex items-center justify-center gap-2 rounded-xl px-8 py-4 text-lg font-semibold text-white transition-all duration-300 ${
-              selectedRole
-                ? "bg-slate-950 hover:bg-slate-800 shadow-xl hover:shadow-slate-900/20 hover:-translate-y-1"
-                : "bg-slate-300 cursor-not-allowed"
-            } w-full sm:w-auto min-w-[280px]`}
-          >
-            {isSubmitting ? "Connecting..." : "Continue with Google"}
-            {!isSubmitting && <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />}
-          </button>
+        <div className="flex flex-col gap-4 items-center">
+          <div className="flex justify-center w-full">
+            <button
+              onClick={signIn}
+              disabled={!selectedRole || isSubmitting}
+              className={`group flex items-center justify-center gap-2 rounded-xl px-8 py-4 text-lg font-semibold text-white transition-all duration-300 ${
+                selectedRole
+                  ? "bg-slate-950 hover:bg-slate-800 shadow-xl hover:shadow-slate-900/20 hover:-translate-y-1"
+                  : "bg-slate-300 cursor-not-allowed"
+              } w-full sm:w-auto min-w-[280px]`}
+            >
+              {isSubmitting ? "Connecting..." : "Continue with Google"}
+              {!isSubmitting && <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />}
+            </button>
+          </div>
+          
+          {process.env.NODE_ENV === "development" && (
+            <div className="mt-4 flex gap-6 justify-center">
+              <button
+                onClick={async () => {
+                  setSelectedRole("customer");
+                  setIsSubmitting(true);
+                  setError(null);
+                  const supabase = createClient();
+                  sessionStorage.setItem("auth_intended_role", "customer");
+                  const { error } = await supabase.auth.signInWithPassword({ email: "customer@example.com", password: "password123" });
+                  if (error) { setError(error.message); setIsSubmitting(false); }
+                  else { window.location.href = "/"; }
+                }}
+                className="text-sm font-medium text-slate-500 hover:text-slate-900 underline transition-colors"
+              >
+                Dev: Customer
+              </button>
+              <button
+                onClick={async () => {
+                  setSelectedRole("vendor");
+                  setIsSubmitting(true);
+                  setError(null);
+                  const supabase = createClient();
+                  sessionStorage.setItem("auth_intended_role", "vendor");
+                  const { error } = await supabase.auth.signInWithPassword({ email: "vendor@example.com", password: "password123" });
+                  if (error) { setError(error.message); setIsSubmitting(false); }
+                  else { window.location.href = "/vendor/dashboard"; }
+                }}
+                className="text-sm font-medium text-slate-500 hover:text-slate-900 underline transition-colors"
+              >
+                Dev: Vendor
+              </button>
+              <button
+                onClick={async () => {
+                  setIsSubmitting(true);
+                  setError(null);
+                  const supabase = createClient();
+                  const { error } = await supabase.auth.signInWithPassword({ email: "admin@example.com", password: "password123" });
+                  if (error) { setError(error.message); setIsSubmitting(false); }
+                  else { window.location.href = "/vendor/dashboard"; }
+                }}
+                className="text-sm font-medium text-slate-500 hover:text-slate-900 underline transition-colors"
+              >
+                Dev: Admin
+              </button>
+            </div>
+          )}
         </div>
         
         <p className="mt-8 text-center text-xs text-slate-500">

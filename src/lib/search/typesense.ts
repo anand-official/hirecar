@@ -114,7 +114,7 @@ type SearchFilters = {
 export async function searchVehicles(
   query: string,
   filters: SearchFilters = {},
-  options: { page?: number; perPage?: number } = {},
+  options: { page?: number; perPage?: number; sortBy?: string } = {},
 ): Promise<{ vehicles: Vehicle[]; total: number; page: number }> {
   const client = createTypesenseClient();
 
@@ -123,7 +123,7 @@ export async function searchVehicles(
     return fallbackDatabaseSearch(query, filters, options);
   }
 
-  const { page = 1, perPage = 20 } = options;
+  const { page = 1, perPage = 20, sortBy = "price_per_day_aud:asc" } = options;
 
   // Build filter by string with proper escaping
   const filterParts: string[] = ["status:=approved"]; // Only show approved vehicles
@@ -160,20 +160,25 @@ export async function searchVehicles(
     q: query || "*",
     query_by: "title,make,model,vendor_name,branch_name",
     filter_by: filterParts.join(" && "),
-    sort_by: "price_per_day_aud:asc",
+    sort_by: sortBy ?? "price_per_day_aud:asc",
     page,
     per_page: perPage,
   };
 
-  const results = await client.collections<Vehicle>(VEHICLE_COLLECTION_NAME).documents().search(searchParameters);
+  try {
+    const results = await client.collections<Vehicle>(VEHICLE_COLLECTION_NAME).documents().search(searchParameters);
 
-  const vehicles = results.hits?.map((hit) => hit.document) ?? [];
+    const vehicles = results.hits?.map((hit) => hit.document) ?? [];
 
-  return {
-    vehicles,
-    total: results.found ?? 0,
-    page,
-  };
+    return {
+      vehicles,
+      total: results.found ?? 0,
+      page,
+    };
+  } catch (error) {
+    console.error("Typesense search failed; falling back to database search:", error);
+    return fallbackDatabaseSearch(query, filters, options);
+  }
 }
 
 /**
@@ -192,10 +197,10 @@ function escapeFilterValue(value: string): string {
 async function fallbackDatabaseSearch(
   query: string,
   filters: SearchFilters,
-  options: { page?: number; perPage?: number },
+  options: { page?: number; perPage?: number; sortBy?: string },
 ): Promise<{ vehicles: Vehicle[]; total: number; page: number }> {
   const supabase = createAdminClient();
-  const { page = 1, perPage = 20 } = options;
+  const { page = 1, perPage = 20, sortBy = "price_per_day_aud:asc" } = options;
 
   // Build base query joining vehicles with organizations and branches
   let dbQuery = supabase
@@ -213,6 +218,9 @@ async function fallbackDatabaseSearch(
       transmission,
       category,
       price_per_day_aud,
+      daily_distance_limit_km,
+      extra_distance_fee_aud,
+      instant_book,
       status,
       organizations!inner(id, name, slug, status),
       branches!inner(id, name, city, state, status)
@@ -259,9 +267,17 @@ async function fallbackDatabaseSearch(
     dbQuery = dbQuery.gte("seats", filters.seats);
   }
 
-  // Pagination
+  // Sorting & pagination
+  const [sortField, sortDir] = sortBy.split(":");
+  const ascending = sortDir !== "desc";
+  const validSortFields: Record<string, string> = {
+    price_per_day_aud: "price_per_day_aud",
+    year: "year",
+  };
+  const dbSortField = validSortFields[sortField] ?? "price_per_day_aud";
+
   const from = (page - 1) * perPage;
-  dbQuery = dbQuery.range(from, from + perPage - 1).order("price_per_day_aud", { ascending: true });
+  dbQuery = dbQuery.range(from, from + perPage - 1).order(dbSortField, { ascending });
 
   const { data, error, count } = await dbQuery;
 
@@ -273,9 +289,7 @@ async function fallbackDatabaseSearch(
   // Transform to Vehicle type
   const vehicles: Vehicle[] =
     data?.map((v) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const org = v.organizations as unknown as { name: string; slug: string };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const branch = v.branches as unknown as { name: string; city: string; state: string };
 
       return {
@@ -290,6 +304,9 @@ async function fallbackDatabaseSearch(
         transmission: v.transmission,
         category: v.category,
         pricePerDayAud: v.price_per_day_aud,
+        dailyDistanceLimitKm: v.daily_distance_limit_km,
+        extraDistanceFeeAud: v.extra_distance_fee_aud,
+        instantBook: v.instant_book,
         city: branch.city,
         state: branch.state,
         imageUrl: "/vehicle-placeholder.jpg", // Placeholder - images stored separately
@@ -349,7 +366,7 @@ export async function processSearchIndexJobs(limit = 10): Promise<{
           .select(
             `
             id, slug, title, make, model, year, seats, fuel, transmission, category,
-            price_per_day_aud, status, organization_id,
+            price_per_day_aud, daily_distance_limit_km, extra_distance_fee_aud, instant_book, status, organization_id,
             organizations(name, slug, status),
             branches(name, city, state, status)
           `,
@@ -360,9 +377,7 @@ export async function processSearchIndexJobs(limit = 10): Promise<{
 
         if (vehicle) {
           // Only index approved vehicles
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const org = vehicle.organizations as unknown as { name: string; slug: string; status: string };
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const branch = vehicle.branches as unknown as { name: string; city: string; state: string; status: string };
 
           if (org?.status === "approved" && branch?.status === "approved") {
@@ -378,6 +393,9 @@ export async function processSearchIndexJobs(limit = 10): Promise<{
               transmission: vehicle.transmission,
               category: vehicle.category,
               price_per_day_aud: vehicle.price_per_day_aud,
+              daily_distance_limit_km: vehicle.daily_distance_limit_km,
+              extra_distance_fee_aud: vehicle.extra_distance_fee_aud,
+              instant_book: vehicle.instant_book,
               city: branch.city,
               state: branch.state,
               vendor_name: org.name,

@@ -4,6 +4,9 @@ export async function verifyTurnstile(token?: string, ip?: string) {
   const secret = optionalEnv("TURNSTILE_SECRET_KEY");
 
   if (!secret) {
+    if (process.env.NODE_ENV === "production" && process.env.TURNSTILE_SKIP !== "true") {
+      return { ok: false, skipped: false };
+    }
     return { ok: true, skipped: true };
   }
 

@@ -12,9 +12,9 @@ const reviewSchema = z.object({
 });
 
 export async function submitReview(formData: FormData) {
+  const user = await requireUser();
+
   try {
-    const user = await requireUser();
-    
     const rawData = {
       leadId: formData.get("leadId") as string,
       rating: parseInt(formData.get("rating") as string, 10),
@@ -51,14 +51,26 @@ export async function submitReview(formData: FormData) {
       return { error: "You can only review vendors you have interacted with." };
     }
 
-    // Check if review already exists for this lead
-    // Wait, the reviews table doesn't have a lead_id column. It has organization_id, vehicle_id.
-    // We can just check if they've reviewed this vehicle recently or just allow it and let moderation handle it.
-    
+    const { data: existingReview, error: existingReviewError } = await supabase
+      .from("reviews")
+      .select("id")
+      .eq("lead_id", lead.id)
+      .maybeSingle();
+
+    if (existingReviewError) {
+      console.error("Failed to check existing review:", existingReviewError);
+      return { error: "Failed to submit review. Please try again." };
+    }
+
+    if (existingReview) {
+      return { error: "You have already reviewed this booking enquiry." };
+    }
+
     // Insert Review
     const { error: insertError } = await supabase
       .from("reviews")
       .insert({
+        lead_id: lead.id,
         organization_id: lead.vendor_id,
         vehicle_id: lead.vehicle_id,
         customer_name: profile.full_name || "Customer",

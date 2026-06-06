@@ -149,7 +149,7 @@ function fallbackSlidingWindow(key: string, limit: number, windowMs: number): Ra
 
   // Cleanup old keys periodically
   if (Math.random() < 0.01) {
-    cleanupOldSlidingWindows(windowStart);
+    cleanupOldSlidingWindows();
   }
 
   return {
@@ -161,7 +161,7 @@ function fallbackSlidingWindow(key: string, limit: number, windowMs: number): Ra
   };
 }
 
-function cleanupOldSlidingWindows(windowStart: number) {
+function cleanupOldSlidingWindows() {
   const cutoff = Date.now() - 24 * 60 * 60 * 1000; // 24 hours
   for (const [key, timestamps] of slidingWindows.entries()) {
     const valid = timestamps.filter((t) => t > cutoff);
@@ -205,7 +205,7 @@ function fallbackFixedWindow(key: string, limit: number, windowMs: number): Rate
 }
 
 function cleanupOldFixedWindows(minWindow: number) {
-  for (const [key, entry] of fixedWindows.entries()) {
+  for (const [key] of fixedWindows.entries()) {
     const windowNum = parseInt(key.split(":").pop() ?? "0");
     if (windowNum < minWindow) {
       fixedWindows.delete(key);

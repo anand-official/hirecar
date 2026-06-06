@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/security/auth";
 import { getVendorContext, getOrganizationLeads, getLeadStats } from "@/lib/data/vendor";
-import { updateLeadStatus, addLeadNote } from "./actions";
+import { updateLeadStatus } from "./actions";
 import { RealtimeLeadsListener } from "@/components/realtime-leads-listener";
 import { MessageSquare, Mail, Phone, MapPin, Calendar, ChevronRight, Inbox } from "lucide-react";
 
@@ -280,4 +280,3 @@ export default async function VendorLeadsPage({ searchParams }: LeadsPageProps) 
     </div>
   );
 }
-

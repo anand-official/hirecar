@@ -48,10 +48,10 @@ export default async function CustomerChatRoomPage({
     .eq("lead_id", lead.id)
     .order("created_at", { ascending: true });
 
-  const org = lead.organizations as any;
+  const org = lead.organizations as unknown as { name: string } | null;
 
   return (
-    <div>
+    <div className="min-h-screen bg-slate-50 pt-[88px]">
       <SiteHeader />
       <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-6">

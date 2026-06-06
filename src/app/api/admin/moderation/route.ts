@@ -1,30 +1,24 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { readJsonBody } from "@/lib/api/request";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireAdmin } from "@/lib/security/auth";
+import { requireApiAdmin } from "@/lib/security/auth";
 import { moderationSchema } from "@/lib/validation/schemas";
-
-type ResourceType = "vendor" | "branch" | "vehicle" | "review" | "fraud_flag";
-type Action = "approve" | "reject" | "suspend" | "restore" | "verify";
-
-const tableMap: Record<ResourceType, string> = {
-  vendor: "organizations",
-  branch: "branches",
-  vehicle: "vehicles",
-  review: "reviews",
-  fraud_flag: "fraud_flags",
-};
-
-const statusMap: Record<Action, string> = {
-  approve: "approved",
-  reject: "rejected",
-  suspend: "suspended",
-  restore: "approved",
-  verify: "approved",
-};
+import {
+  buildModerationUpdate,
+  getFraudFlagModerationStatus,
+  isModerationActionAllowed,
+  moderationTableMap,
+  type ModerationResourceType,
+} from "@/lib/moderation";
 
 export async function POST(request: NextRequest) {
-  const user = await requireAdmin();
-  const payload = moderationSchema.safeParse(await request.json());
+  const { user, response } = await requireApiAdmin();
+  if (!user) return response;
+
+  const { data: rawBody, response: jsonError } = await readJsonBody(request);
+  if (jsonError) return jsonError;
+
+  const payload = moderationSchema.safeParse(rawBody);
 
   if (!payload.success) {
     return NextResponse.json({ error: payload.error.flatten() }, { status: 400 });
@@ -34,7 +28,7 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient();
 
   // Get the table name for this resource type
-  const tableName = tableMap[resourceType];
+  const tableName = moderationTableMap[resourceType];
   if (!tableName) {
     return NextResponse.json({ error: "Invalid resource type" }, { status: 400 });
   }
@@ -45,24 +39,17 @@ export async function POST(request: NextRequest) {
     case "branch":
     case "vehicle":
     case "review": {
-      const newStatus = statusMap[action];
-      if (!newStatus) {
+      if (!isModerationActionAllowed(resourceType, action)) {
         return NextResponse.json({ error: "Invalid action for this resource type" }, { status: 400 });
       }
 
-      const updateData: Record<string, unknown> = {
-        status: newStatus,
-        updated_at: new Date().toISOString(),
-      };
+      const updateData = buildModerationUpdate(
+        resourceType as Exclude<ModerationResourceType, "fraud_flag">,
+        action,
+      );
 
-      // Add suspension timestamp if suspending
-      if (action === "suspend") {
-        updateData.suspended_at = new Date().toISOString();
-      }
-
-      // For restore action, clear suspended_at
-      if (action === "restore") {
-        updateData.suspended_at = null;
+      if (!updateData) {
+        return NextResponse.json({ error: "Invalid action for this resource type" }, { status: 400 });
       }
 
       const { error } = await supabase.from(tableName).update(updateData).eq("id", resourceId);
@@ -85,6 +72,20 @@ export async function POST(request: NextRequest) {
 
       // For vendors (organizations), if approving, also approve their branches
       if (resourceType === "vendor" && action === "approve") {
+        // Enforce that vendors must have a billing email before approval
+        const { data: org } = await supabase
+          .from("organizations")
+          .select("billing_email")
+          .eq("id", resourceId)
+          .single();
+          
+        if (!org?.billing_email) {
+          return NextResponse.json(
+            { error: "Cannot approve vendor: No billing email configured. Leads cannot be delivered." },
+            { status: 400 }
+          );
+        }
+
         await supabase
           .from("branches")
           .update({ status: "approved", updated_at: new Date().toISOString() })
@@ -96,10 +97,14 @@ export async function POST(request: NextRequest) {
 
     case "fraud_flag": {
       // Update fraud flag status
-      const flagStatus = action === "approve" ? "closed" : action === "reject" ? "closed" : "open";
+      const flagStatus = getFraudFlagModerationStatus(action);
+      if (!flagStatus) {
+        return NextResponse.json({ error: "Invalid action for this resource type" }, { status: 400 });
+      }
+
       const { error } = await supabase
         .from("fraud_flags")
-        .update({ status: flagStatus, updated_at: new Date().toISOString() })
+        .update({ status: flagStatus })
         .eq("id", resourceId);
 
       if (error) {

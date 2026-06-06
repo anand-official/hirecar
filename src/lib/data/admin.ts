@@ -100,8 +100,7 @@ export async function getAdminDashboardMetrics(): Promise<AdminDashboardMetrics>
     supabase
       .from("stripe_webhook_events")
       .select("id", { count: "exact", head: true })
-      .not("processed_at", "is", null)
-      .then(({ count, error }) => ({ count: 0, error })), // Failed webhooks not tracked separately in current schema
+      .eq("processing_status", "failed"),
     supabase.from("stripe_webhook_events").select("id", { count: "exact", head: true }),
     supabase
       .from("stripe_webhook_events")
@@ -323,7 +322,7 @@ export async function getOpenFraudFlags(limit = 50): Promise<FraudFlagWithDetail
       if (flag.resource_type === "vendor" || flag.resource_type === "organization") {
         const { data } = await supabase.from("organizations").select("name").eq("id", flag.resource_id).single();
         vendorName = data?.name;
-      } else if (flag.resource_type === "vehicle") {
+      } else if (flag.resource_type === "vehicle" || flag.resource_type === "lead_attempt") {
         const { data } = await supabase
           .from("vehicles")
           .select("title, organizations(name)")

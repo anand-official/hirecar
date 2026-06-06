@@ -16,39 +16,39 @@ export function LocationCard({ name, imageUrl, vehicleCount, startingPrice, href
   return (
     <Link 
       href={href}
-      className="group relative overflow-hidden rounded-xl bg-white shadow-sm border border-slate-200 card-lift"
+      className="group relative overflow-hidden rounded-xl bg-card shadow-sm border border-border hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer"
     >
       {/* Image Container */}
-      <div className="relative h-40 overflow-hidden img-zoom">
+      <div className="relative h-44 overflow-hidden">
         <Image
           src={imageUrl}
           alt={`Car rentals in ${name}`}
           fill
-          className="object-cover"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
         
         {/* Location Name Overlay */}
         <div className="absolute bottom-3 left-4 flex items-center gap-2">
           <MapPin className="h-4 w-4 text-white" />
-          <span className="font-semibold text-white">{name}</span>
+          <span className="text-lg font-bold text-white">{name}</span>
         </div>
       </div>
 
       {/* Content */}
       <div className="p-4">
         <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-1.5 text-sm text-slate-600">
-              <Car className="h-4 w-4 text-amber-500" />
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Car className="h-4 w-4 text-primary" />
               <span>{vehicleCount} vehicles available</span>
             </div>
-            <p className="text-sm font-medium text-slate-900">
-              From <span className="text-amber-600 font-bold">${startingPrice}</span>/day
+            <p className="text-sm font-semibold text-foreground">
+              From <span className="text-primary font-bold">${startingPrice}</span>/day
             </p>
           </div>
           
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400 group-hover:bg-amber-500 group-hover:text-white transition-colors">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
             <ArrowRight className="h-5 w-5" />
           </div>
         </div>

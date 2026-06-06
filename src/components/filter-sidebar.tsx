@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, ReactNode } from "react";
-import { ChevronDown, X, SlidersHorizontal, RotateCcw } from "lucide-react";
+import { ChevronDown, X, RotateCcw } from "lucide-react";
 
 interface FilterSidebarProps {
   currentFilters: {
@@ -16,6 +16,12 @@ interface FilterSidebarProps {
   };
   onFilterChange: (filters: Record<string, string | number | undefined>) => void;
   totalResults: number;
+  /** Controlled open state for the mobile drawer */
+  mobileOpen?: boolean;
+  /** Called when the mobile drawer should close */
+  onMobileClose?: () => void;
+  /** When true, renders ONLY the mobile drawer (no desktop panel) */
+  mobileOnly?: boolean;
 }
 
 const categories = [
@@ -87,9 +93,15 @@ function FilterSection({ title, sectionKey, expandedSections, toggleSection, chi
   );
 }
 
-export function FilterSidebar({ currentFilters, onFilterChange, totalResults }: FilterSidebarProps) {
+export function FilterSidebar({
+  currentFilters,
+  onFilterChange,
+  totalResults,
+  mobileOpen = false,
+  onMobileClose,
+  mobileOnly = false,
+}: FilterSidebarProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>(["category", "price"]);
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => 
@@ -111,28 +123,26 @@ export function FilterSidebar({ currentFilters, onFilterChange, totalResults }: 
 
   const hasActiveFilters = activeFiltersCount > 0;
 
+  const handleClose = () => {
+    onMobileClose?.();
+  };
+
   return (
     <>
-      {/* Mobile Filter Toggle */}
-      <button
-        onClick={() => setMobileOpen(!mobileOpen)}
-        className="lg:hidden flex items-center gap-2 w-full justify-center py-3 px-4 bg-white border border-slate-200 rounded-lg text-slate-700 font-medium mb-4"
-      >
-        <SlidersHorizontal className="h-5 w-5" />
-        Filters {activeFiltersCount > 0 && `(${activeFiltersCount})`}
-      </button>
-
       {/* Mobile Overlay */}
       {mobileOpen && (
-        <div 
+        <div
           className="lg:hidden fixed inset-0 bg-black/50 z-40"
-          onClick={() => setMobileOpen(false)}
+          onClick={handleClose}
         />
       )}
 
       {/* Sidebar */}
       <aside className={`
-        ${mobileOpen ? "fixed inset-y-0 left-0 z-50 w-80" : "hidden lg:block"}
+        ${mobileOnly
+          ? mobileOpen ? "fixed inset-y-0 left-0 z-50 w-80" : "hidden"
+          : mobileOpen ? "fixed inset-y-0 left-0 z-50 w-80" : "hidden lg:block"
+        }
         bg-white lg:bg-transparent lg:sticky lg:top-24 lg:h-fit
       `}>
         <div className="h-full overflow-auto lg:overflow-visible bg-white lg:rounded-xl lg:border lg:border-slate-200 lg:shadow-sm">
@@ -153,7 +163,7 @@ export function FilterSidebar({ currentFilters, onFilterChange, totalResults }: 
                 </button>
               )}
               <button
-                onClick={() => setMobileOpen(false)}
+                onClick={handleClose}
                 className="lg:hidden p-2 text-slate-400 hover:text-slate-600"
               >
                 <X className="h-5 w-5" />
@@ -332,7 +342,7 @@ export function FilterSidebar({ currentFilters, onFilterChange, totalResults }: 
           {/* Mobile Apply Button */}
           <div className="lg:hidden p-4 border-t border-slate-100">
             <button
-              onClick={() => setMobileOpen(false)}
+              onClick={handleClose}
               className="w-full py-3 bg-amber-500 text-slate-950 font-semibold rounded-lg hover:bg-amber-400 transition-colors"
             >
               Show {totalResults} results

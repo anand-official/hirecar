@@ -35,6 +35,7 @@ create table public.organizations (
   phone text,
   address text,
   verified_at timestamptz,
+  suspended_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -186,6 +187,7 @@ create table public.vendor_documents (
 
 create table public.reviews (
   id uuid primary key default gen_random_uuid(),
+  lead_id uuid references public.leads(id) on delete set null,
   organization_id uuid not null references public.organizations(id) on delete cascade,
   vehicle_id uuid references public.vehicles(id) on delete set null,
   customer_name text not null,
@@ -195,6 +197,10 @@ create table public.reviews (
   created_at timestamptz not null default now()
 );
 
+create unique index idx_reviews_lead_id_unique
+on public.reviews(lead_id)
+where lead_id is not null;
+
 create table public.fraud_flags (
   id uuid primary key default gen_random_uuid(),
   resource_type text not null,
@@ -202,6 +208,8 @@ create table public.fraud_flags (
   severity text not null check (severity in ('low', 'medium', 'high', 'critical')),
   reason text not null,
   status text not null default 'open' check (status in ('open', 'reviewing', 'closed')),
+  reviewed_by uuid references public.profiles(id),
+  reviewed_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -257,7 +265,10 @@ create table public.stripe_webhook_events (
   id text primary key,
   event_type text not null,
   payload jsonb not null,
-  processed_at timestamptz not null default now()
+  processing_status text not null default 'processing' check (processing_status in ('processing', 'processed', 'failed')),
+  received_at timestamptz not null default now(),
+  processed_at timestamptz,
+  last_error text
 );
 
 create table public.subscription_events (
@@ -533,7 +544,7 @@ begin
 
   -- Record legal acceptance
   insert into public.legal_acceptances (organization_id, user_id, document_slug, version)
-  values (v_organization_id, p_user_id, 'vendor-agreement', 'production-placeholder-v1');
+  values (v_organization_id, p_user_id, 'vendor-agreement', 'vendor-agreement-v1');
 
   -- Log audit event
   insert into public.audit_logs (actor_user_id, action, resource_type, resource_id, metadata)
@@ -545,6 +556,44 @@ exception when others then
   raise exception 'Failed to create vendor onboarding: %', sqlerrm;
 end;
 $$;
+
+create or replace function public.create_vendor_onboarding(
+  p_user_id uuid,
+  p_full_name text,
+  p_email text,
+  p_phone text,
+  p_business_name text,
+  p_slug text,
+  p_abn text,
+  p_website text,
+  p_address text,
+  p_city text,
+  p_state text,
+  p_branch_slug text
+)
+returns uuid
+language sql
+security invoker
+set search_path = public, app_private
+as $$
+  select app_private.create_vendor_onboarding(
+    p_user_id,
+    p_full_name,
+    p_email,
+    p_phone,
+    p_business_name,
+    p_slug,
+    p_abn,
+    p_website,
+    p_address,
+    p_city,
+    p_state,
+    p_branch_slug
+  );
+$$;
+
+revoke all on function public.create_vendor_onboarding(uuid, text, text, text, text, text, text, text, text, text, text, text) from public, anon, authenticated;
+grant execute on function public.create_vendor_onboarding(uuid, text, text, text, text, text, text, text, text, text, text, text) to service_role;
 
 -- Lead expiration function to auto-archive old leads
 -- Run via cron job or pg_cron: SELECT cron.schedule('0 0 * * *', 'SELECT app_private.archive_old_leads()');
@@ -563,12 +612,8 @@ declare
 begin
   v_cutoff_date := now() - (p_days_old || ' days')::interval;
 
-  -- Archive old leads to a separate table (created if not exists)
-  create table if not exists public.leads_archive (
-    like public.leads including all,
-    archived_at timestamptz not null default now(),
-    archive_reason text default 'expired'
-  );
+  -- leads_archive is created as a proper migration (20260606100100_missing_indices_and_leads_archive.sql).
+  -- No DDL inside the function.
 
   -- Move leads older than cutoff to archive
   with archived as (

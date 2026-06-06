@@ -177,7 +177,6 @@ export async function deleteVehicleImage(formData: FormData): Promise<ImageActio
   }
 
   // Verify vehicle belongs to organization
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const vehicleOrgId = (image.vehicles as unknown as { organization_id: string }).organization_id;
   if (vehicleOrgId !== organizationId) {
     return { success: false, error: "Access denied" };

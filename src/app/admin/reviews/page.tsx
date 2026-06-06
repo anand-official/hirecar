@@ -2,7 +2,6 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/security/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
-import { getPendingReviews } from "@/lib/data/admin";
 
 export const metadata = {
   title: "Review Moderation",
@@ -10,8 +9,6 @@ export const metadata = {
 
 interface AdminReviewsPageProps {
   searchParams: Promise<{
-    approve?: string;
-    reject?: string;
     status?: string;
   }>;
 }
@@ -69,14 +66,6 @@ export default async function AdminReviewsPage({ searchParams }: AdminReviewsPag
   await requireAdmin();
   const params = await searchParams;
   const supabase = createAdminClient();
-
-  // Process moderation actions
-  if (params.approve) {
-    await moderateReview("approve", params.approve, "Approved from admin dashboard");
-  }
-  if (params.reject) {
-    await moderateReview("reject", params.reject, "Rejected from admin dashboard");
-  }
 
   // Get counts by status
   const { data: statusCounts } = await supabase
@@ -218,18 +207,22 @@ export default async function AdminReviewsPage({ searchParams }: AdminReviewsPag
 
                   {review.status === "pending" && (
                     <div className="flex gap-2">
-                      <Link
-                        href={`/admin/reviews?status=${statusFilter}&approve=${review.id}`}
-                        className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-                      >
-                        Approve
-                      </Link>
-                      <Link
-                        href={`/admin/reviews?status=${statusFilter}&reject=${review.id}`}
-                        className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-                      >
-                        Reject
-                      </Link>
+                      <form action={moderateReview.bind(null, "approve", review.id, "Approved from admin dashboard")}>
+                        <button
+                          type="submit"
+                          className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                        >
+                          Approve
+                        </button>
+                      </form>
+                      <form action={moderateReview.bind(null, "reject", review.id, "Rejected from admin dashboard")}>
+                        <button
+                          type="submit"
+                          className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                        >
+                          Reject
+                        </button>
+                      </form>
                     </div>
                   )}
                 </div>

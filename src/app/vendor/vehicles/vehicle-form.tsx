@@ -1,8 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
-import { createVehicle, updateVehicle, deleteVehicle } from "./actions";
-import { uploadVehicleImage, deleteVehicleImage, reorderVehicleImages } from "./image-actions";
+import { createVehicle, updateVehicle } from "./actions";
+import { uploadVehicleImage, deleteVehicleImage } from "./image-actions";
 
 interface VehicleFormProps {
   organizationId: string;
@@ -23,6 +24,9 @@ interface VehicleFormProps {
     transmission: string;
     category: string;
     price_per_day_aud: number;
+    daily_distance_limit_km?: number | null;
+    extra_distance_fee_aud?: number | null;
+    instant_book?: boolean;
     branch_id: string;
     status: string;
   } | null;
@@ -75,7 +79,7 @@ export default function VehicleForm({
       } else {
         setMessage({ type: "error", text: result.error });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "An unexpected error occurred" });
     } finally {
       setIsSubmitting(false);
@@ -96,7 +100,7 @@ export default function VehicleForm({
       } else {
         setMessage({ type: "error", text: result.error });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Image upload failed" });
     } finally {
       setUploadingImage(false);
@@ -224,6 +228,33 @@ export default function VehicleForm({
           </label>
 
           <label className="grid gap-2 text-sm font-medium text-slate-700">
+            Daily Distance Limit (km)
+            <input
+              name="dailyDistanceLimitKm"
+              type="number"
+              defaultValue={editVehicle?.daily_distance_limit_km || ""}
+              min={50}
+              max={1000}
+              placeholder="Leave blank for unlimited"
+              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+            />
+          </label>
+
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
+            Extra Distance Fee (AUD/km)
+            <input
+              name="extraDistanceFeeAud"
+              type="number"
+              step="0.01"
+              defaultValue={editVehicle?.extra_distance_fee_aud || ""}
+              min={0.10}
+              max={5.00}
+              placeholder="e.g., 0.35"
+              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+            />
+          </label>
+
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
             Fuel Type
             <select
               name="fuel"
@@ -289,6 +320,21 @@ export default function VehicleForm({
           </select>
         </label>
 
+        <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <input
+            type="checkbox"
+            name="instantBook"
+            defaultChecked={editVehicle?.instant_book || false}
+            className="mt-1 h-5 w-5 rounded border-slate-300 text-amber-600 focus:ring-amber-600"
+          />
+          <div>
+            <span className="block font-medium text-slate-900">Allow Instant Booking ⚡</span>
+            <span className="block text-sm text-slate-500">
+              Customers can book this vehicle instantly without waiting for your manual approval.
+            </span>
+          </div>
+        </label>
+
         <div className="flex gap-3">
           <button
             type="submit"
@@ -329,11 +375,15 @@ export default function VehicleForm({
               {editImages.map((img) => (
                 <div key={img.id} className="relative">
                   {img.url ? (
-                    <img
-                      src={img.url}
-                      alt={img.alt_text || "Vehicle image"}
-                      className="aspect-square rounded-lg object-cover"
-                    />
+                    <div className="relative aspect-square overflow-hidden rounded-lg">
+                      <Image
+                        src={img.url}
+                        alt={img.alt_text || "Vehicle image"}
+                        fill
+                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                        className="object-cover"
+                      />
+                    </div>
                   ) : (
                     <div className="flex aspect-square items-center justify-center rounded-lg bg-slate-100">
                       <span className="text-slate-400">Image</span>

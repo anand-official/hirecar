@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { readJsonBody } from "@/lib/api/request";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { clientIp } from "@/lib/security/rate-limit";
+import { clientIp, hashIpForStorage } from "@/lib/security/rate-limit";
 import { rateLimitSlidingWindow } from "@/lib/security/rate-limit-redis";
 import { verifyTurnstile } from "@/lib/security/turnstile";
 import { z } from "zod";
@@ -16,6 +17,7 @@ const reviewSchema = z.object({
 
 export async function POST(request: NextRequest) {
   const ip = clientIp(request.headers);
+  const ipHash = hashIpForStorage(ip);
 
   // Use distributed Redis rate limiting (falls back to memory if Redis unavailable)
   // Stricter rate limit for reviews (3 per hour per IP)
@@ -31,7 +33,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const payload = reviewSchema.safeParse(await request.json());
+  const { data: rawBody, response: jsonError } = await readJsonBody(request);
+  if (jsonError) return jsonError;
+
+  const payload = reviewSchema.safeParse(rawBody);
 
   if (!payload.success) {
     return NextResponse.json({ error: payload.error.flatten() }, { status: 400 });
@@ -132,7 +137,7 @@ export async function POST(request: NextRequest) {
       organization_id: organizationId,
       vehicle_id: vehicleId,
       rating,
-      ip_hash: ip,
+      ip_hash: ipHash,
     },
   });
 
@@ -149,6 +154,9 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const organizationId = searchParams.get("organizationId");
   const vehicleId = searchParams.get("vehicleId");
+  
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+  const perPage = Math.min(100, Math.max(1, parseInt(searchParams.get("perPage") || "50", 10)));
 
   if (!organizationId) {
     return NextResponse.json({ error: "Organization ID required" }, { status: 400 });
@@ -158,7 +166,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from("reviews")
-    .select("id, vehicle_id, customer_name, rating, body, created_at")
+    .select("id, vehicle_id, customer_name, rating, body, created_at", { count: "exact" })
     .eq("organization_id", organizationId)
     .eq("status", "approved")
     .order("created_at", { ascending: false });
@@ -167,11 +175,20 @@ export async function GET(request: NextRequest) {
     query = query.eq("vehicle_id", vehicleId);
   }
 
-  const { data: reviews, error } = await query.limit(50);
+  const offset = (page - 1) * perPage;
+  const { data: reviews, count, error } = await query.range(offset, offset + perPage - 1);
 
   if (error) {
     return NextResponse.json({ error: "Failed to fetch reviews" }, { status: 500 });
   }
 
-  return NextResponse.json({ reviews: reviews ?? [] });
+  return NextResponse.json({ 
+    reviews: reviews ?? [],
+    pagination: {
+      page,
+      perPage,
+      total: count ?? 0,
+      totalPages: Math.ceil((count ?? 0) / perPage)
+    }
+  });
 }

@@ -9,12 +9,7 @@ export const metadata = {
 
 interface AdminListingsPageProps {
   searchParams: Promise<{
-    approve?: string;
-    reject?: string;
-    suspend?: string;
-    restore?: string;
     status?: string;
-    reindex?: string;
   }>;
 }
 
@@ -110,20 +105,6 @@ export default async function AdminListingsPage({ searchParams }: AdminListingsP
   await requireAdmin();
   const params = await searchParams;
   const supabase = createAdminClient();
-
-  // Process moderation actions
-  if (params.approve) {
-    await moderateListing("approve", params.approve, "Approved from admin dashboard", true);
-  }
-  if (params.reject) {
-    await moderateListing("reject", params.reject, "Rejected from admin dashboard", false);
-  }
-  if (params.suspend) {
-    await moderateListing("suspend", params.suspend, "Suspended from admin dashboard", false);
-  }
-  if (params.restore) {
-    await moderateListing("restore", params.restore, "Restored from admin dashboard", true);
-  }
 
   // Fetch listings
   const statusFilter = params.status || "pending";
@@ -283,28 +264,34 @@ export default async function AdminListingsPage({ searchParams }: AdminListingsP
                   <div className="flex flex-wrap gap-2">
                     {listing.status === "pending" && (
                       <>
-                        <Link
-                          href={`/admin/listings?status=${statusFilter}&approve=${listing.id}`}
-                          className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-                        >
-                          Approve
-                        </Link>
-                        <Link
-                          href={`/admin/listings?status=${statusFilter}&reject=${listing.id}`}
-                          className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-                        >
-                          Reject
-                        </Link>
+                        <form action={moderateListing.bind(null, "approve", listing.id, "Approved from admin dashboard", true)}>
+                          <button
+                            type="submit"
+                            className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                          >
+                            Approve
+                          </button>
+                        </form>
+                        <form action={moderateListing.bind(null, "reject", listing.id, "Rejected from admin dashboard", false)}>
+                          <button
+                            type="submit"
+                            className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                          >
+                            Reject
+                          </button>
+                        </form>
                       </>
                     )}
                     {listing.status === "approved" && (
                       <>
-                        <Link
-                          href={`/admin/listings?status=${statusFilter}&suspend=${listing.id}`}
-                          className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
-                        >
-                          Suspend
-                        </Link>
+                        <form action={moderateListing.bind(null, "suspend", listing.id, "Suspended from admin dashboard", false)}>
+                          <button
+                            type="submit"
+                            className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+                          >
+                            Suspend
+                          </button>
+                        </form>
                         <Link
                           href={`/cars/${listing.slug}`}
                           target="_blank"
@@ -315,12 +302,14 @@ export default async function AdminListingsPage({ searchParams }: AdminListingsP
                       </>
                     )}
                     {(listing.status === "suspended" || listing.status === "rejected") && (
-                      <Link
-                        href={`/admin/listings?status=${statusFilter}&restore=${listing.id}`}
-                        className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                      >
-                        Restore
-                      </Link>
+                      <form action={moderateListing.bind(null, "restore", listing.id, "Restored from admin dashboard", true)}>
+                        <button
+                          type="submit"
+                          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                        >
+                          Restore
+                        </button>
+                      </form>
                     )}
                     <Link
                       href={`/admin/audit?type=vehicle&id=${listing.id}`}

@@ -1,41 +1,66 @@
-# Carhire Marketplace
+# Hire Car – Premium Vehicle Marketplace
 
-Production-grade starter for an Australian car rental lead marketplace. The app is a modular Next.js monolith with Supabase Auth/Postgres/Storage, Stripe subscriptions, Resend email, Typesense search, and Cloudflare/Vercel deployment assumptions.
+Hire Car is a modern, scalable, multi-tenant marketplace connecting customers with premium local car rental operators. It enables vendors to manage their fleets, locations, and leads, while offering customers an intuitive platform to discover and book vehicles.
 
-## What Is Implemented
+## Tech Stack
+- **Frontend Framework**: Next.js 16 (App Router, Server Actions)
+- **Styling**: Tailwind CSS v4, shadcn/ui, Framer Motion
+- **Database & Auth**: Supabase (PostgreSQL, Row Level Security)
+- **Search Engine**: Typesense Cloud
+- **Security**: Cloudflare Turnstile, Upstash Redis Rate Limiting
+- **Emails**: Resend
+- **Payments**: Stripe
 
-- Public marketplace routes for search, listings, vendors, pricing, contact, and legal pages.
-- Protected vendor and admin dashboard shells with route-level auth gates.
-- API route handlers for leads, contact tracking, Stripe Checkout, Billing Portal, signed Stripe webhooks, admin moderation, and Typesense reindex health checks.
-- Supabase migration with enterprise data model, RLS policies, storage buckets, Stripe event idempotency, audit logs, fraud flags, and legal acceptances.
-- Shared validation schemas and baseline tests for high-risk public inputs.
-- Security headers, Supabase SSR middleware, Turnstile verification hook, and in-memory local rate limiting.
-
-## Local Setup
-
-1. Copy `.env.example` to `.env.local`.
-2. Create separate company-owned projects/accounts for Supabase, Stripe, Resend, Typesense, Vercel, and Cloudflare.
-3. Fill Supabase publishable and service-role keys. Never expose the service role key in browser-prefixed env vars.
-4. Create Stripe Starter/Growth/Pro prices and set the matching env vars.
-5. Apply the Supabase migration in `supabase/migrations`.
-6. Run:
-
-```bash
-npm install
-npm run dev
+## Project Structure
+```text
+src/
+├── app/                  # Next.js App Router (pages & API routes)
+│   ├── (public)/         # SEO-friendly marketing and discovery pages
+│   ├── admin/            # Superadmin dashboard
+│   ├── api/              # Route handlers and webhooks
+│   ├── customer/         # Customer account portal
+│   └── vendor/           # Vendor fleet & lead management portal
+├── components/           # Reusable UI elements (shadcn + custom)
+└── lib/                  # Core utilities (auth, search, DB clients)
+supabase/                 # Database migrations, edge functions, config
+docs/                     # Comprehensive developer & architectural documentation
 ```
 
-## Verification
+## Local Development Setup
 
-```bash
-npm run lint
-npm run test
-npm run build
-```
+1. **Clone the repository and install dependencies:**
+   ```bash
+   git clone [repo-url]
+   cd Carhire
+   npm install
+   ```
 
-## Production Notes
+2. **Configure Environment Variables:**
+   Copy the example environment template and populate it with your local Supabase and Typesense keys.
+   ```bash
+   cp .env.example .env.local
+   ```
 
-- Admin access requires trusted app metadata or an admin role record plus MFA.
-- Public vehicle visibility requires approved organization, branch, subscription, and vehicle states.
-- Customer bookings, deposits, insurance, driver verification, refunds, and disputes remain out of scope.
-- Legal placeholder pages must be replaced with lawyer-reviewed Australian documents before launch.
+3. **Start the Development Server:**
+   ```bash
+   npm run dev
+   ```
+   The application will be available at `http://localhost:3000`.
+
+## Scripts
+- `npm run dev` - Starts the Next.js development server
+- `npm run build` - Creates an optimized production build
+- `npm run start` - Runs the production build
+- `npm run lint` - Runs ESLint to check for code quality issues
+- `npm run test` - Runs Vitest test suites
+
+## Documentation
+For deep technical guides, please refer to the `/docs` directory:
+- [Architecture & System Design](docs/ARCHITECTURE.md)
+- [Codebase Guide](docs/CODEBASE_GUIDE.md)
+- [Database Schema & Migrations](docs/DATABASE.md)
+- [API Reference](docs/API.md)
+- [Deployment & Operations](docs/DEPLOYMENT.md)
+- [SEO Strategy](docs/SEO.md)
+- [Security Boundaries](docs/SECURITY.md)
+- [Contributing Guidelines](docs/CONTRIBUTING.md)

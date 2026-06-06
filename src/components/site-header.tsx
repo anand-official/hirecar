@@ -1,331 +1,262 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useEffect } from "react";
-import { 
-  ShieldCheck, 
-  Menu, 
-  X, 
-  Phone, 
-  ChevronDown, 
-  MapPin,
-  Car
-} from "lucide-react";
-
-const locations = [
-  { name: "Sydney", href: "/search?city=Sydney" },
-  { name: "Melbourne", href: "/search?city=Melbourne" },
-  { name: "Brisbane", href: "/search?city=Brisbane" },
-  { name: "Perth", href: "/search?city=Perth" },
-  { name: "Adelaide", href: "/search?city=Adelaide" },
-  { name: "Gold Coast", href: "/search?city=Gold%20Coast" },
-];
-
-const vehicleCategories = [
-  { name: "Sedans", href: "/search?category=Sedan" },
-  { name: "SUVs", href: "/search?category=SUV" },
-  { name: "People Movers", href: "/search?category=People%20mover" },
-  { name: "Vans", href: "/search?category=Van" },
-  { name: "Luxury", href: "/search?category=Luxury" },
-];
+import Link from "next/link";
+// usePathname removed
+import { Menu, X, ChevronDown, ShieldCheck, User, Headphones } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { createBrowserClient } from "@supabase/ssr";
 
 export function SiteHeader() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  // pathname removed
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
+  const locations = [
+    { name: "Sydney", href: "/search?city=Sydney" },
+    { name: "Melbourne", href: "/search?city=Melbourne" },
+    { name: "Brisbane", href: "/search?city=Brisbane" },
+    { name: "Perth", href: "/search?city=Perth" },
+    { name: "Adelaide", href: "/search?city=Adelaide" },
+    { name: "Gold Coast", href: "/search?city=Gold Coast" },
+    { name: "Canberra", href: "/search?city=Canberra" },
+    { name: "Hobart", href: "/search?city=Hobart" },
+    { name: "Darwin", href: "/search?city=Darwin" },
+    { name: "Cairns", href: "/search?city=Cairns" },
+  ];
+
+  const vehicleCategories = [
+    { name: "Sedans", href: "/search?category=Sedan" },
+    { name: "SUVs", href: "/search?category=SUV" },
+    { name: "Hatchbacks", href: "/search?category=Hatchback" },
+    { name: "Utes & Trucks", href: "/search?category=Ute" },
+    { name: "People Movers", href: "/search?category=People mover" },
+    { name: "Luxury & Sports", href: "/search?category=Luxury" },
+    { name: "Convertibles", href: "/search?category=Convertible" },
+    { name: "Electric Vehicles", href: "/search?category=Electric" },
+    { name: "Vans & Commercial", href: "/search?category=Van" },
+    { name: "Campers", href: "/search?category=Camper" },
+  ];
+
+  const openMobileMenu = () => setIsMobileMenuOpen(true);
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    
+    // Check auth state
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+    );
+    
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsLoggedIn(!!session);
+      setIsLoadingAuth(false);
+    };
+    
+    checkAuth();
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+    });
+    
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      subscription.unsubscribe();
+    };
+  }, []);
 
   return (
     <>
-      <header 
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          isScrolled 
-            ? "glass border-b border-slate-200/40 shadow-sm" 
-            : "bg-transparent"
-        }`}
-      >
-        {/* Top Bar - Shows on scroll for CTA visibility */}
-        <div className={`bg-slate-950 text-white text-xs transition-all duration-500 overflow-hidden ${isScrolled ? "max-h-0" : "max-h-10"}`}>
-          <div className="mx-auto max-w-7xl px-4 py-2 sm:px-6 lg:px-8 flex items-center justify-between">
-            <p className="text-slate-400 font-medium tracking-wide">
-              Australia&apos;s trusted premium car rental marketplace
-            </p>
-            <a href="tel:1800123456" className="flex items-center gap-2 hover:text-primary transition-colors font-medium">
-              <Phone className="h-3.5 w-3.5" />
-              1800 123 456
-            </a>
-          </div>
-        </div>
-
-        {/* Main Header */}
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            {/* Logo */}
-            <Link 
-              href="/" 
-              className={`flex items-center gap-2 text-xl font-bold tracking-tight transition-colors ${
-                isScrolled ? "text-slate-900" : "text-white"
-              }`}
+      <header className="fixed top-0 left-0 right-0 z-50 flex flex-col">
+        {/* Vibrant Top Info Bar - Hides on scroll */}
+        <AnimatePresence>
+          {!isScrolled && (
+            <motion.div 
+              initial={{ height: 40, opacity: 1 }}
+              exit={{ height: 0, opacity: 0, overflow: 'hidden' }}
+              transition={{ duration: 0.3 }}
+              className="bg-gradient-to-r from-orange-600 via-[#ea580c] to-amber-500 text-white text-xs font-bold tracking-wide py-2.5 px-4 flex justify-center sm:justify-between items-center shadow-inner"
             >
-              <span className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 shadow-md ${
-                isScrolled ? "bg-slate-950 text-white" : "bg-primary text-primary-foreground"
-              }`}>
-                <ShieldCheck className="h-6 w-6" aria-hidden />
+              <span className="hidden sm:inline-block">Australia&apos;s trusted premium car rental marketplace</span>
+              <span className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full backdrop-blur-sm">
+                <Headphones className="h-3.5 w-3.5" /> 1800 123 456
               </span>
-              <span className="hidden sm:inline font-heading">Carhire</span>
-            </Link>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden items-center gap-8 md:flex">
-              {/* Locations Dropdown */}
-              <div 
-                className="relative group"
-                onMouseEnter={() => setActiveDropdown("locations")}
-                onMouseLeave={() => setActiveDropdown(null)}
-              >
-                <button 
-                  className={`flex items-center gap-1.5 text-sm font-semibold transition-colors py-2 ${
-                    isScrolled ? "text-slate-600 hover:text-primary" : "text-white/90 hover:text-white"
-                  }`}
-                >
-                  Locations
-                  <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${activeDropdown === "locations" ? "rotate-180 text-primary" : ""}`} />
-                </button>
-                
-                {activeDropdown === "locations" && (
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-56 glass rounded-2xl border border-slate-200/50 shadow-2xl overflow-hidden animate-scale-in origin-top">
-                    <div className="p-3 grid gap-1">
-                      {locations.map((loc) => (
-                        <Link
-                          key={loc.name}
-                          href={loc.href}
-                          className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary rounded-xl transition-all"
-                        >
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                            <MapPin className="h-4 w-4" />
-                          </div>
-                          {loc.name}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Vehicles Dropdown */}
-              <div 
-                className="relative group"
-                onMouseEnter={() => setActiveDropdown("vehicles")}
-                onMouseLeave={() => setActiveDropdown(null)}
-              >
-                <button 
-                  className={`flex items-center gap-1.5 text-sm font-semibold transition-colors py-2 ${
-                    isScrolled ? "text-slate-600 hover:text-primary" : "text-white/90 hover:text-white"
-                  }`}
-                >
-                  Vehicles
-                  <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${activeDropdown === "vehicles" ? "rotate-180 text-primary" : ""}`} />
-                </button>
-                
-                {activeDropdown === "vehicles" && (
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-56 glass rounded-2xl border border-slate-200/50 shadow-2xl overflow-hidden animate-scale-in origin-top">
-                    <div className="p-3 grid gap-1">
-                      {vehicleCategories.map((cat) => (
-                        <Link
-                          key={cat.name}
-                          href={cat.href}
-                          className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary rounded-xl transition-all"
-                        >
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                            <Car className="h-4 w-4" />
-                          </div>
-                          {cat.name}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <Link 
-                href="/pricing" 
-                className={`text-sm font-semibold transition-colors py-2 ${
-                  isScrolled ? "text-slate-600 hover:text-primary" : "text-white/90 hover:text-white"
-                }`}
-              >
-                Pricing
-              </Link>
-              <Link 
-                href="/contact" 
-                className={`text-sm font-semibold transition-colors py-2 ${
-                  isScrolled ? "text-slate-600 hover:text-primary" : "text-white/90 hover:text-white"
-                }`}
-              >
-                Contact
-              </Link>
-
-            </nav>
-
-            {/* CTA & Mobile Menu Toggle */}
-            <div className="flex items-center gap-4">
-              {/* Phone CTA - Mobile */}
-              <a 
-                href="tel:1800123456" 
-                className="md:hidden flex items-center gap-2 text-sm"
-              >
-                <span className={`${isScrolled ? "text-slate-900" : "text-white"}`}>
-                  <Phone className="h-5 w-5" />
+        {/* Main Navbar */}
+        <div
+          className={`transition-all duration-300 w-full ${
+            isScrolled
+              ? "bg-white/90 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.05)] border-b border-white/20 py-3"
+              : "bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100 py-4"
+          }`}
+        >
+          <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between">
+              
+              {/* Vibrant Logo */}
+              <Link href="/" className="flex items-center gap-2.5 group">
+                <span className="flex h-11 w-11 items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-xl shadow-lg shadow-slate-900/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-primary/20">
+                  <ShieldCheck className="h-6 w-6 text-orange-400" strokeWidth={2.5} />
                 </span>
-              </a>
-
-              <Link
-                href="/auth/sign-in"
-                className={`hidden sm:inline-flex rounded-xl px-6 py-2.5 text-sm font-bold transition-all shadow-sm ${
-                  isScrolled 
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-md hover:-translate-y-0.5" 
-                    : "bg-white/10 text-white hover:bg-white/20 backdrop-blur"
-                }`}
-              >
-                Log In
+                <span className="text-2xl font-black tracking-tight text-slate-900 group-hover:text-primary transition-colors duration-300">
+                  Carhire
+                </span>
               </Link>
 
-              {/* Mobile Menu Toggle */}
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className={`md:hidden p-2 rounded-xl transition-colors ${
-                  isScrolled 
-                    ? "text-slate-900 hover:bg-slate-100" 
-                    : "text-white hover:bg-white/20 backdrop-blur"
-                }`}
-                aria-label="Toggle menu"
-              >
-                {isMobileMenuOpen ? (
-                  <X className="h-6 w-6" />
-                ) : (
-                  <Menu className="h-6 w-6" />
+              {/* Desktop Nav */}
+              <nav className="hidden md:flex items-center gap-8">
+                {/* Dropdown 1 */}
+                <div
+                  className="relative h-full flex items-center"
+                  onMouseEnter={() => setActiveDropdown("locations")}
+                  onMouseLeave={() => setActiveDropdown(null)}
+                >
+                  <button className="flex items-center gap-1 font-bold text-sm text-slate-600 hover:text-primary transition-colors py-4 group">
+                    Locations 
+                    <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${activeDropdown === "locations" ? "rotate-180 text-primary" : "text-slate-400 group-hover:text-primary"}`} />
+                  </button>
+                  <AnimatePresence>
+                    {activeDropdown === "locations" && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute top-[100%] left-0 w-52 bg-white rounded-2xl shadow-2xl shadow-slate-200 overflow-hidden py-3 border border-slate-100 origin-top-left"
+                      >
+                        {locations.map((loc) => (
+                          <Link key={loc.name} href={loc.href} className="block px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-orange-50 hover:text-primary hover:translate-x-1 transition-all">
+                            {loc.name}
+                          </Link>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Dropdown 2 */}
+                <div
+                  className="relative h-full flex items-center"
+                  onMouseEnter={() => setActiveDropdown("vehicles")}
+                  onMouseLeave={() => setActiveDropdown(null)}
+                >
+                  <button className="flex items-center gap-1 font-bold text-sm text-slate-600 hover:text-primary transition-colors py-4 group">
+                    Vehicles 
+                    <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${activeDropdown === "vehicles" ? "rotate-180 text-primary" : "text-slate-400 group-hover:text-primary"}`} />
+                  </button>
+                  <AnimatePresence>
+                    {activeDropdown === "vehicles" && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute top-[100%] left-0 w-52 bg-white rounded-2xl shadow-2xl shadow-slate-200 overflow-hidden py-3 border border-slate-100 origin-top-left"
+                      >
+                        {vehicleCategories.map((cat) => (
+                          <Link key={cat.name} href={cat.href} className="block px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-orange-50 hover:text-primary hover:translate-x-1 transition-all">
+                            {cat.name}
+                          </Link>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                <Link href="/pricing" className="relative font-bold text-sm text-slate-600 hover:text-primary transition-colors group">
+                  Pricing
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
+                </Link>
+                <Link href="/contact" className="relative font-bold text-sm text-slate-600 hover:text-primary transition-colors group">
+                  Contact
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
+                </Link>
+              </nav>
+
+              {/* CTAs */}
+              <div className="flex items-center gap-4">
+                {!isLoadingAuth && (
+                  isLoggedIn ? (
+                    <Link href="/customer/dashboard" className="hidden md:flex items-center gap-2 bg-gradient-to-r from-[#ea580c] to-amber-500 hover:from-[#c2410c] hover:to-[#ea580c] text-white font-bold text-sm px-7 py-3 rounded-full transition-all shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5">
+                      <User className="h-4 w-4" />
+                      Profile
+                    </Link>
+                  ) : (
+                    <Link href="/auth/sign-in" className="hidden md:flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-7 py-3 rounded-full transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
+                      Log in / Sign up
+                    </Link>
+                  )
                 )}
-              </button>
+
+                {/* Mobile Toggle */}
+                <button onClick={openMobileMenu} className="md:hidden p-2 text-slate-700 hover:text-primary transition-colors bg-slate-100 rounded-full">
+                  <Menu className="h-5 w-5" strokeWidth={2.5} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Mobile Menu Overlay */}
-      {isMobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-40 md:hidden animate-fade-in"
-          onClick={closeMobileMenu}
-        />
-      )}
-
       {/* Mobile Menu */}
-      <div 
-        className={`fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-white z-50 transform transition-transform duration-500 cubic-bezier(0.2, 0.8, 0.2, 1) md:hidden shadow-2xl ${
-          isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        <div className="flex flex-col h-full">
-          {/* Mobile Menu Header */}
-          <div className="flex items-center justify-between p-5 border-b border-slate-100">
-            <Link href="/" className="flex items-center gap-3 text-xl font-bold text-slate-900" onClick={closeMobileMenu}>
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-                <ShieldCheck className="h-6 w-6" aria-hidden />
-              </span>
-              <span className="font-heading">Carhire</span>
-            </Link>
-            <button
-              onClick={closeMobileMenu}
-              className="p-2.5 text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          {/* Mobile Menu Content */}
-          <nav className="flex-1 overflow-y-auto p-5">
-            <div className="space-y-8">
-              {/* Quick Search */}
-              <Link 
-                href="/search" 
-                onClick={closeMobileMenu}
-                className="flex items-center gap-3 p-4 bg-primary/5 rounded-2xl text-primary font-bold hover:bg-primary/10 transition-colors border border-primary/10"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm">
-                  <Car className="h-5 w-5" />
-                </div>
-                Find a rental car
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-white text-slate-900 flex flex-col"
+          >
+            <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-white">
+              <Link href="/" onClick={closeMobileMenu} className="flex items-center gap-2">
+                <span className="flex h-10 w-10 items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-xl shadow-lg">
+                  <ShieldCheck className="h-6 w-6 text-orange-400" strokeWidth={2.5} />
+                </span>
+                <span className="text-2xl font-black tracking-tight">Carhire</span>
               </Link>
-
-              {/* Locations */}
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 px-1">
-                  Popular Locations
-                </h3>
-                <div className="space-y-1">
-                  {locations.map((loc) => (
-                    <Link
-                      key={loc.name}
-                      href={loc.href}
-                      onClick={closeMobileMenu}
-                      className="flex items-center gap-4 px-3 py-3 text-slate-600 hover:bg-slate-50 hover:text-primary font-medium rounded-xl transition-colors"
-                    >
-                      <MapPin className="h-5 w-5 text-slate-400" />
-                      {loc.name}
-                    </Link>
-                  ))}
-                </div>
+              <button onClick={closeMobileMenu} className="p-2 text-slate-500 hover:text-primary transition-colors bg-slate-100 rounded-full">
+                <X className="h-6 w-6" strokeWidth={2.5} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-auto p-6 flex flex-col gap-6">
+              <Link href="/search" onClick={closeMobileMenu} className="bg-gradient-to-r from-primary to-amber-500 text-white font-bold text-lg rounded-2xl px-6 py-4 text-center shadow-lg shadow-primary/20">
+                Find a Car
+              </Link>
+              
+              <div className="flex flex-col gap-4 mt-4">
+                <Link href="/pricing" onClick={closeMobileMenu} className="font-bold text-xl text-slate-800 hover:text-primary hover:translate-x-2 transition-transform">Pricing</Link>
+                <Link href="/contact" onClick={closeMobileMenu} className="font-bold text-xl text-slate-800 hover:text-primary hover:translate-x-2 transition-transform">Contact</Link>
               </div>
-
-              {/* Vehicle Types */}
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 px-1">
-                  Vehicle Types
-                </h3>
-                <div className="space-y-1">
-                  {vehicleCategories.map((cat) => (
-                    <Link
-                      key={cat.name}
-                      href={cat.href}
-                      onClick={closeMobileMenu}
-                      className="flex items-center gap-4 px-3 py-3 text-slate-600 hover:bg-slate-50 hover:text-primary font-medium rounded-xl transition-colors"
-                    >
-                      <Car className="h-5 w-5 text-slate-400" />
-                      {cat.name}
+              
+              <div className="mt-auto flex flex-col pt-8 border-t border-slate-100">
+                {!isLoadingAuth && (
+                  isLoggedIn ? (
+                    <Link href="/customer/dashboard" onClick={closeMobileMenu} className="font-bold text-lg text-center bg-slate-100 text-slate-900 rounded-2xl py-4 hover:bg-slate-200 transition-colors flex justify-center items-center gap-2">
+                      <User className="h-5 w-5" /> Profile
                     </Link>
-                  ))}
-                </div>
+                  ) : (
+                    <Link href="/auth/sign-in" onClick={closeMobileMenu} className="font-bold text-lg text-center bg-slate-900 text-white rounded-2xl py-4 hover:bg-slate-800 transition-colors flex justify-center items-center gap-2">
+                      Log in / Sign up
+                    </Link>
+                  )
+                )}
               </div>
             </div>
-          </nav>
-
-          {/* Mobile Menu Footer */}
-          <div className="p-5 border-t border-slate-100 bg-slate-50 space-y-3">
-            <a 
-              href="tel:1800123456" 
-              className="flex items-center justify-center gap-2 w-full py-3.5 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold hover:bg-slate-50 transition-colors shadow-sm"
-            >
-              <Phone className="h-4 w-4" />
-              Call 1800 123 456
-            </a>
-            <Link
-              href="/auth/sign-in"
-              onClick={closeMobileMenu}
-              className="flex items-center justify-center w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-colors shadow-md"
-            >
-              Log In
-            </Link>
-          </div>
-        </div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

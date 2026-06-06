@@ -27,32 +27,86 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient();
   const { data: existing } = await supabase
     .from("stripe_webhook_events")
-    .select("id")
+    .select("id, processing_status")
     .eq("id", event.id)
     .maybeSingle();
 
-  if (existing) {
+  if (existing?.processing_status === "processed") {
     return NextResponse.json({ received: true, duplicate: true });
   }
 
-  await supabase.from("stripe_webhook_events").insert({
-    id: event.id,
-    event_type: event.type,
-    payload: event,
-    processed_at: new Date().toISOString(),
-  });
+  if (existing?.processing_status === "processing") {
+    return NextResponse.json(
+      { error: "Webhook event is already being processed", eventId: event.id },
+      { status: 409 },
+    );
+  }
 
-  await supabase.from("subscription_events").insert({
-    stripe_event_id: event.id,
+  const receivedAt = new Date().toISOString();
+  const processingPayload = {
     event_type: event.type,
     payload: event,
-  });
+    processing_status: "processing",
+    received_at: receivedAt,
+    processed_at: null,
+    last_error: null,
+  };
+
+  const claimResult = existing
+    ? await supabase
+        .from("stripe_webhook_events")
+        .update(processingPayload)
+        .eq("id", event.id)
+        .eq("processing_status", "failed")
+    : await supabase.from("stripe_webhook_events").insert({
+        id: event.id,
+        ...processingPayload,
+      });
+
+  if (claimResult.error) {
+    console.error(`Failed to claim webhook event ${event.id}:`, claimResult.error.message);
+    return NextResponse.json(
+      { error: "Webhook processing could not be started", eventId: event.id },
+      { status: 500 },
+    );
+  }
 
   // Process the event and update subscription state
   try {
     await processStripeEvent(event, supabase);
+
+    const { error: subscriptionEventError } = await supabase.from("subscription_events").insert({
+      stripe_event_id: event.id,
+      event_type: event.type,
+      payload: event,
+    });
+
+    if (subscriptionEventError) {
+      throw new Error(`Failed to record subscription event: ${subscriptionEventError.message}`);
+    }
+
+    const { error: processedError } = await supabase
+      .from("stripe_webhook_events")
+      .update({
+        processing_status: "processed",
+        processed_at: new Date().toISOString(),
+        last_error: null,
+      })
+      .eq("id", event.id);
+
+    if (processedError) {
+      throw new Error(`Failed to mark webhook processed: ${processedError.message}`);
+    }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+    await supabase
+      .from("stripe_webhook_events")
+      .update({
+        processing_status: "failed",
+        last_error: errorMessage,
+      })
+      .eq("id", event.id);
 
     // Log the error to security_events for monitoring
     await supabase.from("security_events").insert({
@@ -141,7 +195,6 @@ async function processStripeEvent(
 
     case "invoice.payment_succeeded": {
       const invoice = event.data.object as Stripe.Invoice;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const subscriptionId = (invoice as unknown as Record<string, unknown>).subscription as string;
 
       if (subscriptionId) {
@@ -167,7 +220,6 @@ async function processStripeEvent(
 
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const subscriptionId = (invoice as unknown as Record<string, unknown>).subscription as string;
 
       if (subscriptionId) {
@@ -199,7 +251,6 @@ async function processStripeEvent(
 
       const mappedStatus = statusMap[subscription.status] || "incomplete";
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const currentPeriodEnd = (subscription as unknown as Record<string, number>).current_period_end;
 
       await supabase
@@ -250,7 +301,7 @@ async function processStripeEvent(
 
     default:
       // Log unhandled event types for monitoring
-      console.log(`Unhandled Stripe event type: ${event.type}`);
+      console.info(`Unhandled Stripe event type: ${event.type}`);
 
       // Log to audit for visibility
       await supabase.from("audit_logs").insert({

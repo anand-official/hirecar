@@ -17,8 +17,10 @@ import {
   AlertTriangle,
   ClipboardList,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  LogOut
 } from "lucide-react";
+import { createBrowserClient } from "@supabase/ssr";
 
 const vendorLinks = [
   { label: "Dashboard", href: "/vendor/dashboard", icon: LayoutDashboard },
@@ -52,6 +54,15 @@ export function DashboardShell({
   const pathname = usePathname();
   const links = mode === "vendor" ? vendorLinks : adminLinks;
 
+  const handleLogout = async () => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    );
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  };
+
   return (
     <div className="min-h-screen bg-slate-50/50">
       <header className="sticky top-0 z-40 border-b border-slate-200/60 bg-white/80 backdrop-blur-md shadow-sm">
@@ -60,7 +71,7 @@ export function DashboardShell({
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
               <ShieldCheck className="h-5 w-5" />
             </span>
-            Carhire {mode === "admin" ? "Admin" : "Vendor"}
+            Hire Car {mode === "admin" ? "Admin" : "Vendor"}
           </Link>
           <Link href="/search" className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-primary transition-colors bg-slate-100/50 hover:bg-primary/5 px-3 py-1.5 rounded-lg border border-transparent hover:border-primary/10">
             Public marketplace
@@ -93,6 +104,16 @@ export function DashboardShell({
                 </Link>
               );
             })}
+            
+            <div className="mt-8 px-3 border-t border-slate-100 pt-4">
+              <button
+                onClick={handleLogout}
+                className="flex w-full items-center gap-3.5 rounded-xl px-4 py-3 text-sm font-bold text-slate-500 hover:bg-slate-50 hover:text-red-600 transition-all duration-200"
+              >
+                <LogOut className="h-4.5 w-4.5 shrink-0" />
+                Logout
+              </button>
+            </div>
           </nav>
         </aside>
 

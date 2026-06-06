@@ -6,7 +6,14 @@ serve(async (req) => {
   const authHeader = req.headers.get("Authorization");
   const expectedKey = Deno.env.get("WORKER_API_KEY");
 
-  if (expectedKey && authHeader !== `Bearer ${expectedKey}`) {
+  if (!expectedKey) {
+    return new Response(JSON.stringify({ error: "Worker API key not configured" }), {
+      status: 503,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  if (authHeader !== `Bearer ${expectedKey}`) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
@@ -27,7 +34,18 @@ serve(async (req) => {
     let daysOld = 90;
     try {
       const body = await req.json();
-      daysOld = body.days || 90;
+      if (body.days !== undefined) {
+        const parsedDays = Number(body.days);
+
+        if (!Number.isInteger(parsedDays) || parsedDays < 30 || parsedDays > 3650) {
+          return new Response(JSON.stringify({ error: "days must be an integer between 30 and 3650" }), {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+
+        daysOld = parsedDays;
+      }
     } catch {
       // No body provided, use default
     }

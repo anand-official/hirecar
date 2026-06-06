@@ -1,13 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { readJsonBody } from "@/lib/api/request";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireUser } from "@/lib/security/auth";
-import { clientIp } from "@/lib/security/rate-limit";
+import { requireApiUser } from "@/lib/security/auth";
+import { clientIp, hashIpForStorage } from "@/lib/security/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireUser();
+    const { user, response } = await requireApiUser();
+    if (!user) return response;
+
     const ip = clientIp(request.headers);
-    const body = await request.json();
+    const ipHash = hashIpForStorage(ip);
+    const { data: body, response: jsonError } = await readJsonBody(request);
+    if (jsonError) return jsonError;
     
     const { vehicleId, vendorId } = body;
     
@@ -86,7 +91,7 @@ export async function POST(request: NextRequest) {
         start_date: startDate.toISOString().split('T')[0],
         end_date: endDate.toISOString().split('T')[0],
         message: "I am interested in this vehicle. Please contact me via chat.",
-        ip_hash: ip,
+        ip_hash: ipHash,
         status: "new",
       })
       .select("id")
@@ -108,7 +113,7 @@ export async function POST(request: NextRequest) {
     await supabase.from("lead_events").insert({
       lead_id: lead.id,
       event_type: "quick_interest_submitted",
-      metadata: { ip_hash: ip, user_id: user.id },
+      metadata: { ip_hash: ipHash, user_id: user.id },
     });
 
     return NextResponse.json({ success: true, leadId: lead.id });

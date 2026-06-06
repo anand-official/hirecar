@@ -71,12 +71,18 @@ async function processTypesenseOperation(job: SearchIndexJob, vehicle: Vehicle |
 
   if (org.status !== "approved" || branch.status !== "approved" || vehicle.status !== "approved") {
     // Delete from index if not approved
-    await fetch(`${url}/${job.vehicle_id}`, {
+    const response = await fetch(`${url}/${job.vehicle_id}`, {
       method: "DELETE",
       headers: {
         "X-TYPESENSE-API-KEY": TYPESENSE_API_KEY,
       },
     });
+
+    // 404 is OK - document might not exist
+    if (!response.ok && response.status !== 404) {
+      throw new Error(`Delete failed: ${await response.text()}`);
+    }
+
     return { deleted: true, reason: "Not approved" };
   }
 
@@ -101,7 +107,7 @@ async function processTypesenseOperation(job: SearchIndexJob, vehicle: Vehicle |
     organization_id: vehicle.organization_id,
   };
 
-  const response = await fetch(url, {
+  const response = await fetch(`${url}?action=upsert`, {
     method: "POST",
     headers: {
       "X-TYPESENSE-API-KEY": TYPESENSE_API_KEY,
@@ -122,7 +128,14 @@ serve(async (req) => {
   const authHeader = req.headers.get("Authorization");
   const expectedKey = Deno.env.get("WORKER_API_KEY");
 
-  if (expectedKey && authHeader !== `Bearer ${expectedKey}`) {
+  if (!expectedKey) {
+    return new Response(JSON.stringify({ error: "Worker API key not configured" }), {
+      status: 503,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  if (authHeader !== `Bearer ${expectedKey}`) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
@@ -141,18 +154,31 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Fetch pending jobs
-    const { data: jobs, error: jobsError } = await supabase
+    const { data: pendingJobs, error: pendingError } = await supabase
       .from("search_index_jobs")
-      .select("id, vehicle_id, operation")
+      .select("id, vehicle_id, operation, attempts")
       .eq("status", "pending")
       .order("created_at", { ascending: true })
       .limit(10);
 
-    if (jobsError) {
-      throw new Error(`Failed to fetch jobs: ${jobsError.message}`);
-    }
+    if (pendingError) throw new Error(`Failed to fetch pending jobs: ${pendingError.message}`);
 
-    if (!jobs || jobs.length === 0) {
+    // Fetch retriable failed jobs
+    const now = new Date().toISOString();
+    const { data: failedJobs, error: failedError } = await supabase
+      .from("search_index_jobs")
+      .select("id, vehicle_id, operation, attempts")
+      .eq("status", "failed")
+      .lt("attempts", 3)
+      .lte("next_run_at", now)
+      .order("next_run_at", { ascending: true })
+      .limit(10);
+
+    if (failedError) throw new Error(`Failed to fetch failed jobs: ${failedError.message}`);
+
+    const jobs = [...(pendingJobs || []), ...(failedJobs || [])].slice(0, 10);
+
+    if (jobs.length === 0) {
       return new Response(JSON.stringify({ processed: 0, message: "No pending jobs" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -190,7 +216,7 @@ serve(async (req) => {
         }
 
         // Process with Typesense
-        const result = await processTypesenseOperation(job, vehicle);
+        const result = await processTypesenseOperation(job as SearchIndexJob, vehicle);
 
         // Mark job as complete
         const { error: updateError } = await supabase
@@ -208,13 +234,26 @@ serve(async (req) => {
         results.push({ jobId: job.id, ...result });
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        console.error(`Job ${job.id} failed:`, errorMessage);
 
-        // Mark job as failed
+        const newAttempts = (job.attempts || 0) + 1;
+        // Exponential backoff: 2^attempts * 5 minutes
+        const backoffMs = Math.pow(2, newAttempts) * 5 * 60 * 1000;
+        const nextRunAt = new Date(Date.now() + backoffMs).toISOString();
+
+        if (newAttempts >= 3) {
+          console.error(`Job ${job.id} permanently failed after ${newAttempts} attempts.`);
+        }
+
+        // Mark job as failed with retry info
         await supabase
           .from("search_index_jobs")
           .update({
             status: "failed",
             error: errorMessage,
+            last_error: errorMessage,
+            attempts: newAttempts,
+            next_run_at: nextRunAt
           })
           .eq("id", job.id);
 
@@ -236,6 +275,7 @@ serve(async (req) => {
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Worker error:", errorMessage);
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

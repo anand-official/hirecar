@@ -56,6 +56,9 @@ export const vehicleSchema = z.object({
   transmission: z.enum(["Automatic", "Manual"]),
   category: z.enum(["Sedan", "SUV", "People mover", "Van", "Ute", "Luxury"]),
   pricePerDayAud: z.coerce.number().int().min(20).max(2000),
+  dailyDistanceLimitKm: z.coerce.number().int().min(50).max(1000).optional().nullable(),
+  extraDistanceFeeAud: z.coerce.number().min(0.1).max(5.0).optional().nullable(),
+  instantBook: z.boolean().default(false),
 });
 
 export const branchSchema = z.object({
@@ -68,24 +71,37 @@ export const branchSchema = z.object({
   whatsapp: z.string().trim().min(8).max(30).optional().or(z.literal("")),
 });
 
-export const leadSchema = z.object({
-  vehicleId: z.string().uuid(),
-  vendorId: z.string().uuid(),
-  name: z.string().trim().min(2).max(120),
-  email: z.string().trim().email().max(160),
-  phone: z.string().trim().min(8).max(30),
-  pickupCity: z.string().trim().min(2).max(80),
-  startDate: z.string().date(),
-  endDate: z.string().date(),
-  message: z.string().trim().max(1000).optional().default(""),
-  consent: z.literal(true),
-  turnstileToken: z.string().optional(),
-});
+export const leadSchema = z
+  .object({
+    vehicleId: z.string().uuid(),
+    vendorId: z.string().uuid(),
+    name: z.string().trim().min(2).max(120),
+    email: z.string().trim().email().max(160),
+    phone: z.string().trim().min(8).max(30),
+    pickupCity: z.string().trim().min(2).max(80),
+    startDate: z.string().date(),
+    endDate: z.string().date(),
+    message: z.string().trim().max(1000).optional().default(""),
+    consent: z.literal(true),
+    turnstileToken: z.string().optional(),
+  })
+  .refine((data) => new Date(data.endDate) >= new Date(data.startDate), {
+    message: "End date must be on or after start date",
+    path: ["endDate"],
+  });
 
 export const contactEventSchema = z.object({
   vehicleId: z.string().uuid(),
   vendorId: z.string().uuid(),
   channel: z.enum(["phone", "whatsapp"]),
+});
+
+export const contactMessageSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  email: z.string().trim().email().max(160),
+  topic: z.enum(["vendor_onboarding", "enterprise", "support", "legal_privacy"]),
+  message: z.string().trim().min(10).max(2000),
+  turnstileToken: z.string().optional(),
 });
 
 export const checkoutSchema = z.object({

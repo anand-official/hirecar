@@ -30,7 +30,24 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Active route protection
+  const path = request.nextUrl.pathname;
+  const isProtectedRoute = 
+    path.startsWith("/customer") || 
+    path.startsWith("/vendor") || 
+    path.startsWith("/admin");
+
+  if (isProtectedRoute && !user) {
+    // Redirect to login if unauthenticated user tries to access protected route
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/auth/sign-in";
+    redirectUrl.searchParams.set("redirectedFrom", path);
+    return NextResponse.redirect(redirectUrl);
+  }
 
   return response;
 }

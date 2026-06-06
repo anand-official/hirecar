@@ -2,17 +2,31 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+interface CardProps extends React.ComponentProps<"div"> {
+  size?: "default" | "sm"
+  variant?: "default" | "elevated" | "interactive"
+}
+
+const cardVariantStyles: Record<NonNullable<CardProps["variant"]>, string> = {
+  default: "ring-1 ring-foreground/10",
+  elevated: "shadow-md ring-0",
+  interactive:
+    "shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer",
+}
+
 function Card({
   className,
   size = "default",
+  variant = "default",
   ...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
+}: CardProps) {
   return (
     <div
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card flex flex-col gap-4 overflow-hidden rounded-xl bg-card py-4 text-sm text-card-foreground ring-1 ring-foreground/10 has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        "group/card flex flex-col gap-4 overflow-hidden rounded-xl bg-card py-4 text-sm text-card-foreground has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        cardVariantStyles[variant],
         className
       )}
       {...props}
@@ -101,3 +115,5 @@ export {
   CardDescription,
   CardContent,
 }
+
+export type { CardProps }

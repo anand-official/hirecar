@@ -22,6 +22,9 @@ export type Vehicle = {
   vendorSlug: string;
   branchName: string;
   verified: boolean;
+  dailyDistanceLimitKm?: number | null;
+  extraDistanceFeeAud?: number | null;
+  instantBook?: boolean;
 };
 
 export type Vendor = {

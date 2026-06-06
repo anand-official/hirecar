@@ -1,12 +1,48 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BadgeCheck, Phone, Eye, Star } from "lucide-react";
+import { BadgeCheck, Phone, Eye, Star, MapPin, ChevronLeft, ChevronRight, Users, Fuel, Settings, Calendar, Check, Info } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+import { SimilarVehicles } from "@/components/similar-vehicles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/security/auth";
 import { EnquiryWidget } from "@/components/enquiry-widget";
 import { ImageGallery } from "@/components/image-gallery";
+import ReviewSection from "@/components/review-section";
 import { headers } from "next/headers";
-import { createHash } from "crypto";
+import { hashIpForStorage } from "@/lib/security/rate-limit";
+import type { Metadata } from "next";
+
+export const revalidate = 3600; // Cache for 1 hour at edge (ISR)
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("vehicles")
+    .select("title, make, model, year, category, price_per_day_aud, branches(city, state)")
+    .eq("slug", slug)
+    .eq("status", "approved")
+    .single();
+
+  if (!data) return {};
+
+  type BranchMeta = { city: string; state: string };
+  const branch = data.branches as unknown as BranchMeta | null;
+  const title = `${data.title} – Car Hire${branch ? ` in ${branch.city}` : ""} | Hire Car`;
+  const description = `Hire a ${data.year} ${data.make} ${data.model} (${data.category}) for $${data.price_per_day_aud}/day${branch ? ` in ${branch.city}, ${branch.state}` : ""}. Verified local rental operator.`;
+
+  return { 
+    title, 
+    description, 
+    openGraph: { title, description },
+    alternates: { canonical: `/cars/${slug}` }
+  };
+}
 
 export default async function VehicleDetailPage({
   params,
@@ -20,10 +56,11 @@ export default async function VehicleDetailPage({
     .from("vehicles")
     .select(`
       id, slug, title, make, model, year, seats, fuel, transmission, category,
-      price_per_day_aud, status, organization_id, views_count,
-      organizations(name, slug, status, verified_at),
-      branches(name, city, state, status, phone),
-      vehicle_images(id, storage_path, alt_text, sort_order)
+      price_per_day_aud, daily_distance_limit_km, extra_distance_fee_aud, instant_book, status, organization_id, views_count,
+      organizations(id, name, slug, status, verified_at),
+      branches(name, city, state, status, phone, whatsapp),
+      vehicle_images(id, storage_path, alt_text, sort_order),
+      vehicle_features(feature)
     `)
     .eq("slug", slug)
     .eq("status", "approved")
@@ -51,13 +88,12 @@ export default async function VehicleDetailPage({
     }
   }
 
-  // Log view
+  // Log view (non-blocking)
   try {
     const headersList = await headers();
     const ip = headersList.get("x-forwarded-for") || headersList.get("x-real-ip") || "127.0.0.1";
-    const ipHash = createHash("sha256").update(ip).digest("hex");
-    
-    await supabase.rpc('increment_vehicle_view', {
+    const ipHash = hashIpForStorage(ip);
+    await supabase.rpc("increment_vehicle_view", {
       p_vehicle_id: vehicle.id,
       p_ip_hash: ipHash,
       p_user_id: user?.id || null,
@@ -67,9 +103,15 @@ export default async function VehicleDetailPage({
   }
 
   // Cast related records
-  const org = vehicle.organizations as any;
-  const branch = vehicle.branches as any;
-  const dbImages = (vehicle.vehicle_images as any[]) || [];
+  type OrgRecord = { id: string; name: string; slug: string; status: string; verified_at: string | null };
+  type BranchRecord = { name: string; city: string; state: string; status: string; phone: string | null; whatsapp: string | null };
+  type ImageRecord = { id: string; storage_path: string; alt_text: string | null; sort_order: number };
+  type FeatureRecord = { feature: string };
+
+  const org = vehicle.organizations as unknown as OrgRecord;
+  const branch = vehicle.branches as unknown as BranchRecord;
+  const dbImages = (vehicle.vehicle_images as unknown as ImageRecord[]) || [];
+  const features = (vehicle.vehicle_features as unknown as FeatureRecord[]) || [];
 
   // Sort images and generate public URLs
   dbImages.sort((a, b) => a.sort_order - b.sort_order);
@@ -78,60 +120,152 @@ export default async function VehicleDetailPage({
     return {
       id: img.id,
       url: data.publicUrl,
-      alt_text: img.alt_text,
+      alt_text: img.alt_text || `${vehicle.title} rental car image`,
     };
   });
 
-  // Fetch reviews for this organization
+  // Fetch approved reviews for this organization
   const { data: reviews } = await supabase
     .from("reviews")
     .select("id, customer_name, rating, body, created_at")
     .eq("organization_id", vehicle.organization_id)
     .eq("status", "approved")
-    .order("created_at", { ascending: false });
-    
-  const averageRating = reviews?.length 
-    ? (reviews.reduce((acc, rev) => acc + rev.rating, 0) / reviews.length).toFixed(1) 
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  const safeReviews = reviews ?? [];
+  const averageRating = safeReviews.length
+    ? (safeReviews.reduce((acc, rev) => acc + rev.rating, 0) / safeReviews.length).toFixed(1)
     : null;
+
+  // Feature icons map using Lucide icons where possible, fallback to check
+  const renderFeatureIcon = () => {
+    return <Check className="h-4 w-4 text-[#ea580c]" />;
+  };
+
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+      image: images[0]?.url || "",
+      description: `Hire a ${vehicle.year} ${vehicle.make} ${vehicle.model} (${vehicle.category}) for $${vehicle.price_per_day_aud}/day in ${branch?.city}, ${branch?.state}.`,
+      sku: vehicle.slug,
+      offers: {
+        "@type": "Offer",
+        url: `https://www.hirecar.com.au/cars/${vehicle.slug}`,
+        priceCurrency: "AUD",
+        price: vehicle.price_per_day_aud,
+        availability: "https://schema.org/InStock",
+        seller: {
+          "@type": "Organization",
+          name: org?.name
+        }
+      }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: [
+        {
+          "@type": "Question",
+          name: `What is the daily rental price for the ${vehicle.make} ${vehicle.model}?`,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: `The ${vehicle.year} ${vehicle.make} ${vehicle.model} is available for $${vehicle.price_per_day_aud} per day.`
+          }
+        },
+        {
+          "@type": "Question",
+          name: `Where can I pick up the ${vehicle.make} ${vehicle.model}?`,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: `This vehicle is available for pickup at ${org?.name} in ${branch?.city}, ${branch?.state}.`
+          }
+        }
+      ]
+    }
+  ];
 
   return (
     <div className="bg-slate-50 min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <SiteHeader />
-      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-2 text-sm text-slate-500 mb-6 font-medium overflow-x-auto whitespace-nowrap pb-2 scrollbar-hide">
+          <Link href="/" className="hover:text-slate-900 transition-colors flex items-center gap-1">Home</Link>
+          <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+          <Link href="/search" className="hover:text-slate-900 transition-colors">Search</Link>
+          {branch?.city && (
+            <>
+              <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+              <Link
+                href={`/locations/${branch.city.toLowerCase()}`}
+                className="hover:text-slate-900 transition-colors"
+              >
+                {branch.city}
+              </Link>
+            </>
+          )}
+          <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+          <span className="text-slate-900 font-bold truncate max-w-[200px]">{vehicle.title}</span>
+        </nav>
+
+        {/* Cinematic Full-Width Image Gallery */}
+        <div className="mb-12 w-full animate-scale-in">
+          <section className="overflow-hidden rounded-[2.5rem] shadow-2xl">
+            <div className="aspect-[16/7] md:aspect-[24/9] w-full relative">
+               <ImageGallery images={images} />
+            </div>
+          </section>
+        </div>
+
         <div className="grid gap-8 lg:grid-cols-[1fr_400px]">
           {/* LEFT: Main content */}
-          <div className="space-y-6">
-            {/* Image Gallery */}
-            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <ImageGallery images={images} />
-            </section>
-
+          <div className="space-y-8">
             {/* Title & Details Card */}
-            <section className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6">
+            <section className="rounded-3xl border border-slate-200/60 bg-white/95 backdrop-blur-sm shadow-lg p-8 card-lift">
               {/* Category + Price row */}
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4">
                 <div>
-                  <span className="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-amber-600">
+                  <span className="inline-flex items-center rounded-full bg-orange-100 px-3 py-1 text-xs font-bold uppercase tracking-widest text-orange-700">
                     {vehicle.category}
                   </span>
-                  <h1 className="mt-3 text-3xl font-bold text-slate-900">
+                  <h1 className="mt-4 text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
                     {vehicle.title}
                   </h1>
 
-                  {/* Vendor / Rating / Views */}
+                  {/* Vendor / Rating / Location / Views */}
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500">
-                    <span className="flex items-center gap-1.5 font-medium text-slate-700">
+                    <Link
+                      href={`/vendors/${org?.slug}`}
+                      className="flex items-center gap-1.5 font-medium text-slate-700 hover:text-amber-600 transition-colors"
+                    >
                       {org?.name}
                       {org?.verified_at && (
-                        <BadgeCheck className="h-4.5 w-4.5 text-emerald-500" />
+                        <BadgeCheck className="h-4 w-4 text-emerald-500" />
                       )}
-                    </span>
+                    </Link>
                     {averageRating && (
                       <span className="flex items-center gap-1">
                         <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                         <span className="font-semibold text-slate-700">{averageRating}</span>
-                        <span className="text-slate-400">({reviews?.length} reviews)</span>
+                        <span className="text-slate-400">({safeReviews.length} review{safeReviews.length !== 1 ? "s" : ""})</span>
                       </span>
+                    )}
+                    {branch?.city && (
+                      <Link
+                        href={`/locations/${branch.city.toLowerCase()}`}
+                        className="flex items-center gap-1 hover:text-amber-600 transition-colors"
+                      >
+                        <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                        {branch.city}, {branch.state}
+                      </Link>
                     )}
                     <span className="flex items-center gap-1">
                       <Eye className="h-4 w-4" />
@@ -141,60 +275,170 @@ export default async function VehicleDetailPage({
                 </div>
 
                 {/* Price */}
-                <div className="rounded-2xl bg-slate-950 px-6 py-4 text-center shrink-0">
-                  <p className="text-4xl font-black text-white">${vehicle.price_per_day_aud}</p>
-                  <p className="text-xs font-medium text-slate-400 mt-0.5 uppercase tracking-widest">AUD / day</p>
+                <div className="rounded-[1.5rem] bg-gradient-to-br from-[#ea580c] to-amber-500 px-8 py-5 text-center shrink-0 shadow-xl shadow-orange-500/20">
+                  <p className="text-5xl font-black text-white leading-none">${vehicle.price_per_day_aud}</p>
+                  <p className="text-xs font-bold text-orange-100 mt-2 uppercase tracking-widest">AUD / day</p>
                 </div>
               </div>
+              
+              {/* LLM / GEO Search Table (Visually hidden or clean semantic layout) */}
+              <div className="sr-only" aria-hidden="false">
+                <table aria-label="Vehicle Specifications">
+                  <tbody>
+                    <tr><th>Make</th><td>{vehicle.make}</td></tr>
+                    <tr><th>Model</th><td>{vehicle.model}</td></tr>
+                    <tr><th>Year</th><td>{vehicle.year}</td></tr>
+                    <tr><th>Price</th><td>${vehicle.price_per_day_aud} AUD per day</td></tr>
+                    <tr><th>Location</th><td>{branch?.city}, {branch?.state}</td></tr>
+                    <tr><th>Seller</th><td>{org?.name}</td></tr>
+                  </tbody>
+                </table>
+              </div>
 
-              {/* Spec Chips */}
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mt-6 pt-6 border-t border-slate-100">
+              {/* Spec Grid */}
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mt-8 pt-8 border-t border-slate-100">
                 {[
-                  { label: "Seats", value: String(vehicle.seats), icon: "👤" },
-                  { label: "Fuel", value: vehicle.fuel, icon: "⛽" },
-                  { label: "Transmission", value: vehicle.transmission, icon: "⚙️" },
-                  { label: "Branch", value: branch?.name ?? "—", icon: "📍" },
-                ].map(({ label, value, icon }) => (
-                  <div key={label} className="rounded-xl bg-slate-50 border border-slate-100 p-4 text-center">
-                    <p className="text-xl mb-1">{icon}</p>
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-0.5">{label}</p>
-                    <p className="text-sm font-semibold text-slate-800">{value}</p>
+                  { label: "Year", value: String(vehicle.year), icon: Calendar },
+                  { label: "Seats", value: `${vehicle.seats} seats`, icon: Users },
+                  { label: "Fuel", value: vehicle.fuel, icon: Fuel },
+                  { label: "Transmission", value: vehicle.transmission, icon: Settings },
+                ].map(({ label, value, icon: Icon }) => (
+                  <div key={label} className="rounded-2xl bg-slate-50 border border-slate-100 p-5 text-center hover:bg-white hover:shadow-md transition-all">
+                    <Icon className="mx-auto h-7 w-7 text-slate-400 mb-3" strokeWidth={1.5} />
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">{label}</p>
+                    <p className="text-base font-bold text-slate-800">{value}</p>
                   </div>
                 ))}
               </div>
 
+              {/* Distance Limits */}
+              <div className="mt-8 flex flex-col gap-3 rounded-2xl bg-slate-50 border border-slate-100 p-5">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-slate-400" />
+                  <h3 className="font-bold text-slate-800">Distance Included</h3>
+                </div>
+                {vehicle.daily_distance_limit_km ? (
+                  <p className="text-sm text-slate-600">
+                    <span className="font-medium text-slate-900">{vehicle.daily_distance_limit_km} km</span> per day. 
+                    {vehicle.extra_distance_fee_aud && ` $${vehicle.extra_distance_fee_aud} / km fee for additional distance.`}
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-600"><span className="font-medium text-slate-900">Unlimited kilometers</span> included in this rental.</p>
+                )}
+              </div>
+
+              {/* Vehicle Features */}
+              {features.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-slate-100">
+                  <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-3">Features & Extras</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {features.map(({ feature }) => (
+                      <span
+                        key={feature}
+                        className="inline-flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-white hover:shadow-sm transition-all"
+                      >
+                        {renderFeatureIcon()}
+                        {feature}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Pickup Location */}
+              {branch && (
+                <div className="mt-6 pt-6 border-t border-slate-100">
+                  <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-3">Pickup Location</h2>
+                  <div className="flex items-start gap-3 rounded-xl bg-slate-50 border border-slate-100 p-4">
+                    <MapPin className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-slate-800">{branch.name}</p>
+                      <p className="text-sm text-slate-500">{branch.city}, {branch.state}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Disclaimer */}
-              <div className="mt-6 flex items-start gap-3 rounded-xl bg-slate-50 p-4">
-                <span className="text-lg shrink-0">ℹ️</span>
-                <p className="text-sm leading-6 text-slate-600">
-                  Carhire is a discovery platform. Booking, payment, deposit, insurance, vehicle condition, and rental agreement terms are confirmed directly between you and the vendor.
+              <div className="mt-8 flex items-start gap-4 rounded-2xl bg-blue-50/50 border border-blue-100 p-5">
+                <Info className="h-6 w-6 text-blue-500 shrink-0" strokeWidth={1.5} />
+                <p className="text-sm leading-relaxed text-blue-800 font-medium">
+                  Hire Car is a discovery platform. Booking, payment, deposit, insurance, vehicle condition, and rental agreement terms are confirmed directly between you and the vendor.
                 </p>
               </div>
+            </section>
+
+            {/* Reviews Section */}
+            <section className="rounded-3xl border border-slate-200/60 bg-white/95 backdrop-blur-sm shadow-lg p-8 card-lift">
+              <ReviewSection
+                organizationId={vehicle.organization_id}
+                vehicleId={vehicle.id}
+                initialReviews={safeReviews}
+              />
             </section>
           </div>
 
           {/* RIGHT: Sticky sidebar */}
-          <aside className="space-y-4 lg:sticky lg:top-8 h-fit">
-            <EnquiryWidget
-              vehicleId={vehicle.id}
-              vendorId={vehicle.organization_id}
-              isLoggedIn={!!user}
-              userProfile={userProfile}
-            />
-            {branch?.phone && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <a
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
-                  href={`tel:${branch.phone}`}
-                >
-                  <Phone className="h-4 w-4" />
-                  Call vendor directly
-                </a>
-              </div>
-            )}
+          <aside className="space-y-6 lg:sticky lg:top-24 h-fit">
+            <div className="rounded-3xl border border-slate-200/60 bg-white/95 backdrop-blur-sm shadow-xl overflow-hidden card-lift">
+              <EnquiryWidget
+                vehicleId={vehicle.id}
+                vendorId={vehicle.organization_id}
+                isLoggedIn={!!user}
+                userProfile={userProfile}
+                instantBook={vehicle.instant_book}
+              />
+            </div>
+
+            {/* Vendor info card */}
+            <div className="rounded-3xl border border-slate-200/60 bg-white/95 backdrop-blur-sm p-6 shadow-lg card-lift">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">Listed by</p>
+              <Link
+                href={`/vendors/${org?.slug}`}
+                className="flex items-center gap-3 group"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-sm font-bold text-slate-700">
+                  {org?.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-900 group-hover:text-amber-600 transition-colors flex items-center gap-1.5">
+                    {org?.name}
+                    {org?.verified_at && <BadgeCheck className="h-4 w-4 text-emerald-500" />}
+                  </p>
+                  {branch?.city && (
+                    <p className="text-xs text-slate-400">{branch.city}, {branch.state}</p>
+                  )}
+                </div>
+                <ChevronLeft className="h-4 w-4 text-slate-400 rotate-180 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+              {(branch?.phone || branch?.whatsapp) && (
+                <div className="mt-4 space-y-2 pt-4 border-t border-slate-100">
+                  {branch.phone && (
+                    <a
+                      href={`tel:${branch.phone}`}
+                      className="flex items-center justify-center gap-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                    >
+                      <Phone className="h-4 w-4" />
+                      Call vendor
+                    </a>
+                  )}
+                  {branch.whatsapp && (
+                    <a
+                      href={`https://wa.me/${branch.whatsapp.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
+                    >
+                      💬 WhatsApp
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Trust badges */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">Why book through Carhire</p>
+            <div className="rounded-3xl border border-slate-200/60 bg-white/95 backdrop-blur-sm p-6 shadow-lg card-lift">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">Why Hire Car</p>
               <ul className="space-y-2.5">
                 {[
                   "Verified vendor listings",
@@ -202,8 +446,10 @@ export default async function VehicleDetailPage({
                   "Direct contact with operator",
                   "Australia-wide coverage",
                 ].map((item) => (
-                  <li key={item} className="flex items-center gap-2.5 text-sm text-slate-600">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-xs text-emerald-600 shrink-0">✓</span>
+                  <li key={item} className="flex items-center gap-3 text-sm text-slate-700 font-medium">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shrink-0">
+                      <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                    </span>
                     {item}
                   </li>
                 ))}
@@ -211,8 +457,18 @@ export default async function VehicleDetailPage({
             </div>
           </aside>
         </div>
+        
+        {branch?.city && (
+          <SimilarVehicles 
+            currentVehicleId={vehicle.id} 
+            city={branch.city} 
+            category={vehicle.category} 
+            make={vehicle.make} 
+          />
+        )}
       </main>
+
+      <SiteFooter />
     </div>
   );
 }
-

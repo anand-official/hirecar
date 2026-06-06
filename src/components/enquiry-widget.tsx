@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Send, MessageCircle } from "lucide-react";
+import { Send, MessageCircle, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 interface EnquiryWidgetProps {
   vehicleId: string;
@@ -14,9 +15,10 @@ interface EnquiryWidgetProps {
     email: string;
     phone: string;
   } | null;
+  instantBook?: boolean;
 }
 
-export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile }: EnquiryWidgetProps) {
+export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile, instantBook }: EnquiryWidgetProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -30,6 +32,7 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile }: 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [message, setMessage] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   const handleQuickSubmit = async () => {
     setIsSubmitting(true);
@@ -56,8 +59,22 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile }: 
 
   const handleGuestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!turnstileToken) {
+      setError("Please complete the security challenge.");
+      return;
+    }
+    
     setIsSubmitting(true);
     setError(null);
+
+    // Validate date range
+    if (startDate && endDate && endDate < startDate) {
+      setError("Return date must be on or after the pickup date.");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/leads", {
         method: "POST",
@@ -65,13 +82,15 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile }: 
         body: JSON.stringify({
           vehicleId,
           vendorId,
-          customerName: name,
-          customerEmail: email,
-          customerPhone: phone,
+          name,
+          email,
+          phone,
           pickupCity,
           startDate,
           endDate,
           message,
+          consent: true,
+          turnstileToken,
         }),
       });
       
@@ -83,6 +102,8 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile }: 
       setSuccess(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
+      // Reset turnstile on error so they can try again
+      setTurnstileToken("");
     } finally {
       setIsSubmitting(false);
     }
@@ -114,10 +135,16 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile }: 
   if (isLoggedIn) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold">Message the seller</h2>
-        <p className="mt-2 text-sm text-slate-600">
+        <h2 className="text-xl font-semibold flex items-center gap-2">
+          {instantBook ? (
+            <><Zap className="h-5 w-5 text-amber-500 fill-amber-500" /> Instant Book</>
+          ) : (
+            "Request to Book"
+          )}
+        </h2>
+        <p className="mt-2 text-sm text-slate-500">
           Click below to express your interest. We&apos;ll share your contact details (
-          <span className="font-medium">{userProfile?.email}</span>) with the vendor and start a chat thread.
+          <span className="font-semibold text-slate-900">{userProfile?.email}</span>) with the vendor.
         </p>
         
         {error && <p className="mt-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">{error}</p>}
@@ -125,17 +152,17 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile }: 
         <button 
           onClick={handleQuickSubmit}
           disabled={isSubmitting}
-          className="mt-5 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50 transition-colors"
+          className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#ea580c] to-amber-500 px-4 py-3.5 text-base font-bold text-white shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 transition-all"
         >
           {isSubmitting ? (
             <span className="flex items-center gap-2">
-              <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               Sending...
             </span>
           ) : (
             <>
-              <MessageCircle className="h-4 w-4" />
-              I am interested
+              {instantBook ? <Zap className="h-5 w-5 fill-white" /> : <Send className="h-5 w-5" />}
+              {instantBook ? "Instant Book" : "Request to Book"}
             </>
           )}
         </button>
@@ -146,7 +173,13 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile }: 
   // Guest enquiry form
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-xl font-semibold">Send a rental enquiry</h2>
+      <h2 className="text-xl font-semibold flex items-center gap-2">
+        {instantBook ? (
+          <><Zap className="h-5 w-5 text-amber-500 fill-amber-500" /> Instant Book</>
+        ) : (
+          "Request to Book"
+        )}
+      </h2>
       <p className="mt-1 text-sm text-slate-500">
         Or{" "}
         <Link href="/auth/sign-in" className="font-medium text-amber-600 hover:underline">
@@ -157,16 +190,16 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile }: 
       
       {error && <p className="mt-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">{error}</p>}
       
-      <form className="mt-5 grid gap-4" onSubmit={handleGuestSubmit}>
+      <form className="mt-6 grid gap-4.5" onSubmit={handleGuestSubmit}>
         <input
-          className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100 transition-all"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium focus:bg-white focus:border-orange-400 focus:outline-none focus:ring-4 focus:ring-orange-100 transition-all placeholder:text-slate-400"
           placeholder="Full name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
         />
         <input
-          className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100 transition-all"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium focus:bg-white focus:border-orange-400 focus:outline-none focus:ring-4 focus:ring-orange-100 transition-all placeholder:text-slate-400"
           placeholder="Email"
           type="email"
           value={email}
@@ -174,15 +207,15 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile }: 
           required
         />
         <input
-          className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100 transition-all"
-          placeholder="Phone"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium focus:bg-white focus:border-orange-400 focus:outline-none focus:ring-4 focus:ring-orange-100 transition-all placeholder:text-slate-400"
+          placeholder="Phone number"
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           required
         />
         <input
-          className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100 transition-all"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium focus:bg-white focus:border-orange-400 focus:outline-none focus:ring-4 focus:ring-orange-100 transition-all placeholder:text-slate-400"
           placeholder="Pickup city"
           value={pickupCity}
           onChange={(e) => setPickupCity(e.target.value)}
@@ -190,9 +223,9 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile }: 
         />
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-slate-500 mb-1 block">Pickup date</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">Pickup date</label>
             <input
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100 transition-all"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium focus:bg-white focus:border-orange-400 focus:outline-none focus:ring-4 focus:ring-orange-100 transition-all text-slate-700"
               type="date"
               value={startDate}
               min={new Date().toISOString().split("T")[0]}
@@ -201,9 +234,9 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile }: 
             />
           </div>
           <div>
-            <label className="text-xs text-slate-500 mb-1 block">Return date</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">Return date</label>
             <input
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100 transition-all"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium focus:bg-white focus:border-orange-400 focus:outline-none focus:ring-4 focus:ring-orange-100 transition-all text-slate-700"
               type="date"
               value={endDate}
               min={startDate || new Date().toISOString().split("T")[0]}
@@ -213,29 +246,37 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile }: 
           </div>
         </div>
         <textarea
-          className="w-full min-h-[90px] rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100 transition-all resize-none"
+          className="w-full min-h-[100px] rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium focus:bg-white focus:border-orange-400 focus:outline-none focus:ring-4 focus:ring-orange-100 transition-all resize-none placeholder:text-slate-400"
           placeholder="Optional message to the vendor..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
         />
-        <label className="flex items-start gap-2 text-sm text-slate-600">
-          <input type="checkbox" className="mt-0.5 h-4 w-4" required />
-          I agree for Carhire to share my enquiry with this vendor.
+        <label className="flex items-start gap-3 text-sm text-slate-600 mt-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
+          <input type="checkbox" className="mt-0.5 h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" required />
+          <span className="leading-snug">I agree for Hire Car to share my enquiry details with this verified local vendor.</span>
         </label>
+        
+        <div className="flex justify-center">
+          <Turnstile 
+            siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"} 
+            onSuccess={(token) => setTurnstileToken(token)} 
+          />
+        </div>
+
         <button
           type="submit"
-          disabled={isSubmitting}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50 transition-colors"
+          disabled={isSubmitting || !turnstileToken}
+          className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#ea580c] to-amber-500 px-4 py-3.5 text-base font-bold text-white shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 transition-all"
         >
           {isSubmitting ? (
             <span className="flex items-center gap-2">
-              <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               Sending...
             </span>
           ) : (
             <>
-              <Send className="h-4 w-4" />
-              Submit enquiry
+              {instantBook ? <Zap className="h-5 w-5 fill-white" /> : <Send className="h-5 w-5" />}
+              {instantBook ? "Instant Book" : "Request to Book"}
             </>
           )}
         </button>

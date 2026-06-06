@@ -155,14 +155,8 @@ export default async function AdminOverviewPage() {
                   </div>
                   <div className="flex gap-2">
                     <Link
-                      href={`/admin/vendors?approve=${vendor.id}`}
-                      className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
-                    >
-                      Approve
-                    </Link>
-                    <Link
                       href={`/admin/vendors?review=${vendor.id}`}
-                      className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+                      className="rounded-md bg-slate-950 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
                     >
                       Review
                     </Link>
@@ -199,14 +193,8 @@ export default async function AdminOverviewPage() {
                   </div>
                   <div className="flex gap-2">
                     <Link
-                      href={`/admin/listings?approve=${listing.id}`}
-                      className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
-                    >
-                      Approve
-                    </Link>
-                    <Link
                       href={`/admin/listings?review=${listing.id}`}
-                      className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+                      className="rounded-md bg-slate-950 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
                     >
                       Review
                     </Link>
@@ -244,16 +232,10 @@ export default async function AdminOverviewPage() {
                     </div>
                     <div className="flex gap-2">
                       <Link
-                        href={`/admin/reviews?approve=${review.id}`}
-                        className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
+                        href="/admin/reviews"
+                        className="rounded-md bg-slate-950 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
                       >
-                        Approve
-                      </Link>
-                      <Link
-                        href={`/admin/reviews?reject=${review.id}`}
-                        className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700"
-                      >
-                        Reject
+                        Review
                       </Link>
                     </div>
                   </div>

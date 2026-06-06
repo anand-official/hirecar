@@ -17,6 +17,7 @@ const searchParamsSchema = z.object({
   fuel: z.enum(["Petrol", "Diesel", "Hybrid", "Electric"]).optional(),
   page: z.coerce.number().int().min(1).default(1),
   perPage: z.coerce.number().int().min(1).max(100).default(20),
+  sortBy: z.enum(["price_per_day_aud:asc", "price_per_day_aud:desc", "year:desc"]).optional().default("price_per_day_aud:asc"),
 });
 
 export async function GET(request: NextRequest) {
@@ -49,6 +50,7 @@ export async function GET(request: NextRequest) {
     fuel: searchParams.get("fuel") ?? undefined,
     page: searchParams.get("page") ?? undefined,
     perPage: searchParams.get("perPage") ?? undefined,
+    sortBy: searchParams.get("sortBy") ?? undefined,
   });
 
   if (!parsed.success) {
@@ -77,6 +79,7 @@ export async function GET(request: NextRequest) {
       {
         page: params.page,
         perPage: params.perPage,
+        sortBy: params.sortBy,
       },
     );
 

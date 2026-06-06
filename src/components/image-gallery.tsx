@@ -38,8 +38,9 @@ export function ImageGallery({ images }: { images: GalleryImage[] }) {
           src={images[currentIndex].url}
           alt={images[currentIndex].alt_text || "Vehicle Image"}
           fill
-          className="object-cover transition-opacity duration-300"
           priority
+          sizes="(max-width: 1024px) 100vw, 820px"
+          className="object-cover transition-opacity duration-300"
         />
         
         {images.length > 1 && (
@@ -75,6 +76,7 @@ export function ImageGallery({ images }: { images: GalleryImage[] }) {
                 src={img.url}
                 alt={img.alt_text || "Thumbnail"}
                 fill
+                sizes="128px"
                 className="object-cover"
               />
             </button>

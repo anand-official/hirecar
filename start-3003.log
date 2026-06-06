@@ -1,0 +1,18 @@
+
+> carhire-app@0.1.0 start
+> next start -p 3003
+
+▲ Next.js 16.2.6
+- Local:         http://localhost:3003
+- Network:       http://172.16.0.2:3003
+✓ Ready in 471ms
+Vendor onboarding RPC failed: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.create_vendor_onboarding with parameters p_abn, p_address, p_branch_slug, p_business_name, p_city, p_email, p_full_name, p_phone, p_slug, p_state, p_user_id, p_website or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.create_vendor_onboarding(p_abn, p_address, p_branch_slug, p_business_name, p_city, p_email, p_full_name, p_phone, p_slug, p_state, p_user_id, p_website) in the schema cache'
+}
+⨯ upstream image response failed for https://images.unsplash.com/photo-1582555172866-f73bb12a2b3b?auto=format&fit=crop&w=600&q=80 404
+⨯ upstream image response failed for https://images.unsplash.com/photo-1583416750470-965b4387ce43?auto=format&fit=crop&w=600&q=80 404
+⨯ upstream image response failed for https://images.unsplash.com/photo-1596386461350-326ea775d6f8?auto=format&fit=crop&w=600&q=80 404
+⨯ upstream image response failed for https://images.unsplash.com/photo-1586536677033-2d080ab812bd?auto=format&fit=crop&w=600&q=80 404

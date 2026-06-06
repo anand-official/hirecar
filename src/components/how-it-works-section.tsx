@@ -27,7 +27,7 @@ export function HowItWorksSection() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold text-slate-900 mb-4">
-            How Carhire works
+            How Hire Car works
           </h2>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
             Renting a car has never been easier. Three simple steps to get you on the road.

@@ -14,7 +14,7 @@ alter table public.vehicles add column views_count integer not null default 0;
 create or replace function public.increment_vehicle_view(p_vehicle_id uuid, p_ip_hash text default null, p_user_id uuid default null)
 returns void
 language plpgsql
-security definer
+security invoker
 set search_path = public
 as $$
 begin
@@ -39,6 +39,9 @@ begin
   end if;
 end;
 $$;
+
+revoke all on function public.increment_vehicle_view(uuid, text, uuid) from public, anon, authenticated;
+grant execute on function public.increment_vehicle_view(uuid, text, uuid) to service_role;
 
 -- Add messages table for chat
 create table public.messages (

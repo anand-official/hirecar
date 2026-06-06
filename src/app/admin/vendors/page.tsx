@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 interface AdminVendorsPageProps {
-  searchParams: Promise<{ approve?: string; reject?: string; suspend?: string; restore?: string; status?: string }>;
+  searchParams: Promise<{ status?: string }>;
 }
 
 async function moderateVendor(action: string, vendorId: string, reason: string) {
@@ -80,23 +80,9 @@ async function moderateVendor(action: string, vendorId: string, reason: string) 
 }
 
 export default async function AdminVendorsPage({ searchParams }: AdminVendorsPageProps) {
-  const user = await requireAdmin();
+  await requireAdmin();
   const params = await searchParams;
   const supabase = createAdminClient();
-
-  // Process moderation actions from query params
-  if (params.approve) {
-    await moderateVendor("approve", params.approve, "Approved from admin dashboard");
-  }
-  if (params.reject) {
-    await moderateVendor("reject", params.reject, "Rejected from admin dashboard");
-  }
-  if (params.suspend) {
-    await moderateVendor("suspend", params.suspend, "Suspended from admin dashboard");
-  }
-  if (params.restore) {
-    await moderateVendor("restore", params.restore, "Restored from admin dashboard");
-  }
 
   // Fetch vendors
   const statusFilter = params.status || "pending";
@@ -257,35 +243,43 @@ export default async function AdminVendorsPage({ searchParams }: AdminVendorsPag
                   <div className="flex flex-wrap gap-2">
                     {vendor.status === "pending" && (
                       <>
-                        <Link
-                          href={`/admin/vendors?status=${statusFilter}&approve=${vendor.id}`}
-                          className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-                        >
-                          Approve
-                        </Link>
-                        <Link
-                          href={`/admin/vendors?status=${statusFilter}&reject=${vendor.id}`}
-                          className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-                        >
-                          Reject
-                        </Link>
+                        <form action={moderateVendor.bind(null, "approve", vendor.id, "Approved from admin dashboard")}>
+                          <button
+                            type="submit"
+                            className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                          >
+                            Approve
+                          </button>
+                        </form>
+                        <form action={moderateVendor.bind(null, "reject", vendor.id, "Rejected from admin dashboard")}>
+                          <button
+                            type="submit"
+                            className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                          >
+                            Reject
+                          </button>
+                        </form>
                       </>
                     )}
                     {vendor.status === "approved" && (
-                      <Link
-                        href={`/admin/vendors?status=${statusFilter}&suspend=${vendor.id}`}
-                        className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
-                      >
-                        Suspend
-                      </Link>
+                      <form action={moderateVendor.bind(null, "suspend", vendor.id, "Suspended from admin dashboard")}>
+                        <button
+                          type="submit"
+                          className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+                        >
+                          Suspend
+                        </button>
+                      </form>
                     )}
                     {(vendor.status === "suspended" || vendor.status === "rejected") && (
-                      <Link
-                        href={`/admin/vendors?status=${statusFilter}&restore=${vendor.id}`}
-                        className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                      >
-                        Restore
-                      </Link>
+                      <form action={moderateVendor.bind(null, "restore", vendor.id, "Restored from admin dashboard")}>
+                        <button
+                          type="submit"
+                          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                        >
+                          Restore
+                        </button>
+                      </form>
                     )}
                     <Link
                       href={`/admin/audit?type=vendor&id=${vendor.id}`}
