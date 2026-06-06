@@ -83,13 +83,14 @@ export default function VehicleForm({
         });
         if (!editVehicle) {
           // Immediately redirect to edit mode so user can upload images
-          router.push(`/vendor/vehicles/${result.vehicleId}`);
+          router.push(`/vendor/vehicles?org=${organizationId}&edit=${result.vehicleId}`);
         }
       } else {
         setMessage({ type: "error", text: result.error });
       }
-    } catch {
-      setMessage({ type: "error", text: "An unexpected error occurred" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setMessage({ type: "error", text: `Error: ${msg}` });
     } finally {
       setIsSubmitting(false);
     }

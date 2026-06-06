@@ -135,7 +135,7 @@ export default async function AdminOverviewPage() {
               Vendor Approval Queue
             </h2>
             <Link href="/admin/vendors" className="text-xs font-semibold uppercase tracking-wider text-amber-500 hover:text-amber-400">
-              View All ({pendingVendors.length})
+              View All ({metrics.pendingVendors})
             </Link>
           </div>
           
@@ -152,12 +152,12 @@ export default async function AdminOverviewPage() {
                     </div>
                   </div>
                   <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Link href={`/admin/vendors?review=${vendor.id}`} className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20">
+                    <Link href={`/admin/vendors?status=pending&review=${vendor.id}`} className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20" title="Review vendor">
                       <CheckCircle2 className="h-5 w-5" />
                     </Link>
-                    <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20">
+                    <Link href={`/admin/vendors?status=pending`} className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20" title="Go to vendor moderation">
                       <XCircle className="h-5 w-5" />
-                    </button>
+                    </Link>
                   </div>
                 </div>
               ))}

@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/security/auth";
 import {
   ensureUserCanManageOrganization,
-  enforceVehicleLimit,
+  getVehicleLimitInfo,
 } from "@/lib/data/vendor";
 import { vehicleSchema } from "@/lib/validation/schemas";
 import { uniqueSlug } from "@/lib/slug";
@@ -15,121 +15,133 @@ export type VehicleActionResult =
   | { success: false; error: string };
 
 export async function createVehicle(formData: FormData): Promise<VehicleActionResult> {
-  const user = await requireUser();
+  try {
+    const user = await requireUser();
 
-  const organizationId = formData.get("organizationId") as string;
-  const branchId = formData.get("branchId") as string;
+    const organizationId = formData.get("organizationId") as string;
+    const branchId = formData.get("branchId") as string;
 
-  if (!organizationId || !branchId) {
-    return { success: false, error: "Organization and branch are required" };
-  }
+    if (!organizationId || !branchId) {
+      return { success: false, error: "Organization and branch are required" };
+    }
 
-  // Verify user has permission
-  await ensureUserCanManageOrganization(user.id, organizationId);
+    // Verify user has permission
+    await ensureUserCanManageOrganization(user.id, organizationId);
 
-  // Enforce vehicle limit based on subscription plan
-  await enforceVehicleLimit(organizationId);
+    // Enforce vehicle limit based on subscription plan
+    const limitInfo = await getVehicleLimitInfo(organizationId);
+    if (!limitInfo.canAddMore) {
+      return {
+        success: false,
+        error: `Vehicle limit reached. Your ${limitInfo.planCode ?? "free"} plan allows ${limitInfo.limit} vehicles. Please upgrade to add more.`,
+      };
+    }
 
-  // Validate input
-  const parseResult = vehicleSchema.safeParse({
-    branchId,
-    title: formData.get("title"),
-    make: formData.get("make"),
-    model: formData.get("model"),
-    year: formData.get("year"),
-    seats: formData.get("seats"),
-    fuel: formData.get("fuel"),
-    transmission: formData.get("transmission"),
-    category: formData.get("category"),
-    pricePerDayAud: formData.get("pricePerDayAud"),
-    dailyDistanceLimitKm: formData.get("dailyDistanceLimitKm") || null,
-    extraDistanceFeeAud: formData.get("extraDistanceFeeAud") || null,
-    instantBook: formData.get("instantBook") === "true" || formData.get("instantBook") === "on",
-    vin: formData.get("vin") || null,
-    licensePlate: formData.get("licensePlate") || null,
-    color: formData.get("color") || null,
-    hourlyRateAud: formData.get("hourlyRateAud") || null,
-    weeklyRateAud: formData.get("weeklyRateAud") || null,
-    monthlyRateAud: formData.get("monthlyRateAud") || null,
-    weekendRateAud: formData.get("weekendRateAud") || null,
-    notes: formData.get("notes") || null,
-  });
+    // Validate input
+    const parseResult = vehicleSchema.safeParse({
+      branchId,
+      title: formData.get("title"),
+      make: formData.get("make"),
+      model: formData.get("model"),
+      year: formData.get("year"),
+      seats: formData.get("seats"),
+      fuel: formData.get("fuel"),
+      transmission: formData.get("transmission"),
+      category: formData.get("category"),
+      pricePerDayAud: formData.get("pricePerDayAud"),
+      dailyDistanceLimitKm: formData.get("dailyDistanceLimitKm") || null,
+      extraDistanceFeeAud: formData.get("extraDistanceFeeAud") || null,
+      instantBook: formData.get("instantBook") === "true" || formData.get("instantBook") === "on",
+      vin: formData.get("vin") || null,
+      licensePlate: formData.get("licensePlate") || null,
+      color: formData.get("color") || null,
+      hourlyRateAud: formData.get("hourlyRateAud") || null,
+      weeklyRateAud: formData.get("weeklyRateAud") || null,
+      monthlyRateAud: formData.get("monthlyRateAud") || null,
+      weekendRateAud: formData.get("weekendRateAud") || null,
+      notes: formData.get("notes") || null,
+    });
 
-  if (!parseResult.success) {
-    return { success: false, error: "Invalid vehicle data: " + parseResult.error.message };
-  }
+    if (!parseResult.success) {
+      return { success: false, error: "Invalid vehicle data: " + parseResult.error.message };
+    }
 
-  const data = parseResult.data;
-  const supabase = createAdminClient();
+    const data = parseResult.data;
+    const supabase = createAdminClient();
 
-  // Verify branch belongs to organization
-  const { data: branch } = await supabase
-    .from("branches")
-    .select("id")
-    .eq("id", branchId)
-    .eq("organization_id", organizationId)
-    .single();
+    // Verify branch belongs to organization
+    const { data: branch } = await supabase
+      .from("branches")
+      .select("id")
+      .eq("id", branchId)
+      .eq("organization_id", organizationId)
+      .single();
 
-  if (!branch) {
-    return { success: false, error: "Invalid branch for this organization" };
-  }
+    if (!branch) {
+      return { success: false, error: "Invalid branch for this organization" };
+    }
 
-  // Create vehicle with pending status (requires admin approval)
-  const { data: vehicle, error } = await supabase
-    .from("vehicles")
-    .insert({
-      organization_id: organizationId,
-      branch_id: branchId,
-      slug: uniqueSlug(`${data.make} ${data.model} ${data.year}`),
-      title: data.title,
-      make: data.make,
-      model: data.model,
-      year: data.year,
-      seats: data.seats,
-      fuel: data.fuel,
-      transmission: data.transmission,
-      category: data.category,
-      price_per_day_aud: data.pricePerDayAud,
-      daily_distance_limit_km: data.dailyDistanceLimitKm,
-      extra_distance_fee_aud: data.extraDistanceFeeAud,
-      instant_book: data.instantBook,
-      vin: data.vin,
-      license_plate: data.licensePlate,
-      color: data.color,
-      hourly_rate_aud: data.hourlyRateAud,
-      weekly_rate_aud: data.weeklyRateAud,
-      monthly_rate_aud: data.monthlyRateAud,
-      weekend_rate_aud: data.weekendRateAud,
-      notes: data.notes,
+    // Create vehicle with pending status (requires admin approval)
+    const { data: vehicle, error } = await supabase
+      .from("vehicles")
+      .insert({
+        organization_id: organizationId,
+        branch_id: branchId,
+        slug: uniqueSlug(`${data.make} ${data.model} ${data.year}`),
+        title: data.title,
+        make: data.make,
+        model: data.model,
+        year: data.year,
+        seats: data.seats,
+        fuel: data.fuel,
+        transmission: data.transmission,
+        category: data.category,
+        price_per_day_aud: data.pricePerDayAud,
+        daily_distance_limit_km: data.dailyDistanceLimitKm,
+        extra_distance_fee_aud: data.extraDistanceFeeAud,
+        instant_book: data.instantBook,
+        vin: data.vin,
+        license_plate: data.licensePlate,
+        color: data.color,
+        hourly_rate_aud: data.hourlyRateAud,
+        weekly_rate_aud: data.weeklyRateAud,
+        monthly_rate_aud: data.monthlyRateAud,
+        weekend_rate_aud: data.weekendRateAud,
+        notes: data.notes,
+        status: "pending",
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      return { success: false, error: `Failed to create vehicle: ${error.message}` };
+    }
+
+    // Create search index job (fire and forget - don't fail on this)
+    await supabase.from("search_index_jobs").insert({
+      vehicle_id: vehicle.id,
+      operation: "upsert",
       status: "pending",
-    })
-    .select("id")
-    .single();
+    }).then(({ error: e }) => { if (e) console.warn("search_index_jobs insert failed:", e.message); });
 
-  if (error) {
-    return { success: false, error: `Failed to create vehicle: ${error.message}` };
+    // Log audit event (fire and forget - don't fail on this)
+    await supabase.from("audit_logs").insert({
+      actor_user_id: user.id,
+      action: "vehicle_created",
+      resource_type: "vehicle",
+      resource_id: vehicle.id,
+      metadata: { organization_id: organizationId, branch_id: branchId },
+    }).then(({ error: e }) => { if (e) console.warn("audit_logs insert failed:", e.message); });
+
+    revalidatePath("/vendor/vehicles");
+    revalidatePath("/vendor/dashboard");
+
+    return { success: true, vehicleId: vehicle.id };
+  } catch (err) {
+    console.error("createVehicle error:", err);
+    const message = err instanceof Error ? err.message : "An unexpected error occurred";
+    return { success: false, error: message };
   }
-
-  // Create search index job
-  await supabase.from("search_index_jobs").insert({
-    vehicle_id: vehicle.id,
-    operation: "upsert",
-    status: "pending",
-  });
-
-  // Log audit event
-  await supabase.from("audit_logs").insert({
-    actor_user_id: user.id,
-    action: "vehicle_created",
-    resource_type: "vehicle",
-    resource_id: vehicle.id,
-    metadata: { organization_id: organizationId, branch_id: branchId },
-  });
-
-  revalidatePath("/vendor/vehicles");
-  revalidatePath("/vendor/dashboard");
-
-  return { success: true, vehicleId: vehicle.id };
 }
 
 export async function updateVehicle(formData: FormData): Promise<VehicleActionResult> {

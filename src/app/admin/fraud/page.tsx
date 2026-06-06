@@ -188,7 +188,7 @@ export default async function AdminFraudPage() {
                     <p className="mt-1 text-sm text-slate-400">
                       <span className="font-medium text-slate-300">Vendor:</span>{" "}
                       {flag.vendorId ? (
-                        <Link href={`/admin/vendors?status=all&review=${flag.vendorId}`} className="text-blue-500 hover:underline">
+                        <Link href={`/admin/vendors?status=approved`} className="text-blue-500 hover:underline">
                           {flag.vendorName}
                         </Link>
                       ) : (

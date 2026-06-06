@@ -204,7 +204,7 @@ export default async function AdminListingsPage({ searchParams }: AdminListingsP
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-semibold">
+                      <h3 className="text-lg font-semibold text-white">
                         {listing.year} {listing.make} {listing.model}
                       </h3>
                       <span
