@@ -22,7 +22,7 @@ export function VehicleCard({ vehicle, priority = false, variant = "default" }: 
             src={vehicle.imageUrl}
             alt={`${vehicle.title} available from ${vehicle.vendorName}`}
             fill
-            preload={priority}
+            priority={priority}
             sizes="112px"
             className="object-cover"
           />
@@ -61,7 +61,7 @@ export function VehicleCard({ vehicle, priority = false, variant = "default" }: 
             src={vehicle.imageUrl}
             alt={`${vehicle.title} available from ${vehicle.vendorName}`}
             fill
-            preload={priority}
+            priority={priority}
             sizes="(max-width: 768px) 100vw, 33vw"
             className="object-cover group-hover/card:scale-105 transition-transform duration-500"
           />
@@ -113,7 +113,7 @@ export function VehicleCard({ vehicle, priority = false, variant = "default" }: 
           src={vehicle.imageUrl}
           alt={`${vehicle.title} available from ${vehicle.vendorName}`}
           fill
-          preload={priority}
+          priority={priority}
           sizes="(max-width: 768px) 100vw, 33vw"
           className="object-cover group-hover/card:scale-105 transition-transform duration-500"
         />

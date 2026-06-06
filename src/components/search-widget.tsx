@@ -45,7 +45,7 @@ export function SearchWidget({ variant = "hero", className = "" }: SearchWidgetP
         <div className="bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.2)] rounded-[2.5rem] md:rounded-full p-2.5 flex flex-col md:flex-row items-center divide-y md:divide-y-0 md:divide-x divide-slate-100 border border-slate-100/50 backdrop-blur-2xl">
           
           {/* Location Segment */}
-          <div className="flex-1 w-full flex flex-col justify-center px-6 py-3 md:py-0 hover:bg-slate-50/50 rounded-t-[2rem] md:rounded-l-full md:rounded-r-none transition-colors group">
+          <div className="flex-1 w-full flex flex-col justify-center px-6 py-3 md:py-0 hover:bg-slate-50/50 focus-within:bg-orange-50/50 rounded-t-[2rem] md:rounded-l-full md:rounded-r-none transition-colors group">
             <label className="text-[11px] font-black tracking-widest text-slate-800 uppercase mb-1 flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-[#ea580c]" />
               Pickup Location
@@ -62,38 +62,41 @@ export function SearchWidget({ variant = "hero", className = "" }: SearchWidgetP
             />
           </div>
 
-          {/* Pickup Date Segment */}
-          <div className="flex-[0.8] w-full flex flex-col justify-center px-6 py-3 md:py-0 hover:bg-slate-50/50 transition-colors">
-            <label className="text-[11px] font-black tracking-widest text-slate-800 uppercase mb-1 flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5 text-[#ea580c]" />
-              Pickup
-            </label>
-            <input
-              type="date"
-              value={pickupDate}
-              onChange={(e) => setPickupDate(e.target.value)}
-              min={new Date().toISOString().split("T")[0]}
-              className="w-full bg-transparent border-none p-0 focus:ring-0 text-slate-600 font-medium outline-none appearance-none"
-            />
-          </div>
+          {/* Date Segment Wrapper for Mobile side-by-side */}
+          <div className="w-full flex flex-row divide-x divide-slate-100 md:contents md:divide-x-0">
+            {/* Pickup Date Segment */}
+            <div className="flex-[0.8] w-full flex flex-col justify-center px-4 py-3 md:px-6 md:py-0 hover:bg-slate-50/50 focus-within:bg-orange-50/50 transition-colors">
+              <label className="text-[11px] font-black tracking-widest text-slate-800 uppercase mb-1 flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-[#ea580c]" />
+                <span className="truncate">Pickup</span>
+              </label>
+              <input
+                type="date"
+                value={pickupDate}
+                onChange={(e) => setPickupDate(e.target.value)}
+                min={new Date().toISOString().split("T")[0]}
+                className="w-full bg-transparent border-none p-0 focus:ring-0 text-slate-600 font-medium outline-none appearance-none"
+              />
+            </div>
 
-          {/* Return Date Segment */}
-          <div className="flex-[0.8] w-full flex flex-col justify-center px-6 py-3 md:py-0 hover:bg-slate-50/50 transition-colors">
-            <label className="text-[11px] font-black tracking-widest text-slate-800 uppercase mb-1 flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5 text-[#ea580c]" />
-              Return
-            </label>
-            <input
-              type="date"
-              value={returnDate}
-              onChange={(e) => setReturnDate(e.target.value)}
-              min={pickupDate || new Date().toISOString().split("T")[0]}
-              className="w-full bg-transparent border-none p-0 focus:ring-0 text-slate-600 font-medium outline-none appearance-none"
-            />
+            {/* Return Date Segment */}
+            <div className="flex-[0.8] w-full flex flex-col justify-center px-4 py-3 md:px-6 md:py-0 hover:bg-slate-50/50 focus-within:bg-orange-50/50 transition-colors">
+              <label className="text-[11px] font-black tracking-widest text-slate-800 uppercase mb-1 flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-[#ea580c]" />
+                <span className="truncate">Return</span>
+              </label>
+              <input
+                type="date"
+                value={returnDate}
+                onChange={(e) => setReturnDate(e.target.value)}
+                min={pickupDate || new Date().toISOString().split("T")[0]}
+                className="w-full bg-transparent border-none p-0 focus:ring-0 text-slate-600 font-medium outline-none appearance-none"
+              />
+            </div>
           </div>
 
           {/* Vehicle Type Segment */}
-          <div className="flex-[0.8] w-full flex flex-col justify-center px-6 py-3 md:py-0 hover:bg-slate-50/50 transition-colors relative">
+          <div className="flex-[0.8] w-full flex flex-col justify-center px-6 py-3 md:py-0 hover:bg-slate-50/50 focus-within:bg-orange-50/50 transition-colors relative">
             <label className="text-[11px] font-black tracking-widest text-slate-800 uppercase mb-1 flex items-center gap-1.5">
               <Car className="h-3.5 w-3.5 text-[#ea580c]" />
               Vehicle
@@ -118,7 +121,7 @@ export function SearchWidget({ variant = "hero", className = "" }: SearchWidgetP
           <div className="w-full md:w-auto p-2">
             <Link
               href={buildSearchUrl()}
-              className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#ea580c] to-amber-500 hover:from-[#c2410c] hover:to-[#ea580c] text-white font-bold h-14 md:h-[68px] px-8 rounded-[1.5rem] md:rounded-full shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5 transition-all whitespace-nowrap"
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#c2410c] to-[#ea580c] hover:from-[#9a3412] hover:to-[#c2410c] text-white font-bold h-14 md:h-[68px] px-8 rounded-[1.5rem] md:rounded-full shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2 transition-all whitespace-nowrap"
             >
               <Search className="h-5 w-5" strokeWidth={2.5} />
               <span className="md:hidden lg:inline">Search</span>

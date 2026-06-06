@@ -195,7 +195,7 @@ export default async function VehicleDetailPage({
       />
       <SiteHeader />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-4 py-8 pb-28 lg:pb-8 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-slate-500 mb-6 font-medium overflow-x-auto whitespace-nowrap pb-2 scrollbar-hide">
           <Link href="/" className="hover:text-slate-900 transition-colors flex items-center gap-1">Home</Link>
@@ -295,18 +295,18 @@ export default async function VehicleDetailPage({
                 </table>
               </div>
 
-              {/* Spec Grid */}
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mt-8 pt-8 border-t border-slate-100">
+              {/* Spec Grid / Chips */}
+              <div className="flex overflow-x-auto pb-4 -mx-4 px-4 sm:grid sm:grid-cols-4 sm:gap-4 sm:overflow-visible sm:pb-0 sm:mx-0 sm:px-0 mt-8 pt-8 border-t border-slate-100 gap-3 snap-x scrollbar-hide">
                 {[
                   { label: "Year", value: String(vehicle.year), icon: Calendar },
                   { label: "Seats", value: `${vehicle.seats} seats`, icon: Users },
                   { label: "Fuel", value: vehicle.fuel, icon: Fuel },
                   { label: "Transmission", value: vehicle.transmission, icon: Settings },
                 ].map(({ label, value, icon: Icon }) => (
-                  <div key={label} className="rounded-2xl bg-slate-50 border border-slate-100 p-5 text-center hover:bg-white hover:shadow-md transition-all">
-                    <Icon className="mx-auto h-7 w-7 text-slate-400 mb-3" strokeWidth={1.5} />
-                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">{label}</p>
-                    <p className="text-base font-bold text-slate-800">{value}</p>
+                  <div key={label} className="shrink-0 snap-start w-[120px] sm:w-auto rounded-2xl bg-slate-50 border border-slate-100 p-4 sm:p-5 text-center hover:bg-white hover:shadow-md transition-all flex flex-col items-center justify-center">
+                    <Icon className="mx-auto h-5 w-5 sm:h-7 sm:w-7 text-slate-400 mb-2" strokeWidth={1.5} />
+                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-400 mb-0.5 sm:mb-1">{label}</p>
+                    <p className="text-sm sm:text-base font-bold text-slate-800 truncate w-full px-2">{value}</p>
                   </div>
                 ))}
               </div>
@@ -379,7 +379,7 @@ export default async function VehicleDetailPage({
           </div>
 
           {/* RIGHT: Sticky sidebar */}
-          <aside className="space-y-6 lg:sticky lg:top-24 h-fit">
+          <aside className="space-y-6 lg:sticky lg:top-24 h-fit scroll-mt-[120px]" id="enquiry-section">
             <div className="rounded-3xl border border-slate-200/60 bg-white/95 backdrop-blur-sm shadow-xl overflow-hidden card-lift">
               <EnquiryWidget
                 vehicleId={vehicle.id}
@@ -467,6 +467,20 @@ export default async function VehicleDetailPage({
           />
         )}
       </main>
+
+      {/* Mobile Sticky Bottom CTA */}
+      <div className="fixed bottom-0 left-0 right-0 z-[60] bg-white border-t border-slate-200 p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] lg:hidden flex items-center justify-between pb-safe">
+        <div>
+          <p className="text-2xl font-black text-slate-900">${vehicle.price_per_day_aud}</p>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">AUD / day</p>
+        </div>
+        <a 
+          href="#enquiry-section" 
+          className="bg-gradient-to-r from-[#ea580c] to-amber-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-lg shadow-orange-500/30 hover:scale-[1.02] active:scale-95 transition-transform text-center flex items-center justify-center min-w-[160px]"
+        >
+          {vehicle.instant_book ? "Instant Book" : "Enquire Now"}
+        </a>
+      </div>
 
       <SiteFooter />
     </div>

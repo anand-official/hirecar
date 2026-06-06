@@ -464,6 +464,22 @@ function SearchContent() {
         </div>
       </main>
 
+      {/* Mobile Sticky Filter FAB */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] lg:hidden">
+        <button
+          onClick={() => setIsMobileFilterOpen(true)}
+          className="flex items-center gap-2 bg-slate-900 text-white font-bold px-6 py-3.5 rounded-full shadow-2xl shadow-slate-900/40 hover:scale-[1.02] active:scale-95 transition-transform"
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+          Filters
+          {Object.values(filters).filter(v => v !== undefined && v !== "" && v !== 0).length > 0 && (
+            <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] text-white">
+              {Object.values(filters).filter(v => v !== undefined && v !== "" && v !== 0).length}
+            </span>
+          )}
+        </button>
+      </div>
+
       <SiteFooter />
     </div>
   );

@@ -203,7 +203,7 @@ export function SiteHeader() {
                 )}
 
                 {/* Mobile Toggle */}
-                <button onClick={openMobileMenu} className="md:hidden p-2 text-slate-700 hover:text-primary transition-colors bg-slate-100 rounded-full">
+                <button onClick={openMobileMenu} className="md:hidden flex h-11 w-11 items-center justify-center text-slate-700 hover:text-primary transition-colors bg-slate-100 rounded-full" aria-label="Open mobile menu">
                   <Menu className="h-5 w-5" strokeWidth={2.5} />
                 </button>
               </div>
@@ -228,7 +228,7 @@ export function SiteHeader() {
                 </span>
                 <span className="text-2xl font-black tracking-tight">Carhire</span>
               </Link>
-              <button onClick={closeMobileMenu} className="p-2 text-slate-500 hover:text-primary transition-colors bg-slate-100 rounded-full">
+              <button onClick={closeMobileMenu} className="flex h-11 w-11 items-center justify-center text-slate-500 hover:text-primary transition-colors bg-slate-100 rounded-full" aria-label="Close mobile menu">
                 <X className="h-6 w-6" strokeWidth={2.5} />
               </button>
             </div>

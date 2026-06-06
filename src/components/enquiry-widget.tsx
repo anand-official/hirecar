@@ -166,7 +166,7 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile, in
         <button 
           onClick={handleQuickSubmit}
           disabled={isSubmitting || !licenseConfirmed}
-          className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#ea580c] to-amber-500 px-4 py-3.5 text-base font-bold text-white shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 transition-all"
+          className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#c2410c] to-[#ea580c] px-4 py-3.5 text-base font-bold text-white shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2 transition-all"
         >
           {isSubmitting ? (
             <span className="flex items-center gap-2">
@@ -293,7 +293,7 @@ export function EnquiryWidget({ vehicleId, vendorId, isLoggedIn, userProfile, in
         <button
           type="submit"
           disabled={isSubmitting || !turnstileToken || !licenseConfirmed}
-          className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#ea580c] to-amber-500 px-4 py-3.5 text-base font-bold text-white shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 transition-all"
+          className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#c2410c] to-[#ea580c] px-4 py-3.5 text-base font-bold text-white shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2 transition-all"
         >
           {isSubmitting ? (
             <span className="flex items-center gap-2">

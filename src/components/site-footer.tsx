@@ -110,7 +110,7 @@ export function SiteFooter() {
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-1.5"
+                      className="block py-2 text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 md:py-0"
                     >
                       <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
                       {link.label}
@@ -131,7 +131,7 @@ export function SiteFooter() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-slate-400 hover:text-white transition-colors"
+                    className="block py-2 text-sm text-slate-400 hover:text-white transition-colors md:inline md:py-0"
                   >
                     {link.label}
                   </Link>
@@ -149,7 +149,7 @@ export function SiteFooter() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-slate-400 hover:text-white transition-colors"
+                    className="block py-2 text-sm text-slate-400 hover:text-white transition-colors md:inline md:py-0"
                   >
                     {link.label}
                   </Link>
@@ -167,7 +167,7 @@ export function SiteFooter() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-slate-400 hover:text-white transition-colors"
+                    className="block py-2 text-sm text-slate-400 hover:text-white transition-colors md:inline md:py-0"
                   >
                     {link.label}
                   </Link>
@@ -185,7 +185,7 @@ export function SiteFooter() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-slate-400 hover:text-white transition-colors"
+                    className="block py-2 text-sm text-slate-400 hover:text-white transition-colors md:inline md:py-0"
                   >
                     {link.label}
                   </Link>
@@ -212,7 +212,7 @@ export function SiteFooter() {
                 <a
                   key={social.label}
                   href={social.href}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-800 text-slate-400 hover:bg-primary hover:text-white transition-colors"
+                  className="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-800 text-slate-400 hover:bg-primary hover:text-white transition-colors"
                   aria-label={social.label}
                 >
                   <social.icon className="h-4 w-4" aria-hidden="true" />

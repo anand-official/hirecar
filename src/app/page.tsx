@@ -43,25 +43,26 @@ export default async function Home() {
         <section className="relative h-[650px] flex flex-col items-center justify-center pt-24 pb-16 overflow-hidden">
           {/* Base Image */}
           <Image
-            src="https://images.unsplash.com/photo-1542282088-fe8426682b8f?auto=format&fit=crop&w=2000&q=80"
+            src="https://images.unsplash.com/photo-1542282088-fe8426682b8f?auto=format&fit=crop&q=80"
             alt="Yellow sports car"
             fill
             priority
+            sizes="100vw"
             className="object-cover scale-105 transform-gpu"
           />
           {/* Advanced Color Grading / Overlay */}
           <div className="absolute inset-0 bg-gradient-to-b from-[#0f172a]/90 via-[#0f172a]/40 to-transparent mix-blend-multiply" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,0,0,0)_0%,_rgba(0,0,0,0.6)_100%)]" />
           
-          <MotionScroll variant="fade-up" className="relative z-10 text-center px-4 -mt-20">
-            <h1 className="text-5xl md:text-[6rem] font-black tracking-tight leading-[0.95]">
+          <MotionScroll variant="fade-up" className="relative z-10 text-center px-4 -mt-10 md:-mt-20">
+            <h1 className="text-4xl sm:text-5xl md:text-[6rem] font-black tracking-tight leading-[0.95]">
               <span className="text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.4)]">Premium car rental.</span>
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ea580c] to-amber-500 drop-shadow-[0_4px_12px_rgba(234,88,12,0.4)]">
                 Without the premium price.
               </span>
             </h1>
-            <p className="mt-8 text-xl text-slate-200 font-medium max-w-2xl mx-auto drop-shadow-lg leading-relaxed">
+            <p className="mt-6 md:mt-8 text-lg md:text-xl text-slate-200 font-medium max-w-2xl mx-auto drop-shadow-lg leading-relaxed">
               Book directly with verified Australian operators. Transparent pricing, instant confirmation, zero hidden fees.
             </p>
           </MotionScroll>
@@ -73,7 +74,7 @@ export default async function Home() {
         </MotionScroll>
 
         {/* Why rent with Carhire? - Bento Grid Style */}
-        <section className="pt-24 pb-32 bg-slate-50 relative overflow-hidden">
+        <section className="pt-16 pb-20 md:pt-24 md:pb-32 bg-slate-50 relative overflow-hidden">
           {/* Subtle background glow */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-orange-100/50 rounded-full blur-3xl -z-10" />
 
@@ -107,7 +108,7 @@ export default async function Home() {
         </section>
 
         {/* How Carhire works */}
-        <section className="py-32 bg-white text-center">
+        <section className="py-16 md:py-32 bg-white text-center">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <MotionScroll variant="fade-up" className="mb-24">
               <h2 className="text-4xl md:text-5xl font-black mb-4 text-slate-900 tracking-tight">How Carhire works</h2>
@@ -145,7 +146,7 @@ export default async function Home() {
         </section>
 
         {/* Bento Grid Promos - Upgraded Gradients and Imagery */}
-        <section className="py-24 bg-slate-950 pb-32">
+        <section className="py-16 pb-20 md:py-24 md:pb-32 bg-slate-950">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <MotionScroll variant="fade-up" className="mb-12">
               <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">Unlock special deals</h2>
@@ -157,9 +158,10 @@ export default async function Home() {
               {/* Weekend Getaway Image Card */}
               <MotionScroll variant="stagger-item" className="relative rounded-[2.5rem] overflow-hidden group h-[400px] md:h-full shadow-2xl border border-white/10">
                 <Image
-                  src="https://images.unsplash.com/photo-1527668752968-14ce70a31294?auto=format&fit=crop&w=1200&q=80"
+                  src="https://images.unsplash.com/photo-1527668752968-14ce70a31294?auto=format&fit=crop&q=80"
                   alt="Weekend getaway"
                   fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
                   className="object-cover group-hover:scale-105 transition-transform duration-1000 ease-out"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a]/90 via-[#0f172a]/40 to-transparent" />
@@ -218,7 +220,7 @@ export default async function Home() {
         </section>
 
         {/* Popular Locations Section */}
-        <section className="py-32 bg-[#fafafa]">
+        <section className="py-16 md:py-32 bg-[#fafafa]">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <MotionScroll variant="fade-up" className="flex flex-col md:flex-row md:items-end justify-between mb-16">
               <div>
@@ -251,7 +253,7 @@ export default async function Home() {
 
         {/* Featured Vehicles Section */}
         {featuredVehicles.length > 0 && (
-          <section className="py-32 bg-white border-t border-slate-100">
+          <section className="py-16 md:py-32 bg-white border-t border-slate-100">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
               <MotionScroll variant="fade-up" className="flex flex-col md:flex-row md:items-end justify-between mb-16">
                 <div>
@@ -278,7 +280,7 @@ export default async function Home() {
         )}
 
         {/* FAQ Section */}
-        <section className="py-32 bg-slate-50 border-t border-slate-100">
+        <section className="py-16 md:py-32 bg-slate-50 border-t border-slate-100">
           <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
             <MotionScroll variant="fade-up" className="text-center mb-16">
               <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-6 tracking-tight">Frequently Asked Questions</h2>

@@ -153,15 +153,15 @@ export default async function LocationPage({
 
       <main>
         {/* Hero */}
-        <section className="bg-gradient-to-b from-slate-950 to-slate-800 px-4 py-14 sm:px-6 lg:px-8">
+        <section className="bg-gradient-to-b from-slate-950 to-slate-800 px-4 py-8 lg:py-14 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
             {/* Breadcrumb */}
-            <nav className="flex items-center gap-2 text-sm text-slate-400 mb-6">
-              <Link href="/" className="hover:text-white transition-colors">Home</Link>
-              <span>/</span>
-              <Link href="/locations" className="hover:text-white transition-colors">Locations</Link>
-              <span>/</span>
-              <span className="text-white font-medium">{displayCity}</span>
+            <nav className="flex items-center gap-2 text-sm text-slate-400 mb-6 overflow-x-auto whitespace-nowrap pb-1 scrollbar-hide">
+              <Link href="/" className="hover:text-white transition-colors shrink-0">Home</Link>
+              <span className="shrink-0">/</span>
+              <Link href="/locations" className="hover:text-white transition-colors shrink-0">Locations</Link>
+              <span className="shrink-0">/</span>
+              <span className="text-white font-medium shrink-0">{displayCity}</span>
             </nav>
 
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -209,8 +209,8 @@ export default async function LocationPage({
 
         {/* AI Answer Block / Market Insights */}
         {total > 0 && avgPrice && (
-          <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 border-b border-slate-200">
-            <h2 className="text-xl font-bold text-slate-900 mb-2">Market Insights: {displayCity}</h2>
+          <section className="mx-auto max-w-7xl px-4 py-6 lg:py-8 sm:px-6 lg:px-8 border-b border-slate-200">
+            <h2 className="text-lg lg:text-xl font-bold text-slate-900 mb-1 lg:mb-2">Market Insights: {displayCity}</h2>
             <p className="text-slate-600">
               Based on {total} active listings on Hire Car, the average daily car rental in {displayCity} costs <strong>${avgPrice} AUD per day</strong>. 
               {priceRange && ` Prices range from $${priceRange.min} to $${priceRange.max} depending on vehicle class and rental operator.`}
@@ -219,7 +219,7 @@ export default async function LocationPage({
         )}
 
         {/* Results */}
-        <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <section className="mx-auto max-w-7xl px-4 py-6 lg:py-10 sm:px-6 lg:px-8">
           {vehicles.length > 0 ? (
             <>
               <div className="flex items-center justify-between mb-6">

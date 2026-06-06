@@ -132,7 +132,7 @@ export function FilterSidebar({
       {/* Mobile Overlay */}
       {mobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          className="lg:hidden fixed inset-0 bg-black/60 z-[100] backdrop-blur-sm"
           onClick={handleClose}
         />
       )}
@@ -140,14 +140,14 @@ export function FilterSidebar({
       {/* Sidebar */}
       <aside className={`
         ${mobileOnly
-          ? mobileOpen ? "fixed inset-y-0 left-0 z-50 w-80" : "hidden"
-          : mobileOpen ? "fixed inset-y-0 left-0 z-50 w-80" : "hidden lg:block"
+          ? mobileOpen ? "fixed inset-y-0 right-0 z-[101] w-[85vw] max-w-[340px] shadow-2xl" : "hidden"
+          : mobileOpen ? "fixed inset-y-0 right-0 z-[101] w-[85vw] max-w-[340px] shadow-2xl" : "hidden lg:block"
         }
         bg-white lg:bg-transparent lg:sticky lg:top-24 lg:h-fit
       `}>
-        <div className="h-full overflow-auto lg:overflow-visible bg-white lg:rounded-xl lg:border lg:border-slate-200 lg:shadow-sm">
+        <div className="h-full flex flex-col bg-white lg:rounded-xl lg:border lg:border-slate-200 lg:shadow-sm lg:block">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-slate-100 lg:border-0">
+          <div className="shrink-0 flex items-center justify-between p-4 border-b border-slate-100 lg:border-0">
             <div>
               <h2 className="font-semibold text-slate-900">Filters</h2>
               <p className="text-sm text-slate-500">{totalResults} results</p>
@@ -171,8 +171,9 @@ export function FilterSidebar({
             </div>
           </div>
 
-          {/* Active Filter Pills */}
-          {hasActiveFilters && (
+          <div className="flex-1 overflow-y-auto lg:overflow-visible">
+            {/* Active Filter Pills */}
+            {hasActiveFilters && (
             <div className="flex flex-wrap gap-2 p-4 border-b border-slate-100">
               {Object.entries(currentFilters).map(([key, value]) => {
                 if (!value || value === "" || value === 0) return null;
@@ -338,9 +339,10 @@ export function FilterSidebar({
               </div>
             </FilterSection>
           </div>
+          </div>
 
           {/* Mobile Apply Button */}
-          <div className="lg:hidden p-4 border-t border-slate-100">
+          <div className="shrink-0 lg:hidden p-4 border-t border-slate-100 bg-white">
             <button
               onClick={handleClose}
               className="w-full py-3 bg-amber-500 text-slate-950 font-semibold rounded-lg hover:bg-amber-400 transition-colors"

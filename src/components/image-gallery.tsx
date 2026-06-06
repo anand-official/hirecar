@@ -38,8 +38,8 @@ export function ImageGallery({ images }: { images: GalleryImage[] }) {
           src={images[currentIndex].url}
           alt={images[currentIndex].alt_text || "Vehicle Image"}
           fill
-          priority
-          sizes="(max-width: 1024px) 100vw, 820px"
+          priority={currentIndex === 0}
+          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 100vw, 820px"
           className="object-cover transition-opacity duration-300"
         />
         
