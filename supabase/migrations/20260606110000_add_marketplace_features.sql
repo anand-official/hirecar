@@ -1,8 +1,8 @@
 -- Add new marketplace features to vehicles table
 ALTER TABLE "public"."vehicles" 
-  ADD COLUMN "daily_distance_limit_km" integer DEFAULT NULL,
-  ADD COLUMN "extra_distance_fee_aud" numeric(10,2) DEFAULT NULL,
-  ADD COLUMN "instant_book" boolean NOT NULL DEFAULT false;
+  ADD COLUMN IF NOT EXISTS "daily_distance_limit_km" integer DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS "extra_distance_fee_aud" numeric(10,2) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS "instant_book" boolean NOT NULL DEFAULT false;
 
 -- Add a comment to explain the fields
 COMMENT ON COLUMN "public"."vehicles"."daily_distance_limit_km" IS 'Daily distance allowance in kilometers. Null means unlimited.';

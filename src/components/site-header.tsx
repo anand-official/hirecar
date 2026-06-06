@@ -75,6 +75,9 @@ export function SiteHeader() {
 
   return (
     <>
+      {/* Invisible spacer to push page content down, fixing overlap on all pages */}
+      <div className="h-[116px] w-full shrink-0" aria-hidden="true" />
+      
       <header className="fixed top-0 left-0 right-0 z-50 flex flex-col">
         {/* Vibrant Top Info Bar - Hides on scroll */}
         <AnimatePresence>

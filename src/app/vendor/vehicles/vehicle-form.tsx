@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createVehicle, updateVehicle } from "./actions";
 import { uploadVehicleImage, deleteVehicleImage } from "./image-actions";
 
@@ -27,6 +28,14 @@ interface VehicleFormProps {
     daily_distance_limit_km?: number | null;
     extra_distance_fee_aud?: number | null;
     instant_book?: boolean;
+    vin?: string | null;
+    license_plate?: string | null;
+    color?: string | null;
+    hourly_rate_aud?: number | null;
+    weekly_rate_aud?: number | null;
+    monthly_rate_aud?: number | null;
+    weekend_rate_aud?: number | null;
+    notes?: string | null;
     branch_id: string;
     status: string;
   } | null;
@@ -51,6 +60,7 @@ export default function VehicleForm({
   editVehicle,
   editImages,
 }: VehicleFormProps) {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -72,9 +82,8 @@ export default function VehicleForm({
           text: editVehicle ? "Vehicle updated successfully!" : "Vehicle created successfully!",
         });
         if (!editVehicle) {
-          // Reset form on create
-          const form = document.getElementById("vehicle-form") as HTMLFormElement;
-          form?.reset();
+          // Immediately redirect to edit mode so user can upload images
+          router.push(`/vendor/vehicles/${result.vehicleId}`);
         }
       } else {
         setMessage({ type: "error", text: result.error });
@@ -255,6 +264,87 @@ export default function VehicleForm({
           </label>
 
           <label className="grid gap-2 text-sm font-medium text-slate-700">
+            Hourly Rate (AUD)
+            <input
+              name="hourlyRateAud"
+              type="number"
+              defaultValue={editVehicle?.hourly_rate_aud || ""}
+              min={0}
+              placeholder="e.g., 15"
+              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+            />
+          </label>
+
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
+            Weekly Rate (AUD)
+            <input
+              name="weeklyRateAud"
+              type="number"
+              defaultValue={editVehicle?.weekly_rate_aud || ""}
+              min={0}
+              placeholder="e.g., 400"
+              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+            />
+          </label>
+
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
+            Monthly Rate (AUD)
+            <input
+              name="monthlyRateAud"
+              type="number"
+              defaultValue={editVehicle?.monthly_rate_aud || ""}
+              min={0}
+              placeholder="e.g., 1200"
+              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+            />
+          </label>
+
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
+            Weekend Rate (AUD)
+            <input
+              name="weekendRateAud"
+              type="number"
+              defaultValue={editVehicle?.weekend_rate_aud || ""}
+              min={0}
+              placeholder="e.g., 150"
+              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+            />
+          </label>
+
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
+            VIN (Vehicle ID Number)
+            <input
+              name="vin"
+              defaultValue={editVehicle?.vin || ""}
+              maxLength={100}
+              placeholder="e.g., 1HGCM82633A004..."
+              className="rounded-md border border-slate-300 px-3 py-2 font-normal uppercase"
+            />
+          </label>
+
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
+            License Plate
+            <input
+              name="licensePlate"
+              defaultValue={editVehicle?.license_plate || ""}
+              maxLength={40}
+              placeholder="e.g., ABC-123"
+              className="rounded-md border border-slate-300 px-3 py-2 font-normal uppercase"
+            />
+          </label>
+
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
+            Color
+            <input
+              name="color"
+              defaultValue={editVehicle?.color || ""}
+              maxLength={60}
+              placeholder="e.g., White"
+              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+            />
+          </label>
+
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
             Fuel Type
             <select
               name="fuel"
@@ -300,6 +390,18 @@ export default function VehicleForm({
                 </option>
               ))}
             </select>
+          </label>
+
+          <label className="grid gap-2 text-sm font-medium text-slate-700 md:col-span-3">
+            Internal Notes
+            <textarea
+              name="notes"
+              defaultValue={editVehicle?.notes || ""}
+              maxLength={1000}
+              rows={2}
+              placeholder="Internal fleet notes, e.g., Public holiday rate may vary..."
+              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+            />
           </label>
         </div>
 

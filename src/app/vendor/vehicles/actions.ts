@@ -45,6 +45,14 @@ export async function createVehicle(formData: FormData): Promise<VehicleActionRe
     dailyDistanceLimitKm: formData.get("dailyDistanceLimitKm") || null,
     extraDistanceFeeAud: formData.get("extraDistanceFeeAud") || null,
     instantBook: formData.get("instantBook") === "true" || formData.get("instantBook") === "on",
+    vin: formData.get("vin") || null,
+    licensePlate: formData.get("licensePlate") || null,
+    color: formData.get("color") || null,
+    hourlyRateAud: formData.get("hourlyRateAud") || null,
+    weeklyRateAud: formData.get("weeklyRateAud") || null,
+    monthlyRateAud: formData.get("monthlyRateAud") || null,
+    weekendRateAud: formData.get("weekendRateAud") || null,
+    notes: formData.get("notes") || null,
   });
 
   if (!parseResult.success) {
@@ -85,6 +93,14 @@ export async function createVehicle(formData: FormData): Promise<VehicleActionRe
       daily_distance_limit_km: data.dailyDistanceLimitKm,
       extra_distance_fee_aud: data.extraDistanceFeeAud,
       instant_book: data.instantBook,
+      vin: data.vin,
+      license_plate: data.licensePlate,
+      color: data.color,
+      hourly_rate_aud: data.hourlyRateAud,
+      weekly_rate_aud: data.weeklyRateAud,
+      monthly_rate_aud: data.monthlyRateAud,
+      weekend_rate_aud: data.weekendRateAud,
+      notes: data.notes,
       status: "pending",
     })
     .select("id")
@@ -144,6 +160,14 @@ export async function updateVehicle(formData: FormData): Promise<VehicleActionRe
     dailyDistanceLimitKm: formData.get("dailyDistanceLimitKm") || null,
     extraDistanceFeeAud: formData.get("extraDistanceFeeAud") || null,
     instantBook: formData.has("instantBook") ? (formData.get("instantBook") === "true" || formData.get("instantBook") === "on") : undefined,
+    vin: formData.get("vin") || undefined,
+    licensePlate: formData.get("licensePlate") || undefined,
+    color: formData.get("color") || undefined,
+    hourlyRateAud: formData.get("hourlyRateAud") || undefined,
+    weeklyRateAud: formData.get("weeklyRateAud") || undefined,
+    monthlyRateAud: formData.get("monthlyRateAud") || undefined,
+    weekendRateAud: formData.get("weekendRateAud") || undefined,
+    notes: formData.get("notes") || undefined,
   });
 
   if (!parseResult.success) {
@@ -179,6 +203,14 @@ export async function updateVehicle(formData: FormData): Promise<VehicleActionRe
   if (data.dailyDistanceLimitKm !== undefined) updateData.daily_distance_limit_km = data.dailyDistanceLimitKm;
   if (data.extraDistanceFeeAud !== undefined) updateData.extra_distance_fee_aud = data.extraDistanceFeeAud;
   if (data.instantBook !== undefined) updateData.instant_book = data.instantBook;
+  if (data.vin !== undefined) updateData.vin = data.vin;
+  if (data.licensePlate !== undefined) updateData.license_plate = data.licensePlate;
+  if (data.color !== undefined) updateData.color = data.color;
+  if (data.hourlyRateAud !== undefined) updateData.hourly_rate_aud = data.hourlyRateAud;
+  if (data.weeklyRateAud !== undefined) updateData.weekly_rate_aud = data.weeklyRateAud;
+  if (data.monthlyRateAud !== undefined) updateData.monthly_rate_aud = data.monthlyRateAud;
+  if (data.weekendRateAud !== undefined) updateData.weekend_rate_aud = data.weekendRateAud;
+  if (data.notes !== undefined) updateData.notes = data.notes;
   if (data.branchId) {
     // Verify new branch belongs to organization
     const { data: branch } = await supabase

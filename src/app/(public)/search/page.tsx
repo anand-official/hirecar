@@ -189,11 +189,11 @@ function SearchContent() {
   })();
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-[88px]">
+    <div className="min-h-screen bg-slate-50">
       <SiteHeader />
 
       {/* Sticky Search Bar */}
-      <div className="bg-black sticky top-[72px] z-30 shadow-xl border-b-[6px] border-primary pb-6 pt-2">
+      <div className="bg-black sticky top-[68px] z-30 shadow-xl border-b-[6px] border-primary pb-6 pt-2">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <SearchWidget variant="compact" />
         </div>

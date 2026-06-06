@@ -11,8 +11,18 @@ CREATE TABLE IF NOT EXISTS public.leads_archive (
 
 ALTER TABLE public.leads_archive ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "admins read leads_archive" ON public.leads_archive
-  FOR SELECT USING (app_private.is_platform_admin());
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE schemaname = 'public' 
+        AND tablename = 'leads_archive' 
+        AND policyname = 'admins read leads_archive'
+    ) THEN
+        CREATE POLICY "admins read leads_archive" ON public.leads_archive
+          FOR SELECT USING (app_private.is_platform_admin());
+    END IF;
+END $$;
 
 -- 2. Missing index on reviews (queried frequently by org + status in admin dashboard)
 CREATE INDEX IF NOT EXISTS idx_reviews_org_status

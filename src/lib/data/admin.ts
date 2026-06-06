@@ -399,3 +399,72 @@ export async function getPendingReviews(limit = 50): Promise<PendingReview[]> {
     })) ?? []
   );
 }
+export async function getHistoricalAnalytics() {
+  const supabase = createAdminClient();
+  const now = new Date();
+  
+  // 1. Generate the last 7 days labels
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const leadsData = [];
+  
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const startOfDay = new Date(d.setHours(0,0,0,0)).toISOString();
+    const endOfDay = new Date(d.setHours(23,59,59,999)).toISOString();
+    
+    // Count leads for this day
+    const { count } = await supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", startOfDay)
+      .lte("created_at", endOfDay);
+      
+    leadsData.push({
+      label: days[d.getDay()],
+      value: count ?? 0
+    });
+  }
+
+  // 2. Generate YTD Revenue Data based on active subscriptions
+  const { data: plans } = await supabase.from("subscriptions").select("plan_code, created_at").eq("status", "active");
+  const planPrices: Record<string, number> = {
+    starter: 49,
+    growth: 149,
+    pro: 399,
+    business: 999,
+    enterprise: 2499,
+  };
+
+  const currentMonth = now.getMonth();
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const revenueData = [];
+
+  // Very simplified MRR trajectory
+  let cumulativeMRR = 0;
+  for (let m = 0; m <= currentMonth; m++) {
+    // Add any subscriptions created in or before this month
+    const mrrForMonth = (plans ?? []).filter(p => {
+      const createdMonth = new Date(p.created_at).getMonth();
+      const createdYear = new Date(p.created_at).getFullYear();
+      return createdYear < now.getFullYear() || createdMonth <= m;
+    }).reduce((sum, sub) => sum + (planPrices[sub.plan_code] ?? 0), 0);
+    
+    revenueData.push({
+      label: months[m],
+      value: mrrForMonth
+    });
+  }
+
+  // Always show at least 6 months if possible, padding with 0s if early in the year
+  if (revenueData.length < 6) {
+    const paddingNeeded = 6 - revenueData.length;
+    for (let i = 0; i < paddingNeeded; i++) {
+      let pastMonthIndex = currentMonth - revenueData.length - i;
+      if (pastMonthIndex < 0) pastMonthIndex += 12;
+      revenueData.unshift({ label: months[pastMonthIndex], value: 0 });
+    }
+  }
+
+  return { leadsData, revenueData };
+}

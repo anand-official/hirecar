@@ -59,6 +59,14 @@ export const vehicleSchema = z.object({
   dailyDistanceLimitKm: z.coerce.number().int().min(50).max(1000).optional().nullable(),
   extraDistanceFeeAud: z.coerce.number().min(0.1).max(5.0).optional().nullable(),
   instantBook: z.boolean().default(false),
+  vin: z.string().trim().max(100).optional().nullable(),
+  licensePlate: z.string().trim().max(40).optional().nullable(),
+  color: z.string().trim().max(60).optional().nullable(),
+  hourlyRateAud: z.coerce.number().int().min(0).max(500).optional().nullable(),
+  weeklyRateAud: z.coerce.number().int().min(0).max(10000).optional().nullable(),
+  monthlyRateAud: z.coerce.number().int().min(0).max(30000).optional().nullable(),
+  weekendRateAud: z.coerce.number().int().min(0).max(5000).optional().nullable(),
+  notes: z.string().trim().max(1000).optional().nullable(),
 });
 
 export const branchSchema = z.object({

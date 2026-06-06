@@ -5,6 +5,7 @@ import { getVendorContext, getVehicleLimitInfo } from "@/lib/data/vendor";
 import { getOrganizationVehicles } from "./actions";
 import { getVehicleImages } from "./image-actions";
 import VehicleForm from "./vehicle-form";
+import { BulkUpload } from "@/components/vendor/bulk-upload";
 import { Car, MapPin, Tag, Fuel, Settings2, Users, AlertCircle, Edit2, Trash2 } from "lucide-react";
 
 export const metadata = {
@@ -105,6 +106,14 @@ export default async function VendorVehiclesPage({ searchParams }: VehiclesPageP
           )}
         </div>
       </div>
+
+      {/* Bulk Upload Feature */}
+      {!editVehicle && (
+        <BulkUpload 
+          organizationId={selectedOrgId} 
+          branches={organization.branches} 
+        />
+      )}
 
       {/* Vehicle Form */}
       <VehicleForm
