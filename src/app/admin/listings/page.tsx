@@ -140,9 +140,9 @@ export default async function AdminListingsPage({ searchParams }: AdminListingsP
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold">Listing Moderation</h1>
-        <p className="mt-2 text-slate-600">
+      <section className="rounded-lg border border-slate-800 bg-slate-950 p-6 shadow-sm">
+        <h1 className="text-2xl font-semibold text-white">Listing Moderation</h1>
+        <p className="mt-2 text-slate-400">
           Approve, reject, suspend, and manage vehicle listings. Approved listings are added to the search index.
         </p>
       </section>
@@ -160,15 +160,15 @@ export default async function AdminListingsPage({ searchParams }: AdminListingsP
             href={`/admin/listings?status=${tab.key}`}
             className={`border-b-2 px-4 py-2 text-sm font-medium ${
               statusFilter === tab.key
-                ? "border-slate-950 text-slate-950"
-                : "border-transparent text-slate-600 hover:text-slate-800"
+                ? "border-white text-white"
+                : "border-transparent text-slate-400 hover:text-slate-200"
             }`}
           >
             {tab.label}
             {tab.count > 0 && (
               <span
                 className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
-                  statusFilter === tab.key ? "bg-slate-950 text-white" : "bg-slate-200 text-slate-700"
+                  statusFilter === tab.key ? "bg-white text-slate-950" : "bg-slate-800 text-slate-300"
                 }`}
               >
                 {tab.count}
@@ -181,8 +181,8 @@ export default async function AdminListingsPage({ searchParams }: AdminListingsP
       {/* Listings List */}
       <div className="space-y-4">
         {listings?.length === 0 ? (
-          <div className="rounded-lg border border-slate-200 bg-white p-8 text-center">
-            <p className="text-slate-500">No {statusFilter} listings found.</p>
+          <div className="rounded-lg border border-slate-800 bg-slate-950 p-8 text-center">
+            <p className="text-slate-400">No {statusFilter} listings found.</p>
           </div>
         ) : (
           listings?.map((listing) => {
@@ -199,7 +199,7 @@ export default async function AdminListingsPage({ searchParams }: AdminListingsP
             return (
               <div
                 key={listing.id}
-                className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+                className="rounded-lg border border-slate-800 bg-slate-950 p-6 shadow-sm"
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
@@ -214,15 +214,15 @@ export default async function AdminListingsPage({ searchParams }: AdminListingsP
                             : listing.status === "pending"
                               ? "bg-amber-100 text-amber-800"
                               : listing.status === "suspended"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-slate-100 text-slate-800"
+                                ? "bg-red-900/30 text-red-400"
+                                : "bg-slate-800 text-slate-300"
                         }`}
                       >
                         {listing.status}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-600">{listing.title}</p>
-                    <div className="mt-2 text-sm text-slate-600">
+                    <p className="text-sm text-slate-400">{listing.title}</p>
+                    <div className="mt-2 text-sm text-slate-400">
                       <p>
                         <span className="font-medium">Category:</span> {listing.category} ·{" "}
                         <span className="font-medium">Fuel:</span> {listing.fuel} ·{" "}
@@ -242,8 +242,8 @@ export default async function AdminListingsPage({ searchParams }: AdminListingsP
                         <span
                           className={`ml-2 rounded px-1 py-0.5 text-xs ${
                             org.status === "approved"
-                              ? "bg-green-50 text-green-700"
-                              : "bg-amber-50 text-amber-700"
+                              ? "bg-green-900/30 text-green-400"
+                              : "bg-amber-900/30 text-amber-400"
                           }`}
                         >
                           {org.status}
@@ -295,7 +295,7 @@ export default async function AdminListingsPage({ searchParams }: AdminListingsP
                         <Link
                           href={`/cars/${listing.slug}`}
                           target="_blank"
-                          className="rounded-md border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
+                          className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
                         >
                           View Public
                         </Link>
@@ -313,7 +313,7 @@ export default async function AdminListingsPage({ searchParams }: AdminListingsP
                     )}
                     <Link
                       href={`/admin/audit?type=vehicle&id=${listing.id}`}
-                      className="rounded-md border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
+                      className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
                     >
                       View Audit Log
                     </Link>
