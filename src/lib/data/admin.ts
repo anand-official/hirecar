@@ -460,7 +460,7 @@ export async function getHistoricalAnalytics() {
   if (revenueData.length < 6) {
     const paddingNeeded = 6 - revenueData.length;
     for (let i = 0; i < paddingNeeded; i++) {
-      let pastMonthIndex = currentMonth - revenueData.length - i;
+      let pastMonthIndex: number = currentMonth - revenueData.length - i;
       if (pastMonthIndex < 0) pastMonthIndex += 12;
       revenueData.unshift({ label: months[pastMonthIndex], value: 0 });
     }
