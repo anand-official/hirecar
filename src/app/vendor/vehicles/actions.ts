@@ -63,7 +63,10 @@ export async function createVehicle(formData: FormData): Promise<VehicleActionRe
     });
 
     if (!parseResult.success) {
-      return { success: false, error: "Invalid vehicle data: " + parseResult.error.message };
+      const firstIssue = parseResult.error.issues[0];
+      const field = firstIssue?.path?.join(".") ?? "field";
+      const msg = firstIssue?.message ?? "Invalid value";
+      return { success: false, error: `${field}: ${msg}` };
     }
 
     const data = parseResult.data;
