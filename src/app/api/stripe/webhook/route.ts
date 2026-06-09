@@ -281,10 +281,11 @@ async function processStripeEvent(
 
       const mappedStatus = statusMap[subscription.status] || "incomplete";
 
-      const currentPeriodEnd = subscription.current_period_end;
-      const currentPeriodStart = subscription.current_period_start;
-      const cancelAtPeriodEnd = subscription.cancel_at_period_end;
-      const canceledAt = subscription.canceled_at;
+      const subAny = subscription as any;
+      const currentPeriodEnd = subAny.current_period_end;
+      const currentPeriodStart = subAny.current_period_start;
+      const cancelAtPeriodEnd = subAny.cancel_at_period_end;
+      const canceledAt = subAny.canceled_at;
       
       const priceId = subscription.items?.data?.[0]?.price?.id;
       const planInfo = priceId ? getPlanFromStripePrice(priceId) : undefined;
