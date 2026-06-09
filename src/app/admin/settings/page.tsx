@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/security/auth";
-import { Settings, Shield, Bell, Key } from "lucide-react";
+import { Settings, Shield, Key } from "lucide-react";
 
 export const metadata = {
   title: "Platform Settings",

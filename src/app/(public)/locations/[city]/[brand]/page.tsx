@@ -4,7 +4,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { VehicleCard } from "@/components/vehicle-card";
 import { EmptyState } from "@/components/empty-state";
 import { searchVehicles } from "@/lib/search/typesense";
-import { MapPin, Car, ArrowLeft, Filter, Tag } from "lucide-react";
+import { Filter, Tag } from "lucide-react";
 import type { Metadata } from "next";
 
 export const revalidate = 3600;

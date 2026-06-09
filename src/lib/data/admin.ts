@@ -441,7 +441,6 @@ export async function getHistoricalAnalytics() {
   const revenueData = [];
 
   // Very simplified MRR trajectory
-  let cumulativeMRR = 0;
   for (let m = 0; m <= currentMonth; m++) {
     // Add any subscriptions created in or before this month
     const mrrForMonth = (plans ?? []).filter(p => {

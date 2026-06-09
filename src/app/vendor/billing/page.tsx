@@ -6,8 +6,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   CheckCircle, Clock, AlertTriangle, Zap,
   ArrowRight, Building2, Star, Package, TrendingUp, Shield,
-  ExternalLink,
+  ExternalLink, FileText, Download
 } from "lucide-react";
+import { PortalForm, CheckoutForm } from "./_components/billing-forms";
 
 export const metadata = {
   title: "Billing",
@@ -17,7 +18,7 @@ const PLANS = [
   {
     code: "starter",
     name: "Starter",
-    price: 49,
+    price: { monthly: 49, quarterly: 135 },
     vehicles: 5,
     color: "border-slate-200",
     badge: null,
@@ -26,7 +27,7 @@ const PLANS = [
   {
     code: "growth",
     name: "Growth",
-    price: 99,
+    price: { monthly: 99, quarterly: 270 },
     vehicles: 25,
     color: "border-amber-400",
     badge: "Most Popular",
@@ -35,7 +36,7 @@ const PLANS = [
   {
     code: "pro",
     name: "Pro",
-    price: 199,
+    price: { monthly: 199, quarterly: 540 },
     vehicles: 100,
     color: "border-slate-200",
     badge: null,
@@ -52,9 +53,11 @@ const STATUS_CONFIG = {
   incomplete: { label: "Incomplete", icon: Clock, cls: "bg-amber-100 text-amber-700 border-amber-200" },
 } as const;
 
-export default async function VendorBillingPage() {
+export default async function VendorBillingPage(props: { searchParams: Promise<{ interval?: string }> }) {
   const user = await requireUser();
   const context = await getVendorContext(user.id);
+  const searchParams = await props.searchParams;
+  const interval = searchParams.interval === "quarterly" ? "quarterly" : "monthly";
 
   if (context.setupError) {
     return (
@@ -75,7 +78,7 @@ export default async function VendorBillingPage() {
   // Fetch subscription + plan details
   const { data: subscription } = await supabase
     .from("subscriptions")
-    .select("plan_code, status, current_period_end, stripe_subscription_id, stripe_customer_id")
+    .select("plan_code, status, current_period_end, stripe_subscription_id, stripe_customer_id, cancel_at_period_end, billing_interval")
     .eq("organization_id", organization.id)
     .maybeSingle();
 
@@ -86,6 +89,12 @@ export default async function VendorBillingPage() {
         .eq("code", subscription.plan_code)
         .single()
     : { data: null };
+
+  const { data: invoices } = await supabase
+    .from("invoices")
+    .select("*")
+    .eq("organization_id", organization.id)
+    .order("created_at", { ascending: false });
 
   const { count: vehicleCount } = await supabase
     .from("vehicles")
@@ -110,6 +119,20 @@ export default async function VendorBillingPage() {
 
   return (
     <div className="space-y-6">
+      {/* Cancellation Warning */}
+      {subscription?.cancel_at_period_end && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm flex items-start gap-4">
+          <AlertTriangle className="h-6 w-6 text-amber-600 shrink-0" />
+          <div>
+            <h3 className="text-lg font-bold text-amber-900">Subscription Canceling</h3>
+            <p className="mt-1 text-sm text-amber-800">
+              Your subscription has been canceled and will end on <span className="font-semibold">{periodEnd}</span>.
+              You will retain access to your plan features until then.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -119,17 +142,8 @@ export default async function VendorBillingPage() {
               Manage your plan and billing for <span className="font-medium text-slate-700">{organization.name}</span>
             </p>
           </div>
-          {hasActiveSub && (
-            <form action="/api/billing/portal" method="post">
-              <input type="hidden" name="organizationId" value={organization.id} />
-              <button
-                type="submit"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Manage Billing Portal
-              </button>
-            </form>
+          {hasActiveSub && subscription?.stripe_customer_id && (
+            <PortalForm stripeCustomerId={subscription.stripe_customer_id} />
           )}
         </div>
       </div>
@@ -250,17 +264,27 @@ export default async function VendorBillingPage() {
 
       {/* Plan Picker */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
             <h2 className="text-lg font-bold text-slate-900">
               {hasActiveSub ? "Upgrade Your Plan" : "Choose a Plan"}
             </h2>
             <p className="text-sm text-slate-500 mt-0.5">All plans include a 14-day free trial</p>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700">
-            <Star className="h-3 w-3" />
-            14-day free trial
-          </span>
+          <div className="flex items-center gap-3 bg-slate-100 p-1 rounded-xl">
+            <Link 
+              href="?interval=monthly" 
+              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${interval === "monthly" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            >
+              Monthly
+            </Link>
+            <Link 
+              href="?interval=quarterly" 
+              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${interval === "quarterly" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            >
+              Quarterly (-10%)
+            </Link>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
@@ -296,9 +320,9 @@ export default async function VendorBillingPage() {
                   </h3>
                   <div className="flex items-baseline gap-1 mt-1">
                     <span className={`text-3xl font-black ${isCurrent ? "text-white" : "text-slate-900"}`}>
-                      ${p.price}
+                      ${interval === "quarterly" ? p.price.quarterly : p.price.monthly}
                     </span>
-                    <span className={`text-sm ${isCurrent ? "text-slate-400" : "text-slate-500"}`}>/month</span>
+                    <span className={`text-sm ${isCurrent ? "text-slate-400" : "text-slate-500"}`}>/{interval === "quarterly" ? "quarter" : "month"}</span>
                   </div>
                   <p className={`text-sm mt-1 ${isCurrent ? "text-slate-300" : "text-slate-500"}`}>
                     Up to {p.vehicles} vehicles
@@ -320,22 +344,25 @@ export default async function VendorBillingPage() {
                   <div className={`rounded-xl py-2.5 text-center text-sm font-semibold bg-white/10 text-white`}>
                     Your current plan
                   </div>
+                ) : hasActiveSub && subscription?.stripe_customer_id ? (
+                  <PortalForm
+                    stripeCustomerId={subscription.stripe_customer_id}
+                    className="w-full"
+                    buttonClassName={`w-full rounded-xl py-2.5 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+                      isPopular
+                        ? "bg-amber-500 text-white hover:bg-amber-600 shadow-sm"
+                        : "bg-slate-950 text-white hover:bg-slate-800"
+                    }`}
+                    buttonText={`Switch to ${p.name}`}
+                  />
                 ) : (
-                  <form action="/api/billing/checkout" method="post">
-                    <input type="hidden" name="plan" value={p.code} />
-                    <input type="hidden" name="organizationId" value={organization.id} />
-                    <button
-                      type="submit"
-                      className={`w-full rounded-xl py-2.5 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
-                        isPopular
-                          ? "bg-amber-500 text-white hover:bg-amber-600 shadow-sm"
-                          : "bg-slate-950 text-white hover:bg-slate-800"
-                      }`}
-                    >
-                      {hasActiveSub ? "Switch to " + p.name : "Start " + p.name}
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
-                  </form>
+                  <CheckoutForm
+                    plan={p.code}
+                    interval={interval}
+                    organizationId={organization.id}
+                    isPopular={isPopular}
+                    buttonText={`Start ${p.name}`}
+                  />
                 )}
               </div>
             );
@@ -360,6 +387,58 @@ export default async function VendorBillingPage() {
         <p className="mt-4 text-center text-xs text-slate-400">
           🔒 Payments processed securely by Stripe · Cancel anytime · No setup fees
         </p>
+      </div>
+      {/* Invoices Section */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-6">
+          <h2 className="text-lg font-bold text-slate-900">Billing History</h2>
+          <p className="text-sm text-slate-500 mt-0.5">View and download your past invoices</p>
+        </div>
+
+        {invoices && invoices.length > 0 ? (
+          <div className="divide-y divide-slate-100">
+            {invoices.map((invoice) => (
+              <div key={invoice.id} className="flex items-center justify-between py-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50">
+                    <FileText className="h-5 w-5 text-slate-400" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900">
+                      ${(invoice.amount_paid / 100).toFixed(2)} {invoice.currency.toUpperCase()}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {new Date(invoice.created_at).toLocaleDateString("en-AU", {
+                        day: "numeric", month: "long", year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                    invoice.status === "paid" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-700"
+                  }`}>
+                    {invoice.status.toUpperCase()}
+                  </span>
+                  {invoice.hosted_invoice_url && (
+                    <a
+                      href={invoice.hosted_invoice_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                    >
+                      <Download className="h-4 w-4" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-200 py-12 text-center">
+            <p className="text-sm text-slate-500">No invoices found.</p>
+          </div>
+        )}
       </div>
     </div>
   );

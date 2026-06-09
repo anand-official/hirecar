@@ -49,5 +49,5 @@ export async function POST(request: NextRequest) {
     return_url: `${getAppUrl()}/vendor/billing`,
   });
 
-  return NextResponse.redirect(session.url, { status: 303 });
+  return NextResponse.json({ url: session.url });
 }

@@ -19,7 +19,7 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-xl font-bold text-slate-900 mb-4">1. Introduction</h2>
             <p className="text-slate-600 mb-4">
-              Welcome to Hire Car ("we", "us", "our"). By accessing or using our marketplace website, you agree to be bound by these Terms and Conditions. Our platform acts solely as an intermediary connecting renters with independent, verified vehicle rental operators ("Vendors") across Australia.
+              Welcome to Hire Car (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;). By accessing or using our marketplace website, you agree to be bound by these Terms and Conditions. Our platform acts solely as an intermediary connecting renters with independent, verified vehicle rental operators (&quot;Vendors&quot;) across Australia.
             </p>
           </section>
 

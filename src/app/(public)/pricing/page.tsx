@@ -15,7 +15,7 @@ const PLANS = [
     code: "starter",
     name: "Starter",
     monthlyPrice: 49,
-    annualPrice: 39,
+    quarterlyPrice: 135,
     vehicles: 5,
     highlight: false,
     badge: null,
@@ -37,7 +37,7 @@ const PLANS = [
     code: "growth",
     name: "Growth",
     monthlyPrice: 99,
-    annualPrice: 79,
+    quarterlyPrice: 270,
     vehicles: 25,
     highlight: true,
     badge: "Most Popular",
@@ -59,7 +59,7 @@ const PLANS = [
     code: "pro",
     name: "Pro",
     monthlyPrice: 199,
-    annualPrice: 159,
+    quarterlyPrice: 540,
     vehicles: 100,
     highlight: false,
     badge: "Best Value",
@@ -113,8 +113,8 @@ const FAQS = [
     a: "For fleets of 300+ vehicles, we offer custom contracts, dedicated account management, white-glove onboarding, and SLA-backed support. Contact our sales team for a quote.",
   },
   {
-    q: "Do you offer annual billing discounts?",
-    a: "Yes — switching to annual billing saves approximately 20% compared to monthly. Toggle above to see annual pricing.",
+    q: "Do you offer quarterly billing discounts?",
+    a: "Yes — switching to quarterly billing saves approximately 10% compared to monthly. Toggle above to see quarterly pricing.",
   },
 ];
 
@@ -126,7 +126,7 @@ const TRUST_ITEMS = [
 ];
 
 export default function PricingPage() {
-  const [annual, setAnnual] = useState(false);
+  const [quarterly, setQuarterly] = useState(false);
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
@@ -151,21 +151,21 @@ export default function PricingPage() {
             {/* Billing toggle */}
             <div className="mt-10 inline-flex items-center gap-2 rounded-full bg-slate-100 p-1.5 border border-slate-200/60 shadow-inner">
               <button
-                onClick={() => setAnnual(false)}
+                onClick={() => setQuarterly(false)}
                 className={`rounded-full px-6 py-2.5 text-sm font-bold transition-all ${
-                  !annual ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"
+                  !quarterly ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"
                 }`}
               >
                 Monthly
               </button>
               <button
-                onClick={() => setAnnual(true)}
+                onClick={() => setQuarterly(true)}
                 className={`rounded-full px-6 py-2.5 text-sm font-bold transition-all flex items-center gap-2 ${
-                  annual ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"
+                  quarterly ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"
                 }`}
               >
-                Annual
-                <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-black text-emerald-700">Save 20%</span>
+                Quarterly
+                <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-black text-emerald-700">Save 10%</span>
               </button>
             </div>
           </MotionScroll>
@@ -175,7 +175,7 @@ export default function PricingPage() {
         <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 relative z-10">
           <MotionScroll variant="stagger-container" className="grid gap-8 md:grid-cols-3">
             {PLANS.map((plan) => {
-              const price = annual ? plan.annualPrice : plan.monthlyPrice;
+              const price = quarterly ? plan.quarterlyPrice : plan.monthlyPrice;
 
               return (
                 <MotionScroll
@@ -202,14 +202,14 @@ export default function PricingPage() {
 
                     <div className="mt-6 flex items-baseline gap-1">
                       <span className="text-6xl font-black text-slate-900 tracking-tight">${price}</span>
-                      <span className="text-slate-500 font-medium">/month</span>
+                      <span className="text-slate-500 font-medium">/{quarterly ? "quarter" : "month"}</span>
                     </div>
-                    {annual && (
+                    {quarterly && (
                       <p className="mt-2 text-xs text-emerald-600 font-bold bg-emerald-50 inline-block px-2 py-1 rounded-md">
-                        Billed as ${price * 12}/year · Saves ${(plan.monthlyPrice - plan.annualPrice) * 12}/yr
+                        Billed as ${price * 4}/year · Saves ${(plan.monthlyPrice * 3 - plan.quarterlyPrice) * 4}/yr
                       </p>
                     )}
-                    {!annual && (
+                    {!quarterly && (
                       <p className="mt-2 text-xs text-transparent bg-transparent inline-block px-2 py-1 rounded-md select-none">&nbsp;</p>
                     )}
                   </div>

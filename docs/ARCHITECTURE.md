@@ -1,60 +1,27 @@
-# System Architecture
+# Architecture Overview
 
-Hire Car utilizes a modern, serverless architecture centered around Next.js App Router, Supabase (PostgreSQL), and Typesense Cloud.
+## Technology Stack
+- **Frontend & Backend Framework**: Next.js 16.2.6 (App Router paradigm)
+- **UI & Styling**: React 19.2.4, Tailwind CSS v4, Framer Motion, shadcn/ui, Lucide React
+- **Database & Auth**: Supabase (PostgreSQL), Supabase Auth (`@supabase/ssr`)
+- **Search Engine**: Typesense
+- **Emails**: Resend
+- **Billing**: Stripe
+- **Security & Bot Protection**: Upstash Redis (Rate limiting), Cloudflare Turnstile
 
-## High-Level System Overview
+## Application Boundaries
+The repository is structured to separate different user boundaries:
+1. **Public Marketplace (`src/app/(public)`)**: SEO-optimized pages for locations, vehicle search, pricing, and vendor directories.
+2. **Customer Portal (`src/app/customer`)**: Dashboard for authenticated renters to view saved cars and enquiries.
+3. **Vendor Portal (`src/app/vendor`)**: SaaS dashboard for fleet operators to manage vehicles, bulk upload CSVs, handle leads, and view analytics.
+4. **Admin Panel (`src/app/admin`)**: Internal global control room for moderating listings, reviewing fraud flags, and managing platform settings.
 
-```mermaid
-graph TD
-    Client([Client / Browser]) --> CDN[Vercel Edge & Middleware]
-    
-    subgraph Frontend Application
-        CDN --> Page[Next.js React Server Components]
-        CDN --> ClientComponents[Next.js Client Components]
-    end
-    
-    subgraph Backend Logic
-        Page --> ServerActions[Next.js Server Actions]
-        CDN --> APIRoutes[Next.js API Routes]
-    end
-    
-    subgraph Infrastructure
-        ServerActions --> Supabase[(Supabase PostgreSQL)]
-        APIRoutes --> Supabase
-        ServerActions --> Typesense[(Typesense Cloud Search)]
-        APIRoutes --> Typesense
-        APIRoutes --> Redis[(Upstash Redis Rate Limits)]
-        ClientComponents --> Turnstile{Cloudflare Turnstile}
-    end
-    
-    subgraph Background Services
-        Supabase --> |Webhook| Deno[Supabase Deno Edge Functions]
-        Deno --> |Upsert| Typesense
-    end
-    
-    subgraph External Integrations
-        ServerActions --> Resend[Resend Email API]
-        ServerActions --> Stripe[Stripe Billing API]
-    end
-```
+## Data Flow
+- **Client to Server**: Actions are primarily handled via React Server Actions (`src/app/actions`, `src/lib/actions`). Server-side validation is done using Zod (`src/lib/validation`).
+- **Authentication**: `requireUser()` and `requireAdmin()` helpers located in `src/lib/security/auth.ts` enforce RBAC strictly at the layout and action level.
+- **Search Syncing**: Vehicles are synchronized with Typesense via Edge Functions or background API triggers (`supabase/functions/search-index-worker`).
 
-## Frontend Architecture
-- **Rendering Model**: The application heavily favors React Server Components (RSC) to fetch data natively on the server without shipping Javascript to the client. Interactive UI components (e.g., Image Galleries, Search Filters) are isolated into Client Components (`"use client"`).
-- **Caching**: The public SEO pages (`/cars/[slug]`, `/locations/[city]`) utilize Incremental Static Regeneration (ISR) to cache database-heavy queries at the Vercel Edge.
-
-## Backend/API Architecture
-- **Data Mutations**: Prefer Next.js Server Actions over API routes for internal data mutations (e.g., submitting a lead, updating a vehicle).
-- **Public Endpoints**: `/api/*` route handlers are strictly reserved for external webhooks (Stripe), public unauthenticated access (Health, Search), or third-party integrations.
-
-## Auth Flow
-- Sessions are managed by Supabase Auth (JWT). 
-- Edge `middleware.ts` intercepts all requests to `/admin`, `/customer`, and `/vendor` and reads the session cookie to enforce Role-Based Access Control before hitting the server component.
-
-## Search Flow
-1. A vendor creates a vehicle in the `vehicles` table.
-2. A Postgres Database Trigger fires an async webhook to a Supabase Deno Edge Function (`search-index-worker`).
-3. The worker upserts the sanitized vehicle data into the Typesense Cloud index.
-4. Users querying the frontend hit `/api/search` which directly queries the fast Typesense index. If Typesense is offline, the API falls back to a PostgreSQL `.ilike()` query gracefully.
-
-## Storage Flow
-Vehicle images are uploaded to the Supabase `vehicle-images` bucket. The bucket is configured as public to allow CDN-level caching without generating signed URLs, maximizing LCP performance.
+## Security Architecture
+- **Rate Limiting**: Applied on all `/api` endpoints and critical server actions using Redis (`src/lib/security/rate-limit-redis.ts`).
+- **Fraud Engine**: Fraud flags are automatically generated and reviewed by admins for suspicious patterns.
+- **Bot Protection**: Cloudflare Turnstile integration protects contact and enquiry forms.

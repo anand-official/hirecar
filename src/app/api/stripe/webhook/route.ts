@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getStripe } from "@/lib/billing/stripe";
+import { getStripe, getPlanFromStripePrice } from "@/lib/billing/stripe";
 import { requireEnv } from "@/lib/config";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type Stripe from "stripe";
@@ -177,11 +177,20 @@ async function processStripeEvent(
         { onConflict: "organization_id" },
       );
 
-      // Update organization status to approved
-      await supabase
-        .from("organizations")
-        .update({ status: "approved", updated_at: new Date().toISOString() })
-        .eq("id", organizationId);
+      // Check for open fraud flags before approving
+      const { count: fraudCount } = await supabase
+        .from("fraud_flags")
+        .select("id", { count: "exact", head: true })
+        .eq("resource_id", organizationId)
+        .eq("status", "open");
+
+      if (fraudCount === 0) {
+        // Update organization status to approved
+        await supabase
+          .from("organizations")
+          .update({ status: "approved", suspended_at: null, updated_at: new Date().toISOString() })
+          .eq("id", organizationId);
+      }
 
       // Log audit event
       await supabase.from("audit_logs").insert({
@@ -193,9 +202,11 @@ async function processStripeEvent(
       break;
     }
 
+    case "invoice.paid":
     case "invoice.payment_succeeded": {
       const invoice = event.data.object as Stripe.Invoice;
       const subscriptionId = (invoice as unknown as Record<string, unknown>).subscription as string;
+      const customerId = invoice.customer as string;
 
       if (subscriptionId) {
         const { data: subscription } = await supabase
@@ -213,6 +224,25 @@ async function processStripeEvent(
               updated_at: new Date().toISOString(),
             })
             .eq("stripe_subscription_id", subscriptionId);
+
+          // Upsert invoice record
+          await supabase.from("invoices").upsert(
+            {
+              organization_id: subscription.organization_id,
+              stripe_invoice_id: invoice.id,
+              stripe_customer_id: customerId,
+              stripe_subscription_id: subscriptionId,
+              amount_due: invoice.amount_due,
+              amount_paid: invoice.amount_paid,
+              currency: invoice.currency,
+              status: invoice.status || "paid",
+              hosted_invoice_url: invoice.hosted_invoice_url,
+              invoice_pdf: invoice.invoice_pdf,
+              period_start: new Date(invoice.period_start * 1000).toISOString(),
+              period_end: new Date(invoice.period_end * 1000).toISOString(),
+            },
+            { onConflict: "stripe_invoice_id" },
+          );
         }
       }
       break;
@@ -251,18 +281,50 @@ async function processStripeEvent(
 
       const mappedStatus = statusMap[subscription.status] || "incomplete";
 
-      const currentPeriodEnd = (subscription as unknown as Record<string, number>).current_period_end;
+      const currentPeriodEnd = subscription.current_period_end;
+      const currentPeriodStart = subscription.current_period_start;
+      const cancelAtPeriodEnd = subscription.cancel_at_period_end;
+      const canceledAt = subscription.canceled_at;
+      
+      const priceId = subscription.items?.data?.[0]?.price?.id;
+      const planInfo = priceId ? getPlanFromStripePrice(priceId) : undefined;
 
-      await supabase
+      const { data: updatedSub } = await supabase
         .from("subscriptions")
         .update({
           status: mappedStatus,
+          ...(planInfo ? { plan_code: planInfo.plan, billing_interval: planInfo.interval } : {}),
           current_period_end: currentPeriodEnd
             ? new Date(currentPeriodEnd * 1000).toISOString()
             : undefined,
+          current_period_start: currentPeriodStart
+            ? new Date(currentPeriodStart * 1000).toISOString()
+            : undefined,
+          cancel_at_period_end: cancelAtPeriodEnd,
+          canceled_at: canceledAt ? new Date(canceledAt * 1000).toISOString() : undefined,
           updated_at: new Date().toISOString(),
         })
-        .eq("stripe_subscription_id", subscriptionId);
+        .eq("stripe_subscription_id", subscriptionId)
+        .select("organization_id")
+        .maybeSingle();
+
+      if (updatedSub) {
+        if (mappedStatus === "canceled" || mappedStatus === "unpaid") {
+          await supabase.from("organizations").update({ status: "suspended", suspended_at: new Date().toISOString() }).eq("id", updatedSub.organization_id);
+        } else if (mappedStatus === "active" || mappedStatus === "trialing") {
+          // Check if not suspended by admin manually via fraud flags.
+          const { data: org } = await supabase.from("organizations").select("status").eq("id", updatedSub.organization_id).single();
+          const { count: fraudCount } = await supabase
+            .from("fraud_flags")
+            .select("id", { count: "exact", head: true })
+            .eq("resource_id", updatedSub.organization_id)
+            .eq("status", "open");
+
+          if (org?.status === "suspended" && fraudCount === 0) {
+            await supabase.from("organizations").update({ status: "approved", suspended_at: null }).eq("id", updatedSub.organization_id);
+          }
+        }
+      }
       break;
     }
 
@@ -270,13 +332,19 @@ async function processStripeEvent(
       const subscription = event.data.object as Stripe.Subscription;
       const subscriptionId = subscription.id;
 
-      await supabase
+      const { data: deletedSub } = await supabase
         .from("subscriptions")
         .update({
           status: "canceled",
           updated_at: new Date().toISOString(),
         })
-        .eq("stripe_subscription_id", subscriptionId);
+        .eq("stripe_subscription_id", subscriptionId)
+        .select("organization_id")
+        .maybeSingle();
+
+      if (deletedSub) {
+        await supabase.from("organizations").update({ status: "suspended", suspended_at: new Date().toISOString() }).eq("id", deletedSub.organization_id);
+      }
       break;
     }
 

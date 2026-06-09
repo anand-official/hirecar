@@ -114,7 +114,9 @@ export const contactMessageSchema = z.object({
 
 export const checkoutSchema = z.object({
   plan: z.enum(["starter", "growth", "pro"]),
+  interval: z.enum(["monthly", "quarterly"]).optional(),
   organizationId: z.string().uuid(),
+  couponCode: z.string().optional(),
 });
 
 export const moderationSchema = z.object({

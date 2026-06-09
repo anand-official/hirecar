@@ -7,7 +7,7 @@ import { getVehicleImages } from "./image-actions";
 import VehicleForm from "./vehicle-form";
 import { DeleteVehicleButton } from "./delete-button";
 import { BulkUpload } from "@/components/vendor/bulk-upload";
-import { Car, MapPin, Tag, Fuel, Settings2, Users, AlertCircle, Edit2, Trash2 } from "lucide-react";
+import { Car, MapPin, Tag, Fuel, Settings2, Users, AlertCircle, Edit2 } from "lucide-react";
 
 export const metadata = {
   title: "Vehicles",

@@ -11,7 +11,7 @@ interface SimilarVehiclesProps {
   make: string;
 }
 
-export async function SimilarVehicles({ currentVehicleId, city, category, make }: SimilarVehiclesProps) {
+export async function SimilarVehicles({ currentVehicleId, city, category: _category, make: _make }: SimilarVehiclesProps) {
   const supabase = createAdminClient();
 
   // Query similar vehicles: same city, same category or make, not the current one

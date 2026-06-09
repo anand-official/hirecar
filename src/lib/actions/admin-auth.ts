@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 const ADMIN_ID = "UJJAWAL";
 const ADMIN_PASS = "PROJECT@2026";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function loginAdmin(prevState: any, formData: FormData) {
   const username = formData.get("username");
   const password = formData.get("password");

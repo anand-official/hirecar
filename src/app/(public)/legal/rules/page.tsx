@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { ShieldAlert, Car, MapPin, Search } from "lucide-react";
+import { ShieldAlert, Car } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Rules and Guidelines | Hire Car",
@@ -29,11 +29,11 @@ export default function RulesPage() {
             <ul className="space-y-4 text-slate-600">
               <li className="flex gap-3">
                 <span className="font-bold text-amber-500">•</span>
-                <span><strong>Valid License Required:</strong> You must hold a valid, unrestricted Australian driver's license (or an accepted international equivalent) to rent a vehicle.</span>
+                <span><strong>Valid License Required:</strong> You must hold a valid, unrestricted Australian driver&apos;s license (or an accepted international equivalent) to rent a vehicle.</span>
               </li>
               <li className="flex gap-3">
                 <span className="font-bold text-amber-500">•</span>
-                <span><strong>Respect the Vehicle:</strong> Treat the rented vehicle with care. You are responsible for returning it in the same condition as received, adhering to the vendor's specific fuel and cleaning policies.</span>
+                <span><strong>Respect the Vehicle:</strong> Treat the rented vehicle with care. You are responsible for returning it in the same condition as received, adhering to the vendor&apos;s specific fuel and cleaning policies.</span>
               </li>
               <li className="flex gap-3">
                 <span className="font-bold text-amber-500">•</span>

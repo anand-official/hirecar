@@ -28,7 +28,7 @@ export const metadata = {
 export default async function AdminOverviewPage() {
   await requireAdmin();
 
-  const [metrics, pendingVendors, pendingListings, fraudFlags, pendingReviews, analytics] = await Promise.all(
+  const [metrics, pendingVendors, _pendingListings, fraudFlags, _pendingReviews, analytics] = await Promise.all(
     [
       getAdminDashboardMetrics(),
       getPendingVendors(5),
@@ -210,7 +210,7 @@ export default async function AdminOverviewPage() {
   );
 }
 
-// Subcomponents
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function MetricCard({ icon: Icon, label, value, total, trend, color, href }: any) {
   const colorMap: Record<string, string> = {
     blue: "text-blue-500 bg-blue-500/10 border-blue-500/20",
@@ -236,6 +236,7 @@ function MetricCard({ icon: Icon, label, value, total, trend, color, href }: any
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function EmptyState({ message, icon: Icon = ShieldAlert, iconColor = "text-slate-600" }: any) {
   return (
     <div className="flex flex-col items-center justify-center py-8 text-center">

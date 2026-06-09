@@ -1,47 +1,35 @@
-# Developer Codebase Guide
+# Codebase Guide
 
-This guide helps you navigate the Next.js App Router architecture and outlines conventions for extending the platform.
+## Organization
 
-## Directory Structure
-```text
-src/
-├── app/                  # Next.js App Router
-│   ├── (public)/         # SEO pages (Home, Search, Legal). No auth required.
-│   ├── admin/            # Superadmin tools. Protected by middleware.
-│   ├── api/              # Standalone REST endpoints.
-│   ├── auth/             # Auth callbacks and sign-in pages.
-│   ├── customer/         # Customer account views. Protected.
-│   └── vendor/           # Fleet management portal. Protected.
-├── components/           
-│   ├── ui/               # shadcn baseline UI components (Buttons, Inputs).
-│   └── ...               # Domain-specific components (VehicleCard).
-└── lib/                  
-    ├── data/             # Server-only data access (admin.ts, vendor.ts).
-    ├── email/            # Resend transaction templates.
-    ├── search/           # Typesense schema and wrappers.
-    ├── security/         # Auth checks, CSRF, Turnstile validations.
-    ├── validation/       # Zod schemas shared between client/server.
-    └── types.ts          # Global TypeScript interfaces.
-```
+This guide explains where to find key components within the `src/` directory.
 
-## Adding New Features
+### `src/app` (Next.js App Router)
+- **`(public)`**: Contains routes accessible to unauthenticated users. Use this for landing pages, location-based SEO pages, and vendor directory browsing.
+- **`admin`**: The global control room for platform operators. Includes moderation tools, fraud review, and overall analytics. Protected by `requireAdmin()`.
+- **`vendor`**: The SaaS portal for car rental businesses. This includes vehicle listing management, branch management, and lead tracking. Protected by `requireUser()` and vendor-specific authorization checks.
+- **`customer`**: A lighter dashboard for renters to view their saved vehicles and enquiries.
+- **`api`**: Contains all Next.js Route Handlers. Webhooks (Stripe), re-indexing triggers (Typesense), and public REST endpoints reside here.
 
-### 1. Adding a New Page
-- Determine the scope: is it public, customer-only, or vendor-only?
-- Create a new folder inside the respective Route Group (e.g., `src/app/vendor/analytics/page.tsx`).
-- Default to exporting an `async function` (Server Component). Only add `"use client"` if React hooks (`useState`, `useEffect`) are absolutely necessary.
+### `src/components` (UI Architecture)
+- **`ui/`**: Base level primitives (shadcn/ui style). Includes `button.tsx`, `card.tsx`, `dialog.tsx`.
+- **`admin/`**: Components exclusively used in the admin control room.
+- **`vendor/`**: Components primarily used by the vendor dashboard (e.g., `bulk-upload.tsx`).
+- **Root**: Global shared components like `vehicle-card.tsx`, `site-header.tsx`, `search-widget.tsx`.
 
-### 2. Adding Database Logic
-- Do not query `supabase` directly inside UI components. 
-- Create or update a function inside `src/lib/data/` utilizing the `createAdminClient()` (service role) or standard authenticated client.
-- Always validate inputs using a Zod schema from `src/lib/validation/schemas.ts` before interacting with the database.
+### `src/lib` (Core Business Logic)
+- **`data/`**: Data access layer functions. Contains grouped files like `admin.ts` and `vendor.ts` to abstract away direct Supabase client calls.
+- **`security/`**: Rate limiters, Turnstile captcha validation, and RBAC auth wrappers (`requireUser()`, `requireAdmin()`).
+- **`search/`**: Typesense configuration and query helpers.
+- **`validation/`**: Zod schemas for validating incoming requests.
+- **`billing/`**: Stripe API integration logic.
 
-### 3. Adding Server Actions
-- Server Actions should be placed in an `actions.ts` file alongside the page that uses them (Colocation pattern).
-- Example: `src/app/vendor/vehicles/actions.ts`.
-- Always call `requireUser()` inside the action to verify authentication on the server boundary.
+## Developing & Extending
+1. **Adding a new Server Action**: Place it in `src/app/[module]/actions.ts` or `src/lib/actions/` if shared globally. Always validate input with Zod schemas from `src/lib/validation`.
+2. **Adding an API route**: Avoid using API routes for internal UI state changes. Use Server Actions instead. Only use `src/app/api/` for external webhooks or public integrations.
+3. **Adding UI components**: If it's a primitive, put it in `src/components/ui/`. If it's a composite block, put it in the root or specific domain folder in `src/components/`.
 
-## Anti-Patterns to Avoid
-- **Avoid client-side fetching for initial render:** Do not use `useEffect` + `fetch` for dashboard data. Fetch it securely in the Server Component and pass it down as props.
-- **Do not expose service-role keys:** Never import `createAdminClient` inside a file marked with `"use client"`.
-- **Do not bypass Zod:** Never insert raw `FormData` into Supabase without parsing it through Zod first.
+## Best Practices
+- **Security First**: Always wrap protected layouts and actions with `await requireUser()` or `await requireAdmin()`.
+- **Environment Variables**: Never hardcode keys. Use `.env.local` for development and check `.env.example` for required keys.
+- **Data Fetching**: Rely on Server Components and Supabase SSR for fast, secure data loading without exposing DB logic to the client.
