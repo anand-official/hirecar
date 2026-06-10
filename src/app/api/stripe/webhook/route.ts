@@ -1,4 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  claimStripeWebhookEvent,
+  describeClaimError,
+} from "@/lib/billing/claim-webhook-event";
 import { getStripe } from "@/lib/billing/stripe";
 import {
   approveOrganizationIfEligible,
@@ -13,6 +17,8 @@ import { requireEnv } from "@/lib/config";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { PlanCode } from "@/lib/types";
 import type Stripe from "stripe";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,52 +55,22 @@ async function handleWebhook(request: NextRequest) {
   }
 
   const supabase = createAdminClient();
-  const { data: existing } = await supabase
-    .from("stripe_webhook_events")
-    .select("id, processing_status")
-    .eq("id", event.id)
-    .maybeSingle();
+  const claim = await claimStripeWebhookEvent(supabase, event);
 
-  if (existing?.processing_status === "processed") {
-    return NextResponse.json({ received: true, duplicate: true });
-  }
-
-  if (existing?.processing_status === "processing") {
-    return NextResponse.json(
-      { error: "Webhook event is already being processed", eventId: event.id },
-      { status: 409 },
-    );
-  }
-
-  const receivedAt = new Date().toISOString();
-  const processingPayload = {
-    event_type: event.type,
-    payload: event,
-    processing_status: "processing",
-    received_at: receivedAt,
-    processed_at: null,
-    last_error: null,
-  };
-
-  const claimResult = existing
-    ? await supabase
-        .from("stripe_webhook_events")
-        .update(processingPayload)
-        .eq("id", event.id)
-        .eq("processing_status", "failed")
-    : await supabase.from("stripe_webhook_events").insert({
-        id: event.id,
-        ...processingPayload,
-      });
-
-  if (claimResult.error) {
-    if (claimResult.error.code === "23505") {
+  if (!claim.claimed) {
+    if (claim.duplicate || claim.inProgress) {
       return NextResponse.json({ received: true, duplicate: true });
     }
 
-    console.error(`Failed to claim webhook event ${event.id}:`, claimResult.error.message);
+    const detail = describeClaimError(claim.code, claim.error);
+    console.error(`Failed to claim webhook event ${event.id}:`, detail, claim.code);
     return NextResponse.json(
-      { error: "Webhook processing could not be started", eventId: event.id },
+      {
+        error: "Webhook processing could not be started",
+        eventId: event.id,
+        detail,
+        code: claim.code,
+      },
       { status: 500 },
     );
   }
