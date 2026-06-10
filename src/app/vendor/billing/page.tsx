@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { syncCheckoutSessionForOrganization } from "@/lib/billing/sync-checkout-session";
 import { requireUser } from "@/lib/security/auth";
 import { getVendorContext } from "@/lib/data/vendor";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -53,11 +54,14 @@ const STATUS_CONFIG = {
   incomplete: { label: "Incomplete", icon: Clock, cls: "bg-amber-100 text-amber-700 border-amber-200" },
 } as const;
 
-export default async function VendorBillingPage(props: { searchParams: Promise<{ interval?: string }> }) {
+export default async function VendorBillingPage(props: {
+  searchParams: Promise<{ interval?: string; checkout?: string; session_id?: string; synced?: string }>;
+}) {
   const user = await requireUser();
   const context = await getVendorContext(user.id);
   const searchParams = await props.searchParams;
   const interval = searchParams.interval === "annual" ? "annual" : "monthly";
+  let checkoutSyncError: string | null = null;
 
   if (context.setupError) {
     return (
@@ -73,6 +77,21 @@ export default async function VendorBillingPage(props: { searchParams: Promise<{
   }
 
   const organization = context.organizations[0];
+
+  if (searchParams.checkout === "success" && searchParams.synced !== "1") {
+    try {
+      await syncCheckoutSessionForOrganization(
+        organization.id,
+        searchParams.session_id,
+      );
+      redirect("/vendor/billing?synced=1");
+    } catch (error) {
+      checkoutSyncError =
+        error instanceof Error ? error.message : "Could not activate your subscription";
+      console.error("[billing] checkout sync failed:", checkoutSyncError);
+    }
+  }
+
   const supabase = createAdminClient();
 
   // Fetch subscription + plan details
@@ -119,6 +138,25 @@ export default async function VendorBillingPage(props: { searchParams: Promise<{
 
   return (
     <div className="space-y-6">
+      {searchParams.synced === "1" && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm flex items-start gap-3">
+          <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+          <p className="text-sm text-emerald-800">
+            Your subscription is now active. You can start listing vehicles on the marketplace.
+          </p>
+        </div>
+      )}
+
+      {checkoutSyncError && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="text-sm text-amber-800">
+            <p>Payment succeeded on Stripe, but we could not activate your plan automatically.</p>
+            <p className="mt-1">{checkoutSyncError}</p>
+          </div>
+        </div>
+      )}
+
       {/* Cancellation Warning */}
       {subscription?.cancel_at_period_end && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm flex items-start gap-4">
