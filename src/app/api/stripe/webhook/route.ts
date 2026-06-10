@@ -156,16 +156,21 @@ async function processStripeEvent(
       const subscriptionId = session.subscription as string;
 
       if (!organizationId || !plan || !subscriptionId) {
-        console.error("Missing required data in checkout.session.completed", {
-          organizationId,
-          plan,
-          subscriptionId,
-        });
-        return;
+        // Surface this instead of silently dropping it: a completed checkout
+        // with missing identifiers means the plan can never be assigned, and a
+        // silent return makes that impossible to diagnose.
+        const missing = [
+          !organizationId && "organization_id",
+          !plan && "plan",
+          !subscriptionId && "subscription",
+        ].filter(Boolean);
+        throw new Error(
+          `Missing required data in checkout.session.completed: ${missing.join(", ")}`,
+        );
       }
 
       // Create or update subscription
-      await supabase.from("subscriptions").upsert(
+      const { error: upsertError } = await supabase.from("subscriptions").upsert(
         {
           organization_id: organizationId,
           plan_code: plan,
@@ -178,6 +183,14 @@ async function processStripeEvent(
         },
         { onConflict: "organization_id" },
       );
+
+      if (upsertError) {
+        // Without this check a failed upsert (e.g. a constraint violation) was
+        // silently ignored: the plan was never assigned yet the webhook still
+        // reported success. Throwing marks the event failed so Stripe retries
+        // and the failure is recorded in security_events.
+        throw new Error(`Failed to upsert subscription: ${upsertError.message}`);
+      }
 
       // Check for open fraud flags before approving
       const { count: fraudCount } = await supabase
