@@ -4,11 +4,13 @@ import { useState } from "react";
 import { ArrowRight, ExternalLink } from "lucide-react";
 
 export function PortalForm({ 
+  organizationId,
   stripeCustomerId, 
   className,
   buttonText = "Manage Billing Portal",
   buttonClassName = "inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
 }: { 
+  organizationId: string;
   stripeCustomerId: string; 
   className?: string;
   buttonText?: string;
@@ -41,6 +43,7 @@ export function PortalForm({
 
   return (
     <form onSubmit={onSubmit} className={className}>
+      <input type="hidden" name="organizationId" value={organizationId} />
       <input type="hidden" name="stripeCustomerId" value={stripeCustomerId} />
       <button
         type="submit"

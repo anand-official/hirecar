@@ -185,7 +185,11 @@ export default async function VendorBillingPage(props: {
             </p>
           </div>
           {hasActiveSub && subscription?.stripe_customer_id && (
-            <PortalForm stripeCustomerId={subscription.stripe_customer_id} />
+            <PortalForm
+              organizationId={organization.id}
+              stripeCustomerId={subscription.stripe_customer_id}
+              buttonText="Manage / Cancel Plan"
+            />
           )}
         </div>
       </div>
@@ -246,6 +250,15 @@ export default async function VendorBillingPage(props: {
                     <span className="font-semibold text-slate-900">{periodEnd}</span>
                   </p>
                 </div>
+              )}
+
+              {hasActiveSub && subscription.stripe_customer_id && (
+                <PortalForm
+                  organizationId={organization.id}
+                  stripeCustomerId={subscription.stripe_customer_id}
+                  buttonText="Cancel or change plan"
+                  buttonClassName="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors"
+                />
               )}
 
               {/* Features */}
@@ -388,6 +401,7 @@ export default async function VendorBillingPage(props: {
                   </div>
                 ) : hasActiveSub && subscription?.stripe_customer_id ? (
                   <PortalForm
+                    organizationId={organization.id}
                     stripeCustomerId={subscription.stripe_customer_id}
                     className="w-full"
                     buttonClassName={`w-full rounded-xl py-2.5 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${

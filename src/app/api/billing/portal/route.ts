@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { readFormDataBody } from "@/lib/api/request";
 import { getStripe } from "@/lib/billing/stripe";
 import { getAppUrl } from "@/lib/config";
+import { ensureUserCanManageOrganization } from "@/lib/data/vendor";
 import { requireApiUser } from "@/lib/security/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -12,42 +13,48 @@ export async function POST(request: NextRequest) {
   const { data: formData, response: formError } = await readFormDataBody(request);
   if (formError) return formError;
 
-  const customerId = String(formData.get("stripeCustomerId") ?? "");
+  const organizationId = String(formData.get("organizationId") ?? "");
+  const customerIdFromForm = String(formData.get("stripeCustomerId") ?? "");
 
-  if (!customerId.startsWith("cus_")) {
-    return NextResponse.json({ error: "Missing Stripe customer" }, { status: 400 });
+  if (!organizationId) {
+    return NextResponse.json({ error: "Missing organization" }, { status: 400 });
   }
 
-  // SECURITY: Verify the provided Stripe customer ID actually belongs to an
-  // organization the authenticated user is a member of. Without this check,
-  // any logged-in user could open the billing portal for any other customer.
+  try {
+    await ensureUserCanManageOrganization(user.id, organizationId);
+  } catch {
+    return NextResponse.json(
+      { error: "You do not have permission to manage billing for this organization" },
+      { status: 403 },
+    );
+  }
+
   const supabase = createAdminClient();
   const { data: subscription } = await supabase
     .from("subscriptions")
-    .select("organization_id")
-    .eq("stripe_customer_id", customerId)
+    .select("stripe_customer_id")
+    .eq("organization_id", organizationId)
     .maybeSingle();
 
-  if (!subscription) {
-    return NextResponse.json({ error: "Invalid customer" }, { status: 400 });
+  const customerId = subscription?.stripe_customer_id ?? customerIdFromForm;
+
+  if (!customerId?.startsWith("cus_")) {
+    return NextResponse.json(
+      { error: "No Stripe customer found for this organization. Please subscribe first." },
+      { status: 400 },
+    );
   }
 
-  // Verify the user is a member of the organization that owns this subscription
-  const { data: membership } = await supabase
-    .from("organization_members")
-    .select("role")
-    .eq("user_id", user.id)
-    .eq("organization_id", subscription.organization_id)
-    .maybeSingle();
+  try {
+    const session = await getStripe().billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${getAppUrl()}/vendor/billing`,
+    });
 
-  if (!membership) {
-    return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    return NextResponse.json({ url: session.url });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to open billing portal";
+    console.error("[billing-portal]", message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  const session = await getStripe().billingPortal.sessions.create({
-    customer: customerId,
-    return_url: `${getAppUrl()}/vendor/billing`,
-  });
-
-  return NextResponse.json({ url: session.url });
 }
