@@ -52,7 +52,13 @@ async function handleWebhook(request: NextRequest) {
       requireEnv("STRIPE_WEBHOOK_SECRET"),
     );
   } catch {
-    return NextResponse.json({ error: "Invalid Stripe signature" }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: "Invalid Stripe signature",
+        hint: "Ensure STRIPE_WEBHOOK_SECRET matches this endpoint's signing secret and disable any old Stripe webhook destinations.",
+      },
+      { status: 400 },
+    );
   }
 
   const supabase = createAdminClient();
@@ -152,8 +158,12 @@ async function processStripeEvent(
       const organizationId = session.client_reference_id;
       const plan = session.metadata?.plan as PlanCode | undefined;
       const interval = (session.metadata?.interval || "monthly") as "monthly" | "annual";
-      const customerId = session.customer as string;
-      const subscriptionId = session.subscription as string;
+      const customerId =
+        typeof session.customer === "string" ? session.customer : session.customer?.id ?? null;
+      const subscriptionId =
+        typeof session.subscription === "string"
+          ? session.subscription
+          : session.subscription?.id ?? null;
 
       if (!organizationId || !plan || !subscriptionId) {
         const missing = [
