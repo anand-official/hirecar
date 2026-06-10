@@ -1,14 +1,23 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getStripe, getPlanFromStripePrice } from "@/lib/billing/stripe";
+import { getStripe } from "@/lib/billing/stripe";
+import {
+  approveOrganizationIfEligible,
+  getInvoiceSubscriptionId,
+  getSubscriptionPeriodFields,
+  resolvePlanFromSubscription,
+  SUBSCRIPTION_STATUS_MAP,
+  syncInvoiceRecord,
+  upsertSubscriptionRecord,
+} from "@/lib/billing/webhook-helpers";
 import { requireEnv } from "@/lib/config";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { PlanCode } from "@/lib/types";
 import type Stripe from "stripe";
 
 export async function POST(request: NextRequest) {
   try {
     return await handleWebhook(request);
   } catch (err) {
-    // Top-level safety net: surface the real error instead of a generic Vercel 500
     const message = err instanceof Error ? err.message : String(err);
     const stack = err instanceof Error ? err.stack?.slice(0, 500) : undefined;
     console.error("[stripe-webhook] Unhandled error:", message, stack);
@@ -79,6 +88,10 @@ async function handleWebhook(request: NextRequest) {
       });
 
   if (claimResult.error) {
+    if (claimResult.error.code === "23505") {
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+
     console.error(`Failed to claim webhook event ${event.id}:`, claimResult.error.message);
     return NextResponse.json(
       { error: "Webhook processing could not be started", eventId: event.id },
@@ -86,7 +99,6 @@ async function handleWebhook(request: NextRequest) {
     );
   }
 
-  // Process the event and update subscription state
   try {
     await processStripeEvent(event, supabase);
 
@@ -123,7 +135,6 @@ async function handleWebhook(request: NextRequest) {
       })
       .eq("id", event.id);
 
-    // Log the error to security_events for monitoring
     await supabase.from("security_events").insert({
       event_type: "webhook_processing_failed",
       metadata: {
@@ -133,12 +144,10 @@ async function handleWebhook(request: NextRequest) {
       },
     });
 
-    // Also log to console for immediate visibility
     console.error(`Webhook processing failed for ${event.id}:`, errorMessage);
 
-    // Return 500 so Stripe will retry
     return NextResponse.json(
-      { error: "Webhook processing failed", eventId: event.id },
+      { error: "Webhook processing failed", eventId: event.id, detail: errorMessage },
       { status: 500 },
     );
   }
@@ -150,12 +159,11 @@ async function processStripeEvent(
   event: Stripe.Event,
   supabase: ReturnType<typeof createAdminClient>,
 ) {
-  // Log that we're processing this event
   await supabase.from("audit_logs").insert({
     action: "webhook_processing_started",
     resource_type: "stripe_event",
-    resource_id: event.id,
     metadata: {
+      stripe_event_id: event.id,
       event_type: event.type,
       created_at: new Date().toISOString(),
     },
@@ -165,15 +173,12 @@ async function processStripeEvent(
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
       const organizationId = session.client_reference_id;
-      const plan = session.metadata?.plan;
-      const interval = session.metadata?.interval || "monthly";
+      const plan = session.metadata?.plan as PlanCode | undefined;
+      const interval = (session.metadata?.interval || "monthly") as "monthly" | "annual";
       const customerId = session.customer as string;
       const subscriptionId = session.subscription as string;
 
       if (!organizationId || !plan || !subscriptionId) {
-        // Surface this instead of silently dropping it: a completed checkout
-        // with missing identifiers means the plan can never be assigned, and a
-        // silent return makes that impossible to diagnose.
         const missing = [
           !organizationId && "organization_id",
           !plan && "plan",
@@ -184,45 +189,20 @@ async function processStripeEvent(
         );
       }
 
-      // Create or update subscription
-      const { error: upsertError } = await supabase.from("subscriptions").upsert(
-        {
-          organization_id: organizationId,
-          plan_code: plan,
-          billing_interval: interval,
-          stripe_customer_id: customerId,
-          stripe_subscription_id: subscriptionId,
-          status: "active",
-          current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Approximate, will be updated by invoice events
-          updated_at: new Date().toISOString(),
+      await upsertSubscriptionRecord(supabase, {
+        organizationId,
+        plan,
+        interval,
+        stripeCustomerId: customerId,
+        stripeSubscriptionId: subscriptionId,
+        status: "active",
+        periodFields: {
+          current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         },
-        { onConflict: "organization_id" },
-      );
+      });
 
-      if (upsertError) {
-        // Without this check a failed upsert (e.g. a constraint violation) was
-        // silently ignored: the plan was never assigned yet the webhook still
-        // reported success. Throwing marks the event failed so Stripe retries
-        // and the failure is recorded in security_events.
-        throw new Error(`Failed to upsert subscription: ${upsertError.message}`);
-      }
+      await approveOrganizationIfEligible(supabase, organizationId);
 
-      // Check for open fraud flags before approving
-      const { count: fraudCount } = await supabase
-        .from("fraud_flags")
-        .select("id", { count: "exact", head: true })
-        .eq("resource_id", organizationId)
-        .eq("status", "open");
-
-      if (fraudCount === 0) {
-        // Update organization status to approved
-        await supabase
-          .from("organizations")
-          .update({ status: "approved", suspended_at: null, updated_at: new Date().toISOString() })
-          .eq("id", organizationId);
-      }
-
-      // Log audit event
       await supabase.from("audit_logs").insert({
         action: "subscription_activated",
         resource_type: "subscription",
@@ -233,17 +213,17 @@ async function processStripeEvent(
     }
 
     case "invoice.paid":
-    case "invoice.payment_succeeded": {
+    case "invoice.payment_succeeded":
+    case "invoice.finalized": {
       const invoice = event.data.object as Stripe.Invoice;
-      const subscriptionId = (invoice as unknown as Record<string, unknown>).subscription as string;
-      const customerId = invoice.customer as string;
+      const subscriptionId = getInvoiceSubscriptionId(invoice);
 
       if (subscriptionId) {
         const { data: subscription } = await supabase
           .from("subscriptions")
           .select("organization_id")
           .eq("stripe_subscription_id", subscriptionId)
-          .single();
+          .maybeSingle();
 
         if (subscription) {
           await supabase
@@ -254,33 +234,18 @@ async function processStripeEvent(
               updated_at: new Date().toISOString(),
             })
             .eq("stripe_subscription_id", subscriptionId);
-
-          // Upsert invoice record
-          await supabase.from("invoices").upsert(
-            {
-              organization_id: subscription.organization_id,
-              stripe_invoice_id: invoice.id,
-              stripe_customer_id: customerId,
-              stripe_subscription_id: subscriptionId,
-              amount_due: invoice.amount_due,
-              amount_paid: invoice.amount_paid,
-              currency: invoice.currency,
-              status: invoice.status || "paid",
-              hosted_invoice_url: invoice.hosted_invoice_url,
-              invoice_pdf: invoice.invoice_pdf,
-              period_start: new Date(invoice.period_start * 1000).toISOString(),
-              period_end: new Date(invoice.period_end * 1000).toISOString(),
-            },
-            { onConflict: "stripe_invoice_id" },
-          );
         }
+      }
+
+      if (invoice.status === "paid" || event.type !== "invoice.finalized") {
+        await syncInvoiceRecord(supabase, invoice);
       }
       break;
     }
 
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice;
-      const subscriptionId = (invoice as unknown as Record<string, unknown>).subscription as string;
+      const subscriptionId = getInvoiceSubscriptionId(invoice);
 
       if (subscriptionId) {
         await supabase
@@ -298,62 +263,80 @@ async function processStripeEvent(
     case "customer.subscription.updated": {
       const subscription = event.data.object as Stripe.Subscription;
       const subscriptionId = subscription.id;
+      const mappedStatus = SUBSCRIPTION_STATUS_MAP[subscription.status] || "incomplete";
+      const periodFields = getSubscriptionPeriodFields(subscription);
+      const planInfo = resolvePlanFromSubscription(subscription);
+      const organizationId = subscription.metadata?.organization_id;
+      const customerId =
+        typeof subscription.customer === "string"
+          ? subscription.customer
+          : subscription.customer?.id ?? null;
 
-      const statusMap: Record<string, string> = {
-        active: "active",
-        canceled: "canceled",
-        incomplete: "incomplete",
-        incomplete_expired: "canceled",
-        past_due: "past_due",
-        paused: "canceled",
-        trialing: "trialing",
-        unpaid: "unpaid",
-      };
-
-      const mappedStatus = statusMap[subscription.status] || "incomplete";
-
-      const subRecord = subscription as unknown as Record<string, unknown>;
-      const currentPeriodEnd = subRecord.current_period_end as number | undefined;
-      const currentPeriodStart = subRecord.current_period_start as number | undefined;
-      const cancelAtPeriodEnd = subRecord.cancel_at_period_end as boolean | undefined;
-      const canceledAt = subRecord.canceled_at as number | undefined;
-      
-      const priceId = subscription.items?.data?.[0]?.price?.id;
-      const planInfo = priceId ? getPlanFromStripePrice(priceId) : undefined;
-
-      const { data: updatedSub } = await supabase
-        .from("subscriptions")
-        .update({
+      if (event.type === "customer.subscription.created" && organizationId && planInfo) {
+        await upsertSubscriptionRecord(supabase, {
+          organizationId,
+          plan: planInfo.plan,
+          interval: planInfo.interval,
+          stripeCustomerId: customerId,
+          stripeSubscriptionId: subscriptionId,
           status: mappedStatus,
-          ...(planInfo ? { plan_code: planInfo.plan, billing_interval: planInfo.interval } : {}),
-          current_period_end: currentPeriodEnd
-            ? new Date(currentPeriodEnd * 1000).toISOString()
-            : undefined,
-          current_period_start: currentPeriodStart
-            ? new Date(currentPeriodStart * 1000).toISOString()
-            : undefined,
-          cancel_at_period_end: cancelAtPeriodEnd,
-          canceled_at: canceledAt ? new Date(canceledAt * 1000).toISOString() : undefined,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("stripe_subscription_id", subscriptionId)
-        .select("organization_id")
-        .maybeSingle();
+          periodFields,
+        });
 
-      if (updatedSub) {
-        if (mappedStatus === "canceled" || mappedStatus === "unpaid") {
-          await supabase.from("organizations").update({ status: "suspended", suspended_at: new Date().toISOString() }).eq("id", updatedSub.organization_id);
-        } else if (mappedStatus === "active" || mappedStatus === "trialing") {
-          // Check if not suspended by admin manually via fraud flags.
-          const { data: org } = await supabase.from("organizations").select("status").eq("id", updatedSub.organization_id).single();
-          const { count: fraudCount } = await supabase
-            .from("fraud_flags")
-            .select("id", { count: "exact", head: true })
-            .eq("resource_id", updatedSub.organization_id)
-            .eq("status", "open");
+        if (mappedStatus === "active" || mappedStatus === "trialing") {
+          await approveOrganizationIfEligible(supabase, organizationId);
+        }
+      } else {
+        const { data: updatedSub } = await supabase
+          .from("subscriptions")
+          .update({
+            status: mappedStatus,
+            ...(planInfo ? { plan_code: planInfo.plan, billing_interval: planInfo.interval } : {}),
+            ...periodFields,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("stripe_subscription_id", subscriptionId)
+          .select("organization_id")
+          .maybeSingle();
 
-          if (org?.status === "suspended" && fraudCount === 0) {
-            await supabase.from("organizations").update({ status: "approved", suspended_at: null }).eq("id", updatedSub.organization_id);
+        if (updatedSub) {
+          if (mappedStatus === "canceled" || mappedStatus === "unpaid") {
+            await supabase
+              .from("organizations")
+              .update({ status: "suspended", suspended_at: new Date().toISOString() })
+              .eq("id", updatedSub.organization_id);
+          } else if (mappedStatus === "active" || mappedStatus === "trialing") {
+            const { data: org } = await supabase
+              .from("organizations")
+              .select("status")
+              .eq("id", updatedSub.organization_id)
+              .single();
+            const { count: fraudCount } = await supabase
+              .from("fraud_flags")
+              .select("id", { count: "exact", head: true })
+              .eq("resource_id", updatedSub.organization_id)
+              .eq("status", "open");
+
+            if (org?.status === "suspended" && fraudCount === 0) {
+              await supabase
+                .from("organizations")
+                .update({ status: "approved", suspended_at: null })
+                .eq("id", updatedSub.organization_id);
+            }
+          }
+        } else if (organizationId && planInfo) {
+          await upsertSubscriptionRecord(supabase, {
+            organizationId,
+            plan: planInfo.plan,
+            interval: planInfo.interval,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscriptionId,
+            status: mappedStatus,
+            periodFields,
+          });
+
+          if (mappedStatus === "active" || mappedStatus === "trialing") {
+            await approveOrganizationIfEligible(supabase, organizationId);
           }
         }
       }
@@ -375,13 +358,15 @@ async function processStripeEvent(
         .maybeSingle();
 
       if (deletedSub) {
-        await supabase.from("organizations").update({ status: "suspended", suspended_at: new Date().toISOString() }).eq("id", deletedSub.organization_id);
+        await supabase
+          .from("organizations")
+          .update({ status: "suspended", suspended_at: new Date().toISOString() })
+          .eq("id", deletedSub.organization_id);
       }
       break;
     }
 
     case "checkout.session.expired": {
-      // Log abandoned checkout for analytics
       const session = event.data.object as Stripe.Checkout.Session;
       const organizationId = session.client_reference_id;
 
@@ -400,15 +385,13 @@ async function processStripeEvent(
     }
 
     default:
-      // Log unhandled event types for monitoring
       console.info(`Unhandled Stripe event type: ${event.type}`);
 
-      // Log to audit for visibility
       await supabase.from("audit_logs").insert({
         action: "webhook_unhandled_event_type",
         resource_type: "stripe_event",
-        resource_id: event.id,
         metadata: {
+          stripe_event_id: event.id,
           event_type: event.type,
         },
       });
