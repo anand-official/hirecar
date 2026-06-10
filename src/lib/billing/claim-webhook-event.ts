@@ -50,7 +50,6 @@ export async function claimStripeWebhookEvent(
     },
     processing_status: "processing" as const,
     received_at: receivedAt,
-    processed_at: null,
     last_error: null,
   };
 
