@@ -77,22 +77,30 @@ export function resolvePlanFromSubscription(subscription: Stripe.Subscription): 
   return { plan, interval };
 }
 
+function toPeriodIso(timestamp: number | undefined | null) {
+  if (!timestamp || !Number.isFinite(timestamp)) return undefined;
+  const date = new Date(timestamp * 1000);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return date.toISOString();
+}
+
 export function getSubscriptionPeriodFields(subscription: Stripe.Subscription) {
   const subRecord = subscription as unknown as Record<string, unknown>;
-  const currentPeriodEnd = subRecord.current_period_end as number | undefined;
-  const currentPeriodStart = subRecord.current_period_start as number | undefined;
+  const item = subscription.items?.data?.[0] as
+    | { current_period_end?: number; current_period_start?: number }
+    | undefined;
+  const currentPeriodEnd =
+    (subRecord.current_period_end as number | undefined) ?? item?.current_period_end;
+  const currentPeriodStart =
+    (subRecord.current_period_start as number | undefined) ?? item?.current_period_start;
   const cancelAtPeriodEnd = subRecord.cancel_at_period_end as boolean | undefined;
   const canceledAt = subRecord.canceled_at as number | undefined;
 
   return {
-    current_period_end: currentPeriodEnd
-      ? new Date(currentPeriodEnd * 1000).toISOString()
-      : undefined,
-    current_period_start: currentPeriodStart
-      ? new Date(currentPeriodStart * 1000).toISOString()
-      : undefined,
+    current_period_end: toPeriodIso(currentPeriodEnd),
+    current_period_start: toPeriodIso(currentPeriodStart),
     cancel_at_period_end: cancelAtPeriodEnd,
-    canceled_at: canceledAt ? new Date(canceledAt * 1000).toISOString() : undefined,
+    canceled_at: toPeriodIso(canceledAt),
   };
 }
 

@@ -84,11 +84,15 @@ export default async function VendorBillingPage(props: {
         organization.id,
         searchParams.session_id,
       );
-      redirect("/vendor/billing?synced=1");
     } catch (error) {
       checkoutSyncError =
         error instanceof Error ? error.message : "Could not activate your subscription";
       console.error("[billing] checkout sync failed:", checkoutSyncError);
+    }
+
+    // redirect() throws NEXT_REDIRECT internally — must stay outside try/catch
+    if (!checkoutSyncError) {
+      redirect("/vendor/billing?synced=1");
     }
   }
 
