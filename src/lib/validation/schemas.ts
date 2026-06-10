@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { WEEKDAYS } from "@/lib/whatsapp/business-hours";
 
 /**
  * Validates an Australian Business Number (ABN) using the ATO checksum algorithm.
@@ -114,9 +115,8 @@ export const contactMessageSchema = z.object({
 
 export const checkoutSchema = z.object({
   plan: z.enum(["starter", "growth", "pro"]),
-  interval: z.enum(["monthly", "quarterly"]).optional(),
+  interval: z.enum(["monthly", "annual"]).optional(),
   organizationId: z.string().uuid(),
-  couponCode: z.string().optional(),
 });
 
 export const moderationSchema = z.object({
@@ -124,4 +124,96 @@ export const moderationSchema = z.object({
   resourceId: z.string().uuid(),
   action: z.enum(["approve", "reject", "suspend", "restore", "verify"]),
   reason: z.string().trim().min(3).max(500),
+});
+
+// ---------------------------------------------------------------------------
+// WhatsApp auto-responder schemas
+// ---------------------------------------------------------------------------
+
+/**
+ * Validates an IANA timezone identifier (e.g. "Australia/Sydney").
+ * Prefers `Intl.supportedValuesOf("timeZone")` when available, falling back to
+ * a `try/catch` around `Intl.DateTimeFormat` for engines that lack it.
+ */
+export function isValidTimezone(timezone: string): boolean {
+  if (typeof timezone !== "string" || timezone.trim() === "") {
+    return false;
+  }
+
+  try {
+    const supported = (
+      Intl as unknown as {
+        supportedValuesOf?: (key: string) => string[];
+      }
+    ).supportedValuesOf;
+
+    if (typeof supported === "function") {
+      return supported("timeZone").includes(timezone);
+    }
+  } catch {
+    // Fall through to the DateTimeFormat probe below.
+  }
+
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** "HH:MM" 24-hour time string, e.g. "09:00" or "17:30". */
+const timeStringSchema = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Time must be in 24-hour HH:MM format");
+
+/** Convert a validated "HH:MM" string to minutes-of-day. */
+function timeToMinutes(value: string): number {
+  const [hours, mins] = value.split(":").map(Number);
+  return hours * 60 + mins;
+}
+
+/**
+ * Open/close times for a single weekday. Refined so that `close` is strictly
+ * after `open`.
+ */
+export const dayHoursSchema = z
+  .object({
+    open: timeStringSchema,
+    close: timeStringSchema,
+  })
+  .refine((value) => timeToMinutes(value.close) > timeToMinutes(value.open), {
+    message: "Close time must be after open time",
+    path: ["close"],
+  });
+
+/**
+ * Inbound WhatsApp message payload, validated and sanitised before persistence.
+ */
+export const whatsappInboundSchema = z.object({
+  messageId: z.string().min(1).max(200),
+  from: z
+    .string()
+    .min(6)
+    .max(20)
+    .regex(/^\d+$/, "Sender phone must be digits only"),
+  senderName: z.string().trim().max(160).optional(),
+  text: z.string().max(4096).default(""),
+  type: z.string().max(40).default("text"),
+  timestamp: z.number().int().nonnegative(),
+});
+
+/**
+ * Admin-editable auto-responder configuration.
+ */
+export const autoResponderConfigSchema = z.object({
+  enabled: z.boolean(),
+  cooldownMinutes: z.number().int().min(0).max(1440),
+  inHoursMessage: z.string().trim().min(1).max(1000),
+  awayMessage: z.string().trim().min(1).max(1000),
+  routingDefaultEmail: z.string().trim().email(),
+  businessHours: z.object({
+    timezone: z.string().refine(isValidTimezone, "Invalid IANA timezone"),
+    days: z.record(z.enum(WEEKDAYS), dayHoursSchema.nullable()),
+  }),
 });

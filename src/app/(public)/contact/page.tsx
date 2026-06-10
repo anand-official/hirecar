@@ -3,10 +3,11 @@ import { SiteFooter } from "@/components/site-footer";
 import { ContactForm } from "@/components/contact-form";
 import { MotionScroll } from "@/components/motion-scroll";
 import { Mail, MapPin, Phone, Clock, Headphones } from "lucide-react";
+import { Metadata } from "next";
 
-export const metadata = {
-  title: "Contact Us | Carhire",
-  description: "Get in touch with the Carhire team for support or inquiries.",
+export const metadata: Metadata = {
+  title: "Contact Us | HireCar Marketplace",
+  description: "Get in touch with the HireCar Marketplace team for support or inquiries.",
 };
 
 export default function ContactPage() {
@@ -72,7 +73,7 @@ export default function ContactPage() {
                     <div>
                       <h4 className="text-base font-bold text-slate-900">Phone</h4>
                       <p className="mt-1 text-sm text-slate-500 mb-2">Mon-Fri from 8am to 5pm.</p>
-                      <a href="tel:1800123456" className="font-semibold text-slate-700 hover:text-emerald-600 transition-colors">1800 123 456</a>
+                      <a href="tel:9779811007600" className="font-semibold text-slate-700 hover:text-emerald-600 transition-colors">+977 981 100 7600</a>
                     </div>
                   </div>
                   

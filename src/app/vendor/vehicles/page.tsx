@@ -70,7 +70,7 @@ export default async function VendorVehiclesPage({ searchParams }: VehiclesPageP
           </div>
           {context.organizations.length > 1 && (
             <select
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:border-slate-400 focus:outline-none"
+              className="rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all"
               onChange={(e) => { window.location.href = `/vendor/vehicles?org=${e.target.value}`; }}
               value={selectedOrgId}
             >

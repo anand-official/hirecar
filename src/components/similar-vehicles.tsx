@@ -11,6 +11,7 @@ interface SimilarVehiclesProps {
   make: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function SimilarVehicles({ currentVehicleId, city, category: _category, make: _make }: SimilarVehiclesProps) {
   const supabase = createAdminClient();
 

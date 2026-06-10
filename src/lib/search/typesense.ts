@@ -5,6 +5,25 @@ import type { Vehicle } from "@/lib/types";
 
 const VEHICLE_COLLECTION_NAME = "vehicles";
 
+/**
+ * Returns a relevant stock car image URL based on vehicle category.
+ * Used when vendors haven't uploaded their own images.
+ */
+function getCategoryPlaceholder(category: string): string {
+  const placeholders: Record<string, string> = {
+    "Sedan": "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=800&q=80",
+    "SUV": "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80",
+    "Van": "https://images.unsplash.com/photo-1559416523-140ddc3d238c?auto=format&fit=crop&w=800&q=80",
+    "Ute": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80",
+    "Luxury": "https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=800&q=80",
+    "People mover": "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80",
+    "Truck": "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=800&q=80",
+    "Electric": "https://images.unsplash.com/photo-1560958089-b8a1929cea89?auto=format&fit=crop&w=800&q=80",
+    "Hatchback": "https://images.unsplash.com/photo-1542282088-fe8426682b8f?auto=format&fit=crop&w=800&q=80",
+  };
+  return placeholders[category] ?? "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=800&q=80";
+}
+
 export function createTypesenseClient() {
   const host = optionalEnv("TYPESENSE_HOST");
   const apiKey = optionalEnv("TYPESENSE_API_KEY");
@@ -187,11 +206,11 @@ export async function searchVehicles(
           if (img) {
             v.imageUrl = supabase.storage.from("vehicle-images").getPublicUrl(img.storage_path).data.publicUrl;
           } else {
-            v.imageUrl = "/vehicle-placeholder.jpg";
+            v.imageUrl = getCategoryPlaceholder(v.category);
           }
         });
       } else {
-        vehicles.forEach(v => { v.imageUrl = "/vehicle-placeholder.jpg"; });
+        vehicles.forEach(v => { v.imageUrl = getCategoryPlaceholder(v.category); });
       }
     }
 
@@ -318,7 +337,7 @@ async function fallbackDatabaseSearch(
       const org = v.organizations as unknown as { name: string; slug: string };
       const branch = v.branches as unknown as { name: string; city: string; state: string };
       
-      let imageUrl = "/vehicle-placeholder.jpg";
+      let imageUrl = getCategoryPlaceholder(v.category);
       const images = (v.vehicle_images as unknown as { storage_path: string; sort_order: number }[]) ?? [];
       if (images.length > 0) {
         // Find the image with the lowest sort_order (already ordered by supabase if possible, but safe to sort)

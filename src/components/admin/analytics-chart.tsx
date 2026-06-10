@@ -1,3 +1,5 @@
+"use client";
+
 export function AnalyticsChart({ 
   data, 
   title, 
@@ -18,8 +20,8 @@ export function AnalyticsChart({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 shadow-xl backdrop-blur-sm">
-      <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-6">{title}</h3>
+    <div className="rounded-xl border border-border bg-card p-6 shadow-md">
+      <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-6">{title}</h3>
       <div className="flex h-48 items-end gap-2 sm:gap-4">
         {data.map((item, i) => {
           const heightPercent = (item.value / maxValue) * 100;
@@ -27,8 +29,8 @@ export function AnalyticsChart({
             <div key={i} className="group relative flex flex-1 flex-col items-center justify-end h-full">
               {/* Tooltip */}
               <div className="absolute -top-10 scale-0 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100 z-10 pointer-events-none">
-                <div className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-white shadow-xl border border-slate-700 whitespace-nowrap">
-                  {item.label}: <span className="text-amber-400">{valuePrefix}{item.value.toLocaleString()}</span>
+                <div className="rounded-lg bg-card px-3 py-1.5 text-xs font-medium text-foreground shadow-xl border border-border whitespace-nowrap">
+                  {item.label}: <span className="text-primary">{valuePrefix}{item.value.toLocaleString()}</span>
                 </div>
               </div>
               
@@ -39,7 +41,7 @@ export function AnalyticsChart({
               />
               
               {/* Label */}
-              <div className="mt-3 text-[10px] sm:text-xs text-slate-500 truncate max-w-full">
+              <div className="mt-3 text-[10px] sm:text-xs text-muted-foreground truncate max-w-full">
                 {item.label}
               </div>
             </div>

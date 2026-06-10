@@ -39,13 +39,13 @@ export async function middleware(request: NextRequest) {
   const isProtectedRoute = 
     path.startsWith("/customer") || 
     path.startsWith("/vendor") || 
-    path.startsWith("/admin");
+    (path.startsWith("/admin") && !path.startsWith("/admin-login"));
 
   if (isProtectedRoute && !user) {
     // Redirect to login if unauthenticated user tries to access protected route
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/auth/sign-in";
-    redirectUrl.searchParams.set("redirectedFrom", path);
+    redirectUrl.searchParams.set("redirectedFrom", request.nextUrl.pathname + request.nextUrl.search);
     return NextResponse.redirect(redirectUrl);
   }
 

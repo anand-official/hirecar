@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/security/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { Badge } from "@/components/ui/badge";
+import { AdminListingsTable } from "./listings-table";
 
 export const metadata = {
   title: "Listing Moderation",
@@ -138,17 +140,51 @@ export default async function AdminListingsPage({ searchParams }: AdminListingsP
     rejected: allListings?.filter((v) => v.status === "rejected").length ?? 0,
   };
 
+  // Transform listings for DataTable
+  const tableData = (listings ?? []).map((listing) => {
+    const org = (listing.organizations as unknown as { id: string; name: string; slug: string; status: string }) ?? {
+      name: "Unknown",
+      slug: "",
+      status: "unknown",
+    };
+    const branch = (listing.branches as unknown as { name: string; city: string; state: string; status: string }) ?? {
+      name: "Unknown",
+      city: "Unknown",
+      state: "Unknown",
+    };
+
+    return {
+      id: listing.id,
+      slug: listing.slug,
+      title: `${listing.year} ${listing.make} ${listing.model}`,
+      category: listing.category,
+      fuel: listing.fuel,
+      transmission: listing.transmission,
+      seats: listing.seats,
+      price_per_day_aud: listing.price_per_day_aud,
+      status: listing.status as string,
+      vendor_name: org.name,
+      vendor_slug: org.slug,
+      vendor_status: org.status,
+      branch_name: branch.name,
+      branch_city: branch.city,
+      branch_state: branch.state,
+      created_at: listing.created_at,
+      suspended_at: listing.suspended_at as string | null,
+    };
+  });
+
   return (
     <div className="space-y-6">
-      <section className="rounded-lg border border-slate-800 bg-slate-950 p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-white">Listing Moderation</h1>
-        <p className="mt-2 text-slate-400">
+      <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        <h1 className="text-2xl font-semibold text-foreground">Listing Moderation</h1>
+        <p className="mt-2 text-muted-foreground">
           Approve, reject, suspend, and manage vehicle listings. Approved listings are added to the search index.
         </p>
       </section>
 
       {/* Status Tabs */}
-      <div className="flex gap-2 border-b border-slate-200">
+      <div className="flex gap-2 border-b border-border">
         {[
           { key: "pending", label: "Pending", count: counts.pending },
           { key: "approved", label: "Approved", count: counts.approved },
@@ -158,172 +194,31 @@ export default async function AdminListingsPage({ searchParams }: AdminListingsP
           <Link
             key={tab.key}
             href={`/admin/listings?status=${tab.key}`}
-            className={`border-b-2 px-4 py-2 text-sm font-medium ${
+            className={`border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
               statusFilter === tab.key
-                ? "border-white text-white"
-                : "border-transparent text-slate-400 hover:text-slate-200"
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             {tab.label}
             {tab.count > 0 && (
-              <span
-                className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
-                  statusFilter === tab.key ? "bg-white text-slate-950" : "bg-slate-800 text-slate-300"
-                }`}
+              <Badge
+                variant={statusFilter === tab.key ? "default" : "outline"}
+                className="ml-2"
               >
                 {tab.count}
-              </span>
+              </Badge>
             )}
           </Link>
         ))}
       </div>
 
-      {/* Listings List */}
-      <div className="space-y-4">
-        {listings?.length === 0 ? (
-          <div className="rounded-lg border border-slate-800 bg-slate-950 p-8 text-center">
-            <p className="text-slate-400">No {statusFilter} listings found.</p>
-          </div>
-        ) : (
-          listings?.map((listing) => {
-            const org = (listing.organizations as unknown as { id: string; name: string; slug: string; status: string }) ?? {
-              name: "Unknown",
-              status: "unknown",
-            };
-            const branch = (listing.branches as unknown as { name: string; city: string; state: string; status: string }) ?? {
-              name: "Unknown",
-              city: "Unknown",
-              state: "Unknown",
-            };
-
-            return (
-              <div
-                key={listing.id}
-                className="rounded-lg border border-slate-800 bg-slate-950 p-6 shadow-sm"
-              >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-semibold text-white">
-                        {listing.year} {listing.make} {listing.model}
-                      </h3>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          listing.status === "approved"
-                            ? "bg-green-100 text-green-800"
-                            : listing.status === "pending"
-                              ? "bg-amber-100 text-amber-800"
-                              : listing.status === "suspended"
-                                ? "bg-red-900/30 text-red-400"
-                                : "bg-slate-800 text-slate-300"
-                        }`}
-                      >
-                        {listing.status}
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-400">{listing.title}</p>
-                    <div className="mt-2 text-sm text-slate-400">
-                      <p>
-                        <span className="font-medium">Category:</span> {listing.category} ·{" "}
-                        <span className="font-medium">Fuel:</span> {listing.fuel} ·{" "}
-                        <span className="font-medium">Transmission:</span> {listing.transmission}
-                      </p>
-                      <p>
-                        <span className="font-medium">Seats:</span> {listing.seats} ·{" "}
-                        <span className="font-medium">Price:</span> ${listing.price_per_day_aud}/day
-                      </p>
-                    </div>
-                    <div className="mt-2">
-                      <p className="text-sm">
-                        <span className="font-medium">Vendor:</span>{" "}
-                        <Link href={`/vendors/${org.slug}`} className="text-blue-600 hover:underline">
-                          {org.name}
-                        </Link>{" "}
-                        <span
-                          className={`ml-2 rounded px-1 py-0.5 text-xs ${
-                            org.status === "approved"
-                              ? "bg-green-900/30 text-green-400"
-                              : "bg-amber-900/30 text-amber-400"
-                          }`}
-                        >
-                          {org.status}
-                        </span>
-                      </p>
-                      <p className="text-sm text-slate-500">
-                        <span className="font-medium">Branch:</span> {branch.name} · {branch.city},{" "}
-                        {branch.state}
-                      </p>
-                    </div>
-                    <p className="mt-2 text-xs text-slate-500">
-                      Submitted {new Date(listing.created_at).toLocaleDateString("en-AU")}
-                      {listing.suspended_at &&
-                        ` · Suspended ${new Date(listing.suspended_at).toLocaleDateString("en-AU")}`}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {listing.status === "pending" && (
-                      <>
-                        <form action={moderateListing.bind(null, "approve", listing.id, "Approved from admin dashboard", true)}>
-                          <button
-                            type="submit"
-                            className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-                          >
-                            Approve
-                          </button>
-                        </form>
-                        <form action={moderateListing.bind(null, "reject", listing.id, "Rejected from admin dashboard", false)}>
-                          <button
-                            type="submit"
-                            className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-                          >
-                            Reject
-                          </button>
-                        </form>
-                      </>
-                    )}
-                    {listing.status === "approved" && (
-                      <>
-                        <form action={moderateListing.bind(null, "suspend", listing.id, "Suspended from admin dashboard", false)}>
-                          <button
-                            type="submit"
-                            className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
-                          >
-                            Suspend
-                          </button>
-                        </form>
-                        <Link
-                          href={`/cars/${listing.slug}`}
-                          target="_blank"
-                          className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
-                        >
-                          View Public
-                        </Link>
-                      </>
-                    )}
-                    {(listing.status === "suspended" || listing.status === "rejected") && (
-                      <form action={moderateListing.bind(null, "restore", listing.id, "Restored from admin dashboard", true)}>
-                        <button
-                          type="submit"
-                          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                        >
-                          Restore
-                        </button>
-                      </form>
-                    )}
-                    <Link
-                      href={`/admin/audit?type=vehicle&id=${listing.id}`}
-                      className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
-                    >
-                      View Audit Log
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
+      {/* Listings Table */}
+      <AdminListingsTable
+        data={tableData}
+        statusFilter={statusFilter}
+        moderateListing={moderateListing}
+      />
     </div>
   );
 }

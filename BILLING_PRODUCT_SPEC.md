@@ -1,14 +1,14 @@
 # Billing & Product Specification
 
 ## 1. Available Plans
-- **Starter**: For small vendors. Limits: 5 vehicles. Basic analytics.
-- **Growth**: For medium fleets. Limits: 25 vehicles. Advanced analytics, Priority alerts.
-- **Pro**: For large fleets. Limits: 100 vehicles. API access, Bulk upload.
+- **Starter**: Free ($0/mo). Limits: 10 vehicles. Basic profile + inquiry leads.
+- **Growth**: $49/mo. Limits: 20 vehicles. WhatsApp, phone tracking, analytics, GPS badge.
+- **Pro**: $99/mo. Limits: 50 vehicles. Everything in Growth + featured placement, AI SEO, priority support.
 - **Business/Enterprise**: Custom sales-led tiers.
 
 ## 2. Billing Intervals
 - **Monthly**: Standard tier pricing.
-- **Quarterly**: (New Feature) Allows vendors to pay every 3 months for a slight discount/convenience over monthly without committing to annual.
+- **Annual**: 10% discount for paying upfront for 12 months. Growth: $529/year, Pro: $1,069/year.
   
 ## 3. Upgrades & Downgrades
 - **Upgrades**: Processed immediately. Users pay a prorated amount for the remainder of the billing cycle. Premium access granted as soon as Stripe confirms the payment (`customer.subscription.updated` / `checkout.session.completed`).

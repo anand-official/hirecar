@@ -151,6 +151,7 @@ async function processStripeEvent(
       const session = event.data.object as Stripe.Checkout.Session;
       const organizationId = session.client_reference_id;
       const plan = session.metadata?.plan;
+      const interval = session.metadata?.interval || "monthly";
       const customerId = session.customer as string;
       const subscriptionId = session.subscription as string;
 
@@ -168,6 +169,7 @@ async function processStripeEvent(
         {
           organization_id: organizationId,
           plan_code: plan,
+          billing_interval: interval,
           stripe_customer_id: customerId,
           stripe_subscription_id: subscriptionId,
           status: "active",
@@ -264,6 +266,7 @@ async function processStripeEvent(
       break;
     }
 
+    case "customer.subscription.created":
     case "customer.subscription.updated": {
       const subscription = event.data.object as Stripe.Subscription;
       const subscriptionId = subscription.id;
@@ -281,11 +284,11 @@ async function processStripeEvent(
 
       const mappedStatus = statusMap[subscription.status] || "incomplete";
 
-      const subAny = subscription as any;
-      const currentPeriodEnd = subAny.current_period_end;
-      const currentPeriodStart = subAny.current_period_start;
-      const cancelAtPeriodEnd = subAny.cancel_at_period_end;
-      const canceledAt = subAny.canceled_at;
+      const subRecord = subscription as unknown as Record<string, unknown>;
+      const currentPeriodEnd = subRecord.current_period_end as number | undefined;
+      const currentPeriodStart = subRecord.current_period_start as number | undefined;
+      const cancelAtPeriodEnd = subRecord.cancel_at_period_end as boolean | undefined;
+      const canceledAt = subRecord.canceled_at as number | undefined;
       
       const priceId = subscription.items?.data?.[0]?.price?.id;
       const planInfo = priceId ? getPlanFromStripePrice(priceId) : undefined;

@@ -43,7 +43,7 @@ export function BulkUpload({ organizationId, branches }: BulkUploadProps) {
       } else {
         setResult({ errors: response.errors || [response.error || "Upload failed"] });
       }
-    } catch (_err) {
+    } catch {
       setResult({ errors: ["An unexpected error occurred during upload."] });
     } finally {
       setIsUploading(false);

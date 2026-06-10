@@ -3,9 +3,11 @@ import { requireUser } from "@/lib/security/auth";
 import { getVendorContext } from "@/lib/data/vendor";
 import { redirect } from "next/navigation";
 
-export default async function VendorOnboardingPage() {
+export default async function VendorOnboardingPage(props: { searchParams: Promise<{ plan?: string }> }) {
   const user = await requireUser();
   const context = await getVendorContext(user.id);
+  const searchParams = await props.searchParams;
+  const plan = searchParams.plan;
 
   if (context.organizations.length > 0) {
     redirect("/vendor/dashboard");
@@ -21,7 +23,7 @@ export default async function VendorOnboardingPage() {
           </p>
         </div>
 
-        <OnboardingWizard />
+        <OnboardingWizard plan={plan} />
       </section>
     </div>
   );

@@ -66,7 +66,7 @@ Token-first premium redesign of the entire RentLeads platform. Start by redefini
     - Responsive column layout (stacked mobile, multi-column desktop)
     - _Requirements: 2.2_
 
-- [~] 3. Checkpoint — Design system and layout
+- [x] 3. Checkpoint — Design system and layout
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 4. Landing Page Premium Redesign
@@ -114,12 +114,12 @@ Token-first premium redesign of the entire RentLeads platform. Start by redefini
     - Description ≤ 200 characters
     - _Requirements: 3.7, 10.3, 10.6_
 
-  - [~] 4.8 Wire landing page sections in correct order
+  - [x] 4.8 Wire landing page sections in correct order
     - Ensure section order: hero → trust signals → how it works → featured vehicles → locations → testimonials → vendor CTA
     - _Requirements: 3.10_
 
-- [ ] 5. Pricing Page
-  - [~] 5.1 Create PricingTable component (`src/components/pricing-table.tsx`)
+- [x] 5. Pricing Page
+  - [x] 5.1 Create PricingTable component (`src/components/pricing-table.tsx`)
     - Monthly/annual toggle defaulting to monthly
     - "Save 20% annually" label near toggle
     - 3 plan cards: Basic ($29), Pro ($79 with "Most Popular - Best Value" badge), Premium ($179)
@@ -133,13 +133,13 @@ Token-first premium redesign of the entire RentLeads platform. Start by redefini
     - Responsive: stacked <768px, side-by-side ≥768px
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 4.10, 4.11, 4.12, 10.5_
 
-  - [~] 5.2 Integrate PricingTable into pricing page (`src/app/(public)/pricing/page.tsx`)
+  - [x] 5.2 Integrate PricingTable into pricing page (`src/app/(public)/pricing/page.tsx`)
     - Page heading with action verb headline
     - Render PricingTable component
     - _Requirements: 4.1_
 
 - [ ] 6. Search and Browse Pages
-  - [~] 6.1 Restyle search page layout (`src/app/(public)/search/page.tsx`)
+  - [x] 6.1 Restyle search page layout (`src/app/(public)/search/page.tsx`)
     - Responsive card grid: 1 col <768px, 2 cols 768-1279px, 3 cols ≥1280px
     - Uniform gap spacing, white bg cards with box-shadow
     - Pagination: 20 per page, prev/next buttons, page number indicators
@@ -167,16 +167,16 @@ Token-first premium redesign of the entire RentLeads platform. Start by redefini
     - Use Card `interactive` variant
     - _Requirements: 5.5_
 
-  - [~] 6.6 Restyle car detail page (`src/app/(public)/cars/[slug]/page.tsx`)
+  - [x] 6.6 Restyle car detail page (`src/app/(public)/cars/[slug]/page.tsx`)
     - Two-column layout: main content + sidebar
     - Image gallery, specs grid (seats, fuel, transmission, branch), pricing panel, vendor contact widget, enquiry form
     - _Requirements: 5.3_
 
-- [~] 7. Checkpoint — Public pages complete
+- [x] 7. Checkpoint — Public pages complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 8. Vendor Profile Pages
-  - [~] 8.1 Restyle vendor profile page (`src/app/(public)/vendors/[slug]/page.tsx`)
+- [x] 8. Vendor Profile Pages
+  - [x] 8.1 Restyle vendor profile page (`src/app/(public)/vendors/[slug]/page.tsx`)
     - Structured header: name, logo/avatar (placeholder fallback), verified badge, location, fleet size, avg rating (1 decimal) with review count, description (≤2000 chars)
     - Vehicle grid: up to 12 cards, same responsive layout as search (1/2/3 cols)
     - "View all" link when >12 vehicles → search page filtered by vendor
@@ -185,8 +185,8 @@ Token-first premium redesign of the entire RentLeads platform. Start by redefini
     - Not-found page if vendor slug doesn't match approved vendor
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6_
 
-- [ ] 9. Auth Pages
-  - [~] 9.1 Restyle auth sign-in page (`src/app/auth/sign-in/page.tsx`)
+- [x] 9. Auth Pages
+  - [x] 9.1 Restyle auth sign-in page (`src/app/auth/sign-in/page.tsx`)
     - Split layout ≥1024px: left value proposition panel (tagline + 3 benefit statements) + right form card
     - Single column <1024px: form card only, hide value panel
     - Light gradient bg, centered card max-w-768px
@@ -195,8 +195,8 @@ Token-first premium redesign of the entire RentLeads platform. Start by redefini
     - Error state: inline destructive-colored message above/below inputs with failure description and corrective action
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 10. Vendor Dashboard UI
-  - [~] 10.1 Enhance DashboardShell (`src/components/dashboard-shell.tsx`)
+- [x] 10. Vendor Dashboard UI
+  - [x] 10.1 Enhance DashboardShell (`src/components/dashboard-shell.tsx`)
     - Sidebar: 260px fixed desktop, nav items with icon + label, 44px min touch-target height
     - Active state: primary blue background fill
     - Collapsible on <768px: bottom tab bar or hamburger drawer
@@ -204,7 +204,7 @@ Token-first premium redesign of the entire RentLeads platform. Start by redefini
     - Support `mode` prop: "vendor" | "admin" for different nav items
     - _Requirements: 8.1, 9.2, 11.3_
 
-  - [~] 10.2 Restyle MetricCard (`src/components/metric-card.tsx`)
+  - [x] 10.2 Restyle MetricCard (`src/components/metric-card.tsx`)
     - Use Card elevated variant
     - Uppercase label: 13px font-size, font-weight 700
     - Numeric value: 36px+ font-size, font-weight 800+
@@ -212,128 +212,128 @@ Token-first premium redesign of the entire RentLeads platform. Start by redefini
     - Category icon in tinted container
     - _Requirements: 8.2_
 
-  - [~] 10.3 Create DataTable component (`src/components/data-table.tsx`)
+  - [x] 10.3 Create DataTable component (`src/components/data-table.tsx`)
     - Alternating row background tint
     - Sortable column headers with directional icon
     - Pagination: 10 rows/page default, prev/next navigation
     - Styled with Design_System primitives
     - _Requirements: 8.3, 9.3_
 
-  - [~] 10.4 Update vendor dashboard pages to use new components
+  - [x] 10.4 Update vendor dashboard pages to use new components
     - Apply DashboardShell, MetricCard, DataTable across vendor pages
     - Forms: visible label above field, helper text below, inline validation errors in destructive color
     - Loading states: skeleton placeholders matching content shape with pulse animation
     - Error states: ErrorState component within content area, sidebar remains functional
     - _Requirements: 8.4, 8.5, 8.6_
 
-- [ ] 11. Admin Console Consistency
-  - [~] 11.1 Update admin layout to use shared DashboardShell (`src/app/admin/layout.tsx`)
+- [x] 11. Admin Console Consistency
+  - [x] 11.1 Update admin layout to use shared DashboardShell (`src/app/admin/layout.tsx`)
     - Configure DashboardShell with mode="admin" and admin-specific nav items
     - Same layout grid: sidebar width, header height, content area positioning
     - _Requirements: 9.2_
 
-  - [~] 11.2 Update admin pages to use Design_System tokens exclusively
+  - [x] 11.2 Update admin pages to use Design_System tokens exclusively
     - Remove any inline or hard-coded style values outside the token set
     - Apply DataTable to admin tables: sorting (asc/desc), filter control per table, pagination (default 20, selectable 10/20/50)
     - Ensure render within 2 seconds, active nav state reflects current page
     - _Requirements: 9.1, 9.3, 9.4_
 
-- [ ] 12. Error, Loading, and Empty States — Global Wiring
-  - [~] 12.1 Create global not-found page (`src/app/not-found.tsx`)
+- [x] 12. Error, Loading, and Empty States — Global Wiring
+  - [x] 12.1 Create global not-found page (`src/app/not-found.tsx`)
     - Design_System tokens styling, RentLeads wordmark
     - Message: page does not exist
     - Navigation links: home page + search page (minimum 2)
     - _Requirements: 12.4_
 
-  - [~] 12.2 Wire skeleton loaders across all data-fetching pages
+  - [x] 12.2 Wire skeleton loaders across all data-fetching pages
     - Match dimensions and arrangement of expected content
     - Use Skeleton component with pulse animation (40%-90% opacity, 1.5s)
     - Apply to: dashboard metric cards, data tables, search grid, vendor profile
     - _Requirements: 12.2, 8.5_
 
-  - [~] 12.3 Wire EmptyState and ErrorState into remaining pages
+  - [x] 12.3 Wire EmptyState and ErrorState into remaining pages
     - Ensure every list/grid with zero items shows EmptyState (icon + message + CTA)
     - Ensure every page with data fetching has error boundary with retry + home link
     - _Requirements: 12.1, 12.3, 12.5_
 
-- [~] 13. Checkpoint — All pages restyled
+- [x] 13. Checkpoint — All pages restyled
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 14. Property-Based Tests
-  - [ ]* 14.1 Set up fast-check and create test utilities
+- [x] 14. Property-Based Tests
+  - [x] 14.1 Set up fast-check and create test utilities
     - Install fast-check as dev dependency
     - Create `src/__tests__/properties/` directory
     - Set up shared arbitraries for Vehicle, VendorProfile, PricingPlan types
     - Configure minimum 100 iterations per property test
     - _Requirements: 13.5_
 
-  - [ ]* 14.2 Write property test: UI Primitive Rendering Resilience
+  - [x] 14.2 Write property test: UI Primitive Rendering Resilience
     - **Property 1: UI Primitive Rendering Resilience**
     - For any exported UI primitive with any valid prop combination, rendering SHALL succeed without error and produce at least one DOM element
     - Generate random valid prop objects for Button, Card, Badge, Input, Section, Skeleton
     - **Validates: Requirements 1.4, 1.6**
 
-  - [ ]* 14.3 Write property test: Annual Billing Discount Calculation
+  - [x] 14.3 Write property test: Annual Billing Discount Calculation
     - **Property 2: Annual Billing Discount Calculation**
     - For any monthly price (positive number), annual price SHALL equal `monthlyPrice × 12 × 0.8` rounded to 2 decimal places
     - Generate random positive numbers as monthly prices
     - **Validates: Requirements 4.4**
 
-  - [ ]* 14.4 Write property test: VehicleCard Field Completeness
+  - [x] 14.4 Write property test: VehicleCard Field Completeness
     - **Property 3: VehicleCard Field Completeness**
     - For any valid Vehicle object, rendered VehicleCard SHALL contain vehicle name, category, price, vendor name, location, and CTA link
     - Generate random Vehicle objects with non-null required fields
     - **Validates: Requirements 5.5**
 
-  - [ ]* 14.5 Write property test: Pagination Correctness
+  - [x] 14.5 Write property test: Pagination Correctness
     - **Property 4: Pagination Correctness**
     - For any total count and page size of 20, pagination SHALL display `ceil(totalCount / 20)` total pages with current page between 1 and total inclusive
     - Generate random total counts (0-10000)
     - **Validates: Requirements 5.7**
 
-  - [ ]* 14.6 Write property test: Vendor Profile Field Completeness
+  - [x] 14.6 Write property test: Vendor Profile Field Completeness
     - **Property 5: Vendor Profile Field Completeness**
     - For any valid VendorProfile, rendered header SHALL contain vendor name, location, vehicle count, and rating (when non-null)
     - Generate random VendorProfile objects
     - **Validates: Requirements 6.1**
 
-  - [ ]* 14.7 Write property test: Vendor Vehicle Display Cap
+  - [x] 14.7 Write property test: Vendor Vehicle Display Cap
     - **Property 6: Vendor Vehicle Display Cap**
     - For any vendor with N vehicles (N ≥ 0), display exactly `min(N, 12)` cards; show "View all" when N > 12
     - Generate random vehicle counts 0-100
     - **Validates: Requirements 6.2, 6.3**
 
-  - [ ]* 14.8 Write property test: Data Table Sort Ordering
+  - [x] 14.8 Write property test: Data Table Sort Ordering
     - **Property 7: Data Table Sort Ordering**
     - For any data array and sortable column, ascending sort ensures each value ≤ next; descending ensures each value ≥ next
     - Generate random data arrays and sort configurations
     - **Validates: Requirements 8.3, 9.3**
 
-  - [ ]* 14.9 Write property test: Empty State Display
+  - [x] 14.9 Write property test: Empty State Display
     - **Property 8: Empty State Display for Zero-Item Collections**
     - For any list/grid rendered with zero items, output SHALL contain an icon, message, and CTA element
     - Render list components with empty arrays
     - **Validates: Requirements 12.3**
 
 - [ ] 15. Build Verification and CI Quality Gates
-  - [~] 15.1 Run `next build` and fix any compilation errors
+  - [x] 15.1 Run `next build` and fix any compilation errors
     - Verify all routes compile successfully
     - Verify no TypeScript errors (`tsc --noEmit`)
     - Verify ESLint passes
     - _Requirements: 13.4_
 
-  - [~] 15.2 Run full test suite (`vitest run`) and fix failures
+  - [-] 15.2 Run full test suite (`vitest run`) and fix failures
     - All existing tests must pass without modification
     - Property tests (if implemented) must pass
     - _Requirements: 13.4, 13.5_
 
-  - [~] 15.3 Verify bundle size and dependency constraints
+  - [x] 15.3 Verify bundle size and dependency constraints
     - No new runtime dependency > 50KB gzipped (only fast-check as devDep is allowed)
     - Icons limited to lucide-react
     - CSS tooling limited to existing Tailwind + shadcn/ui
     - _Requirements: 13.1_
 
-- [~] 16. Final Checkpoint — Production ready
+- [x] 16. Final Checkpoint — Production ready
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

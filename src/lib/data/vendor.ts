@@ -75,6 +75,9 @@ export async function getVehicleLimitInfo(organizationId: string): Promise<Vehic
       .eq("code", planCode)
       .single();
     limit = plan?.vehicle_limit ?? null;
+  } else {
+    // If there is no active or trialing plan, the limit is strictly 0.
+    limit = 0;
   }
 
   // null limit means unlimited (enterprise/business plans)

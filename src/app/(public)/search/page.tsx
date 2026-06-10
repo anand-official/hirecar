@@ -36,17 +36,17 @@ const PER_PAGE = 20;
 // ── Skeleton card ─────────────────────────────────────────────────────────────
 function VehicleCardSkeleton() {
   return (
-    <div className="rounded-[1.5rem] bg-white border border-slate-200/60 shadow-sm overflow-hidden animate-pulse">
-      <div className="h-56 bg-slate-200" />
+    <div className="rounded-lg bg-white border border-border shadow-[var(--shadow-sm)] overflow-hidden animate-pulse">
+      <div className="h-56 bg-muted" />
       <div className="p-6 space-y-4">
-        <div className="h-5 bg-slate-200 rounded-lg w-3/4" />
-        <div className="h-4 bg-slate-100 rounded-lg w-1/2" />
+        <div className="h-5 bg-muted rounded-lg w-3/4" />
+        <div className="h-4 bg-muted/60 rounded-lg w-1/2" />
         <div className="flex gap-2">
-          <div className="h-6 bg-slate-100 rounded-lg w-20" />
-          <div className="h-6 bg-slate-100 rounded-lg w-16" />
-          <div className="h-6 bg-slate-100 rounded-lg w-18" />
+          <div className="h-6 bg-muted/60 rounded-lg w-20" />
+          <div className="h-6 bg-muted/60 rounded-lg w-16" />
+          <div className="h-6 bg-muted/60 rounded-lg w-18" />
         </div>
-        <div className="h-11 bg-slate-200 rounded-xl mt-4" />
+        <div className="h-11 bg-muted rounded-xl mt-4" />
       </div>
     </div>
   );
@@ -54,7 +54,7 @@ function VehicleCardSkeleton() {
 
 function SkeletonGrid() {
   return (
-    <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
       {Array.from({ length: 6 }).map((_, i) => (
         <VehicleCardSkeleton key={i} />
       ))}
@@ -171,6 +171,15 @@ function SearchContent() {
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
+
+    // Sync page to URL so pagination state survives refresh / share
+    const params = new URLSearchParams(window.location.search);
+    if (newPage > 1) {
+      params.set("page", String(newPage));
+    } else {
+      params.delete("page");
+    }
+    router.push(`/search?${params.toString()}`, { scroll: false });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -189,11 +198,11 @@ function SearchContent() {
   })();
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <SiteHeader />
 
       {/* Sticky Search Bar */}
-      <div className="bg-black sticky top-[68px] z-30 shadow-xl border-b-[6px] border-primary pb-6 pt-2">
+      <div className="bg-foreground sticky top-[68px] z-30 shadow-[var(--shadow-xl)] border-b-4 border-primary pb-6 pt-2">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <SearchWidget variant="compact" />
         </div>
@@ -202,30 +211,30 @@ function SearchContent() {
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Breadcrumb & Title */}
         <div className="mb-8">
-          <nav className="flex items-center gap-2 text-sm text-slate-500 mb-3 font-medium">
-            <Link href="/" className="hover:text-slate-900 transition-colors">Home</Link>
-            <span className="text-slate-300">/</span>
-            <span className="text-slate-900">Search</span>
+          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-3 font-medium">
+            <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
+            <span className="text-border">/</span>
+            <span className="text-foreground">Search</span>
             {filters.city && (
               <>
-                <span className="text-slate-300">/</span>
-                <span className="text-slate-900">{filters.city}</span>
+                <span className="text-border">/</span>
+                <span className="text-foreground">{filters.city}</span>
               </>
             )}
           </nav>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">
             {isLoading ? (
-              <span className="inline-block h-9 w-56 bg-slate-200 rounded-lg animate-pulse" />
+              <span className="inline-block h-9 w-56 bg-muted rounded-lg animate-pulse" />
             ) : (
               <>
                 {total} vehicle{total !== 1 ? "s" : ""} available
                 {filters.city && (
-                  <span className="text-amber-500"> in {filters.city}</span>
+                  <span className="text-primary"> in {filters.city}</span>
                 )}
               </>
             )}
           </h1>
-          <p className="text-slate-500 mt-2 text-lg">
+          <p className="text-muted-foreground mt-2 text-lg">
             From verified local operators across Australia
           </p>
         </div>
@@ -247,12 +256,12 @@ function SearchContent() {
           {/* Results */}
           <div className="flex-1 min-w-0">
             {/* Toolbar */}
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 p-2 bg-white rounded-2xl border border-slate-200 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 p-2 bg-white rounded-lg border border-border shadow-[var(--shadow-sm)]">
               <div className="flex items-center gap-4 pl-3">
                 {/* Mobile Filter Button */}
                 <button
                   onClick={() => setIsMobileFilterOpen(true)}
-                  className="lg:hidden flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition-colors"
+                  className="lg:hidden flex items-center gap-2 px-4 py-2 bg-muted text-foreground/70 rounded-lg font-semibold hover:bg-muted/80 transition-colors"
                 >
                   <SlidersHorizontal className="h-4 w-4" />
                   Filters
@@ -260,11 +269,11 @@ function SearchContent() {
 
                 {/* Results Count */}
                 {!isLoading && (
-                  <span className="text-sm font-medium text-slate-500">
+                  <span className="text-sm font-medium text-muted-foreground">
                     Showing{" "}
-                    <span className="font-bold text-slate-900">{showingFrom}–{showingTo}</span>{" "}
+                    <span className="font-bold text-foreground">{showingFrom}–{showingTo}</span>{" "}
                     of{" "}
-                    <span className="font-bold text-slate-900">{total}</span>
+                    <span className="font-bold text-foreground">{total}</span>
                   </span>
                 )}
               </div>
@@ -274,16 +283,16 @@ function SearchContent() {
                 <div className="relative">
                   <button
                     onClick={() => setIsSortOpen(!isSortOpen)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-100 transition-all"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-muted border border-border rounded-lg text-sm font-semibold text-foreground/70 hover:border-border/80 hover:bg-muted/80 transition-all"
                   >
-                    <ArrowUpDown className="h-4 w-4 text-slate-400" />
+                    <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
                     {sortOptions.find((o) => o.value === sortBy)?.label}
                     <ChevronDown
-                      className={`h-4 w-4 text-slate-400 transition-transform ${isSortOpen ? "rotate-180" : ""}`}
+                      className={`h-4 w-4 text-muted-foreground transition-transform ${isSortOpen ? "rotate-180" : ""}`}
                     />
                   </button>
                   {isSortOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl border border-slate-200 shadow-xl z-10 overflow-hidden py-1">
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg border border-border shadow-[var(--shadow-lg)] z-10 overflow-hidden py-1">
                       {sortOptions.map((option) => (
                         <button
                           key={option.value}
@@ -294,8 +303,8 @@ function SearchContent() {
                           }}
                           className={`w-full text-left px-5 py-2.5 text-sm transition-colors ${
                             sortBy === option.value
-                              ? "text-amber-600 font-bold bg-amber-50/50"
-                              : "text-slate-600 hover:bg-slate-50 font-medium"
+                              ? "text-primary font-bold bg-primary/5"
+                              : "text-foreground/70 hover:bg-muted font-medium"
                           }`}
                         >
                           {option.label}
@@ -306,13 +315,13 @@ function SearchContent() {
                 </div>
 
                 {/* View Toggle */}
-                <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-slate-50 p-1 gap-1">
+                <div className="flex items-center border border-border rounded-lg overflow-hidden bg-muted p-1 gap-1">
                   <button
                     onClick={() => setViewMode("grid")}
-                    className={`p-2 rounded-lg transition-all ${
+                    className={`p-2 rounded-md transition-all ${
                       viewMode === "grid"
-                        ? "bg-white text-slate-900 shadow-sm border border-slate-200/50"
-                        : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                        ? "bg-white text-foreground shadow-[var(--shadow-sm)] border border-border/50"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
                     }`}
                     title="Grid view"
                   >
@@ -320,10 +329,10 @@ function SearchContent() {
                   </button>
                   <button
                     onClick={() => setViewMode("list")}
-                    className={`p-2 rounded-lg transition-all ${
+                    className={`p-2 rounded-md transition-all ${
                       viewMode === "list"
-                        ? "bg-white text-slate-900 shadow-sm border border-slate-200/50"
-                        : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                        ? "bg-white text-foreground shadow-[var(--shadow-sm)] border border-border/50"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
                     }`}
                     title="List view"
                   >
@@ -352,7 +361,7 @@ function SearchContent() {
                 message={error}
                 onRetry={() => fetchVehicles(filters, page, sortBy)}
                 showHomeLink={true}
-                className="bg-white rounded-3xl border border-slate-200 shadow-sm mb-6"
+                className="bg-white rounded-lg border border-border shadow-[var(--shadow-sm)] mb-6"
               />
             )}
 
@@ -360,17 +369,17 @@ function SearchContent() {
             {isLoading ? (
               <SkeletonGrid />
             ) : !error && vehicles.length === 0 ? (
-              <div className="text-center py-24 bg-white rounded-3xl border border-slate-200 shadow-sm">
-                <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-slate-50 border border-slate-100 mb-6">
-                  <MapPin className="h-8 w-8 text-slate-300" />
+              <div className="text-center py-24 bg-white rounded-lg border border-border shadow-[var(--shadow-sm)]">
+                <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-muted border border-border mb-6">
+                  <MapPin className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">No vehicles found</h3>
-                <p className="text-slate-500 max-w-md mx-auto mb-8">
+                <h3 className="text-xl font-bold text-foreground mb-2">No vehicles found</h3>
+                <p className="text-muted-foreground max-w-md mx-auto mb-8">
                   We couldn&apos;t find any vehicles matching your filters. Try adjusting your search or browsing all locations.
                 </p>
                 <button
                   onClick={() => handleFilterChange({})}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-slate-950 text-white rounded-xl font-semibold hover:bg-slate-800 transition-colors shadow-sm"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors shadow-[var(--shadow-sm)]"
                 >
                   Clear all filters
                 </button>
@@ -380,27 +389,32 @@ function SearchContent() {
                 <div
                   className={
                     viewMode === "grid"
-                      ? "grid gap-6 md:grid-cols-2 xl:grid-cols-3"
+                      ? "grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
                       : "space-y-4"
                   }
                 >
                   {vehicles.map((vehicle, index) => (
-                    <VehicleCard
+                    <div
                       key={vehicle.id}
-                      vehicle={vehicle}
-                      priority={index < 3}
-                      variant={viewMode === "list" ? "compact" : "default"}
-                    />
+                      className="bg-white rounded-lg shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow"
+                    >
+                      <VehicleCard
+                        vehicle={vehicle}
+                        priority={index < 3}
+                        variant={viewMode === "list" ? "compact" : "default"}
+                      />
+                    </div>
                   ))}
                 </div>
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="mt-12 flex items-center justify-center gap-2">
+                  <nav aria-label="Search results pagination" className="mt-12 flex items-center justify-center gap-2">
                     <button
                       onClick={() => handlePageChange(page - 1)}
                       disabled={page === 1}
-                      className="flex items-center gap-1.5 px-4 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm transition-colors"
+                      aria-label="Previous page"
+                      className="flex items-center gap-1.5 px-4 py-2.5 border border-border bg-white rounded-lg text-sm font-semibold text-foreground/70 hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed shadow-[var(--shadow-sm)] transition-colors"
                     >
                       <ChevronLeft className="h-4 w-4" />
                       Prev
@@ -410,12 +424,13 @@ function SearchContent() {
                       <>
                         <button
                           onClick={() => handlePageChange(1)}
-                          className="w-11 h-11 rounded-xl text-sm font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 shadow-sm transition-colors"
+                          aria-label="Page 1"
+                          className="w-11 h-11 rounded-lg text-sm font-bold border border-border bg-white text-foreground/70 hover:bg-muted shadow-[var(--shadow-sm)] transition-colors"
                         >
                           1
                         </button>
                         {visiblePages[0] > 2 && (
-                          <span className="text-slate-400 px-1">…</span>
+                          <span className="text-muted-foreground px-1">…</span>
                         )}
                       </>
                     )}
@@ -424,10 +439,12 @@ function SearchContent() {
                       <button
                         key={p}
                         onClick={() => handlePageChange(p)}
-                        className={`w-11 h-11 rounded-xl text-sm font-bold shadow-sm transition-colors ${
+                        aria-label={`Page ${p}`}
+                        aria-current={p === page ? "page" : undefined}
+                        className={`w-11 h-11 rounded-lg text-sm font-bold shadow-[var(--shadow-sm)] transition-colors ${
                           p === page
-                            ? "bg-slate-950 text-white"
-                            : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-white border border-border text-foreground/70 hover:bg-muted"
                         }`}
                       >
                         {p}
@@ -437,11 +454,12 @@ function SearchContent() {
                     {visiblePages[visiblePages.length - 1] < totalPages && (
                       <>
                         {visiblePages[visiblePages.length - 1] < totalPages - 1 && (
-                          <span className="text-slate-400 px-1">…</span>
+                          <span className="text-muted-foreground px-1">…</span>
                         )}
                         <button
                           onClick={() => handlePageChange(totalPages)}
-                          className="w-11 h-11 rounded-xl text-sm font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 shadow-sm transition-colors"
+                          aria-label={`Page ${totalPages}`}
+                          className="w-11 h-11 rounded-lg text-sm font-bold border border-border bg-white text-foreground/70 hover:bg-muted shadow-[var(--shadow-sm)] transition-colors"
                         >
                           {totalPages}
                         </button>
@@ -451,12 +469,13 @@ function SearchContent() {
                     <button
                       onClick={() => handlePageChange(page + 1)}
                       disabled={page === totalPages}
-                      className="flex items-center gap-1.5 px-4 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm transition-colors"
+                      aria-label="Next page"
+                      className="flex items-center gap-1.5 px-4 py-2.5 border border-border bg-white rounded-lg text-sm font-semibold text-foreground/70 hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed shadow-[var(--shadow-sm)] transition-colors"
                     >
                       Next
                       <ChevronRight className="h-4 w-4" />
                     </button>
-                  </div>
+                  </nav>
                 )}
               </>
             ) : null}
@@ -468,12 +487,12 @@ function SearchContent() {
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] lg:hidden">
         <button
           onClick={() => setIsMobileFilterOpen(true)}
-          className="flex items-center gap-2 bg-slate-900 text-white font-bold px-6 py-3.5 rounded-full shadow-2xl shadow-slate-900/40 hover:scale-[1.02] active:scale-95 transition-transform"
+          className="flex items-center gap-2 bg-foreground text-background font-bold px-6 py-3.5 rounded-full shadow-[var(--shadow-xl)] hover:scale-[1.02] active:scale-95 transition-transform"
         >
           <SlidersHorizontal className="h-4 w-4" />
           Filters
           {Object.values(filters).filter(v => v !== undefined && v !== "" && v !== 0).length > 0 && (
-            <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] text-white">
+            <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
               {Object.values(filters).filter(v => v !== undefined && v !== "" && v !== 0).length}
             </span>
           )}
@@ -489,10 +508,10 @@ export default function SearchPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-50">
+        <div className="min-h-screen bg-background">
           <SiteHeader />
           <div className="flex items-center justify-center h-96">
-            <div className="animate-spin h-8 w-8 border-4 border-amber-500 border-t-transparent rounded-full" />
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
           </div>
         </div>
       }

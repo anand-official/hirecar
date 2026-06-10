@@ -104,62 +104,50 @@ export function VehicleCard({ vehicle, priority = false, variant = "default" }: 
     );
   }
 
-  // Default variant
+  // Default variant (Clean Marketplace Design)
   return (
-    <Card variant="interactive" className="p-0 gap-0 flex flex-col card-lift border-slate-200/60 shadow-sm overflow-hidden bg-white/95 group/card">
-      {/* Vehicle Image */}
-      <div className="relative h-48 overflow-hidden bg-slate-100 shrink-0">
-        <Image
-          src={vehicle.imageUrl}
-          alt={`${vehicle.title} available from ${vehicle.vendorName}`}
-          fill
-          priority={priority}
-          sizes="(max-width: 768px) 100vw, 33vw"
-          className="object-cover group-hover/card:scale-105 transition-transform duration-500"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 to-transparent pointer-events-none opacity-0 group-hover/card:opacity-100 transition-opacity duration-500" />
+    <Link href={`/cars/${vehicle.slug}`} className="block group">
+      <div className="bg-white border border-slate-100 rounded-[1.5rem] overflow-hidden hover:shadow-lg hover:border-[#ea580c]/30 transition-all duration-300">
+        {/* Vehicle Image */}
+        <div className="relative h-[200px] bg-slate-50 overflow-hidden">
+          <Image
+            src={vehicle.imageUrl}
+            alt={`${vehicle.title} available from ${vehicle.vendorName}`}
+            fill
+            priority={priority}
+            sizes="(max-width: 768px) 100vw, 25vw"
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+          {/* Year Badge */}
+          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-slate-700 text-[10px] font-bold px-2 py-1 rounded">
+            {vehicle.year || "2023"}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 sm:p-5">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <h3 className="font-bold text-slate-900 text-lg line-clamp-1">{vehicle.title}</h3>
+              <div className="flex items-center gap-1 mt-1 text-slate-500 text-sm font-medium">
+                <MapPin className="h-3.5 w-3.5 text-[#ea580c]" />
+                {vehicle.city}
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="flex items-baseline text-[#ea580c]">
+                <span className="font-black text-xl">${vehicle.pricePerDayAud}</span>
+                <span className="text-xs font-bold ml-1">/day</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-1.5 text-sm font-bold text-slate-700">
+            {vehicle.vendorName}
+            {vehicle.verified && <BadgeCheck className="h-4 w-4 text-blue-500" />}
+          </div>
+        </div>
       </div>
-
-      {/* Content */}
-      <CardContent className="p-5 flex-1 flex flex-col gap-3">
-        {/* Name and Category */}
-        <div>
-          <h3 className="font-bold text-foreground text-lg line-clamp-1 flex items-center gap-1.5">
-            {vehicle.title}
-            {vehicle.instantBook && <span title="Instant Book"><Zap className="h-4 w-4 text-amber-500 fill-amber-500" /></span>}
-          </h3>
-          <div className="flex items-center gap-2 mt-1.5">
-            <Badge variant="info">{vehicle.category}</Badge>
-          </div>
-        </div>
-
-        {/* Price */}
-        <div className="flex items-baseline gap-1">
-          <span className="text-2xl font-extrabold text-foreground">${vehicle.pricePerDayAud}</span>
-          <span className="text-sm font-medium text-muted-foreground">/day AUD</span>
-        </div>
-
-        {/* Vendor + Location */}
-        <div className="flex flex-col gap-1.5 text-sm text-muted-foreground mt-auto">
-          <div className="flex items-center gap-1.5">
-            <BadgeCheck className="h-4 w-4 text-primary shrink-0" />
-            <span className="truncate font-medium">{vehicle.vendorName}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="truncate">{vehicle.city}, {vehicle.state}</span>
-          </div>
-        </div>
-
-        {/* CTA Button */}
-        <Link
-          href={`/cars/${vehicle.slug}`}
-          className="flex items-center justify-center gap-2 w-full rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors mt-2"
-        >
-          View deal
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-      </CardContent>
-    </Card>
+    </Link>
   );
 }

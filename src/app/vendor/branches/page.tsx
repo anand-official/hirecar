@@ -125,15 +125,15 @@ export default async function VendorBranchesPage() {
           <form action={createBranch} className="p-6">
             <input type="hidden" name="organizationId" value={firstOrganization.id} />
             <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-              <Field label="Branch name" name="name" placeholder="e.g. Sydney Airport" className="lg:col-span-1" />
+              <Field label="Branch name" name="name" placeholder="e.g. Sydney Airport" className="lg:col-span-1" helper="A recognisable pickup location name" />
               <Field label="City" name="city" placeholder="e.g. Sydney" />
-              <Field label="State" name="state" placeholder="e.g. NSW" />
-              <Field label="Phone" name="phone" required={false} placeholder="e.g. 02 1234 5678" />
-              <Field label="WhatsApp" name="whatsapp" required={false} placeholder="e.g. +61412345678" />
-              <Field label="Address" name="address" className="md:col-span-2 lg:col-span-3" placeholder="Full street address" />
+              <Field label="State" name="state" placeholder="e.g. NSW" helper="Australian state or territory abbreviation" />
+              <Field label="Phone" name="phone" required={false} placeholder="e.g. 02 1234 5678" helper="Visible to customers for direct contact" />
+              <Field label="WhatsApp" name="whatsapp" required={false} placeholder="e.g. +61412345678" helper="Include country code for WhatsApp click-to-chat" />
+              <Field label="Address" name="address" className="md:col-span-2 lg:col-span-3" placeholder="Full street address" helper="Used for map display and directions" />
             </div>
-            <div className="mt-6 pt-6 border-t border-slate-100">
-              <button className="rounded-xl bg-slate-950 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-800 transition-colors shadow-sm w-full sm:w-auto">
+            <div className="mt-6 pt-6 border-t border-border">
+              <button className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm w-full sm:w-auto">
                 Save Branch for Review
               </button>
             </div>
@@ -150,24 +150,33 @@ function Field({
   className = "",
   required = true,
   placeholder = "",
+  helper,
 }: {
   label: string;
   name: string;
   className?: string;
   required?: boolean;
   placeholder?: string;
+  helper?: string;
 }) {
   return (
-    <label className={`block text-sm font-medium text-slate-700 ${className}`}>
-      <span className="mb-1.5 block">
-        {label} {required && <span className="text-red-500">*</span>}
-      </span>
+    <div className={`space-y-1.5 ${className}`}>
+      <label htmlFor={name} className="block text-sm font-medium text-foreground">
+        {label} {required && <span className="text-destructive">*</span>}
+      </label>
       <input
+        id={name}
         name={name}
         required={required}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-normal text-slate-900 placeholder:text-slate-400 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100 transition-all"
+        aria-describedby={helper ? `${name}-helper` : undefined}
+        className="w-full rounded-xl border border-input bg-background px-3.5 py-2.5 text-sm font-normal text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all aria-invalid:border-destructive aria-invalid:ring-destructive/20"
       />
-    </label>
+      {helper && (
+        <p id={`${name}-helper`} className="text-xs text-muted-foreground">
+          {helper}
+        </p>
+      )}
+    </div>
   );
 }

@@ -40,7 +40,7 @@ export default async function VendorDashboardPage() {
   const hasActiveSubscription = metrics.planCode !== null;
 
   const quickActions = [
-    { label: "Add Vehicle", href: "/vendor/vehicles", icon: Car, color: "text-amber-600 bg-amber-50 hover:bg-amber-100" },
+    { label: "Add Vehicle", href: hasActiveSubscription ? "/vendor/vehicles" : "/vendor/billing", icon: Car, color: "text-amber-600 bg-amber-50 hover:bg-amber-100" },
     { label: "View Leads", href: "/vendor/leads", icon: MessageSquare, color: "text-blue-600 bg-blue-50 hover:bg-blue-100", badge: metrics.newLeads > 0 ? metrics.newLeads : undefined },
     { label: "Manage Branches", href: "/vendor/branches", icon: GitBranch, color: "text-emerald-600 bg-emerald-50 hover:bg-emerald-100" },
     { label: "Analytics", href: "/vendor/analytics", icon: BarChart3, color: "text-purple-600 bg-purple-50 hover:bg-purple-100" },
@@ -49,6 +49,28 @@ export default async function VendorDashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* High-Converting Upsell Banner */}
+      {!hasActiveSubscription && (
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-orange-600 via-[#ea580c] to-amber-500 p-8 shadow-lg shadow-orange-500/20">
+          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay"></div>
+          <div className="relative z-10 flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-2xl text-white">
+              <h2 className="text-2xl font-black tracking-tight sm:text-3xl">Ready to start receiving leads?</h2>
+              <p className="mt-2 text-orange-50 font-medium text-lg">
+                Start your 14-day free trial today to list your fleet and get connected with verified customers across Australia.
+              </p>
+            </div>
+            <Link
+              href="/vendor/billing"
+              className="group inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-8 py-4 text-base font-bold text-orange-600 shadow-xl transition-all hover:-translate-y-1 hover:shadow-2xl hover:bg-orange-50"
+            >
+              <Zap className="h-5 w-5 text-amber-500 transition-transform group-hover:scale-110" fill="currentColor" />
+              Start Free Trial
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -70,15 +92,6 @@ export default async function VendorDashboardPage() {
               Manage your fleet, track leads, and grow your rental business.
             </p>
           </div>
-          {!hasActiveSubscription && (
-            <Link
-              href="/vendor/billing"
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 transition-colors shadow-sm"
-            >
-              <Zap className="h-4 w-4 text-amber-400" />
-              Activate Plan
-            </Link>
-          )}
         </div>
 
         {!isApproved && (
@@ -133,7 +146,7 @@ export default async function VendorDashboardPage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {quickActions.map(({ label, href, icon: Icon, color, badge }) => (
             <Link
-              key={href}
+              key={label}
               href={href}
               className={`relative flex flex-col items-center gap-2 rounded-xl px-4 py-4 text-sm font-medium transition-all ${color}`}
             >

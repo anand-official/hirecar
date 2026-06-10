@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/security/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { Badge } from "@/components/ui/badge";
+import { AdminReviewsTable } from "./reviews-table";
 
 export const metadata = {
   title: "Review Moderation",
@@ -93,23 +95,46 @@ export default async function AdminReviewsPage({ searchParams }: AdminReviewsPag
     )
     .eq("status", statusFilter)
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(200);
 
   if (error) {
     throw new Error(`Failed to fetch reviews: ${error.message}`);
   }
 
+  // Transform for DataTable
+  const tableData = (reviews ?? []).map((review) => {
+    const org = (review.organizations as unknown as { id: string; name: string; slug: string }) ?? {
+      name: "Unknown",
+      slug: "",
+    };
+    const vehicle = (review.vehicles as unknown as { id: string; title: string }) ?? {
+      title: null,
+    };
+
+    return {
+      id: review.id,
+      customer_name: review.customer_name,
+      rating: review.rating,
+      body: review.body,
+      status: review.status as string,
+      vendor_name: org.name,
+      vendor_slug: org.slug,
+      vehicle_title: vehicle.title ?? "N/A",
+      created_at: review.created_at,
+    };
+  });
+
   return (
     <div className="space-y-6">
-      <section className="rounded-lg border border-slate-800 bg-slate-950 p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold">Review Moderation</h1>
-        <p className="mt-2 text-slate-400">
+      <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        <h1 className="text-2xl font-semibold text-foreground">Review Moderation</h1>
+        <p className="mt-2 text-muted-foreground">
           Moderate customer reviews before they are shown publicly. All reviews are screened for authenticity.
         </p>
       </section>
 
       {/* Status Tabs */}
-      <div className="flex gap-2 border-b border-slate-800">
+      <div className="flex gap-2 border-b border-border">
         {[
           { key: "pending", label: "Pending", count: counts.pending },
           { key: "approved", label: "Approved", count: counts.approved },
@@ -118,119 +143,31 @@ export default async function AdminReviewsPage({ searchParams }: AdminReviewsPag
           <Link
             key={tab.key}
             href={`/admin/reviews?status=${tab.key}`}
-            className={`border-b-2 px-4 py-2 text-sm font-medium ${
+            className={`border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
               statusFilter === tab.key
-                ? "border-white text-white"
-                : "border-transparent text-slate-400 hover:text-slate-200"
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             {tab.label}
             {tab.count > 0 && (
-              <span
-                className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
-                  statusFilter === tab.key ? "bg-slate-950 text-white" : "bg-slate-800 text-slate-300"
-                }`}
+              <Badge
+                variant={statusFilter === tab.key ? "default" : "outline"}
+                className="ml-2"
               >
                 {tab.count}
-              </span>
+              </Badge>
             )}
           </Link>
         ))}
       </div>
 
-      {/* Reviews List */}
-      <div className="space-y-4">
-        {reviews?.length === 0 ? (
-          <div className="rounded-lg border border-slate-800 bg-slate-950 p-8 text-center">
-            <p className="text-slate-400">No {statusFilter} reviews found.</p>
-          </div>
-        ) : (
-          reviews?.map((review) => {
-            const org = (review.organizations as unknown as { id: string; name: string; slug: string }) ?? {
-              name: "Unknown",
-              slug: "",
-            };
-            const vehicle = (review.vehicles as unknown as { id: string; title: string }) ?? {
-              title: null,
-            };
-
-            return (
-              <div
-                key={review.id}
-                className="rounded-lg border border-slate-800 bg-slate-950 p-6 shadow-sm"
-              >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-medium">{review.customer_name}</h3>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          review.status === "approved"
-                            ? "bg-green-900/30 text-green-400"
-                            : review.status === "pending"
-                              ? "bg-amber-900/30 text-amber-400"
-                              : "bg-red-900/30 text-red-400"
-                        }`}
-                      >
-                        {review.status}
-                      </span>
-                    </div>
-                    <div className="mt-1 flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <span
-                          key={star}
-                          className={star <= review.rating ? "text-amber-400" : "text-slate-200"}
-                        >
-                          ★
-                        </span>
-                      ))}
-                      <span className="ml-2 text-sm text-slate-400">({review.rating}/5)</span>
-                    </div>
-                    <p className="mt-3 text-slate-300">{review.body}</p>
-                    <div className="mt-3 text-sm text-slate-400">
-                      <p>
-                        <span className="font-medium">Vendor:</span>{" "}
-                        <Link href={`/vendors/${org.slug}`} className="text-blue-600 hover:underline">
-                          {org.name}
-                        </Link>
-                      </p>
-                      {vehicle.title && (
-                        <p>
-                          <span className="font-medium">Vehicle:</span> {vehicle.title}
-                        </p>
-                      )}
-                    </div>
-                    <p className="mt-2 text-xs text-slate-400">
-                      Submitted {new Date(review.created_at).toLocaleDateString("en-AU")}
-                    </p>
-                  </div>
-
-                  {review.status === "pending" && (
-                    <div className="flex gap-2">
-                      <form action={moderateReview.bind(null, "approve", review.id, "Approved from admin dashboard")}>
-                        <button
-                          type="submit"
-                          className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-                        >
-                          Approve
-                        </button>
-                      </form>
-                      <form action={moderateReview.bind(null, "reject", review.id, "Rejected from admin dashboard")}>
-                        <button
-                          type="submit"
-                          className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-                        >
-                          Reject
-                        </button>
-                      </form>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
+      {/* Reviews Table */}
+      <AdminReviewsTable
+        data={tableData}
+        statusFilter={statusFilter}
+        moderateReview={moderateReview}
+      />
     </div>
   );
 }

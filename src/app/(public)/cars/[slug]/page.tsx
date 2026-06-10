@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BadgeCheck, Phone, Eye, Star, MapPin, ChevronLeft, ChevronRight, Users, Fuel, Settings, Calendar, Check, Info } from "lucide-react";
+import { BadgeCheck, Phone, Eye, Star, MapPin, ChevronRight, Users, Fuel, Settings, Check, Info } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { SimilarVehicles } from "@/components/similar-vehicles";
@@ -8,7 +8,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/security/auth";
 import { EnquiryWidget } from "@/components/enquiry-widget";
 import { ImageGallery } from "@/components/image-gallery";
+import { WhatsAppButton } from "@/components/whatsapp-button";
+import { planHasFeature } from "@/lib/plan-features";
 import ReviewSection from "@/components/review-section";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { headers } from "next/headers";
 import { hashIpForStorage } from "@/lib/security/rate-limit";
 import type { Metadata } from "next";
@@ -113,6 +118,17 @@ export default async function VehicleDetailPage({
   const dbImages = (vehicle.vehicle_images as unknown as ImageRecord[]) || [];
   const features = (vehicle.vehicle_features as unknown as FeatureRecord[]) || [];
 
+  // Determine whether this vendor's plan unlocks direct contact (WhatsApp/phone).
+  // Free Starter vendors rely on the on-platform enquiry form; Growth/Pro unlock
+  // direct contact buttons. This matches what the pricing page sells.
+  const { data: vendorSub } = await supabase
+    .from("subscriptions")
+    .select("plan_code, status")
+    .eq("organization_id", vehicle.organization_id)
+    .in("status", ["active", "trialing"])
+    .maybeSingle();
+  const directContactEnabled = planHasFeature(vendorSub?.plan_code, "directContact");
+
   // Sort images and generate public URLs
   dbImages.sort((a, b) => a.sort_order - b.sort_order);
   const images = dbImages.map((img) => {
@@ -137,11 +153,6 @@ export default async function VehicleDetailPage({
   const averageRating = safeReviews.length
     ? (safeReviews.reduce((acc, rev) => acc + rev.rating, 0) / safeReviews.length).toFixed(1)
     : null;
-
-  // Feature icons map using Lucide icons where possible, fallback to check
-  const renderFeatureIcon = () => {
-    return <Check className="h-4 w-4 text-[#ea580c]" />;
-  };
 
   const jsonLd = [
     {
@@ -188,7 +199,7 @@ export default async function VehicleDetailPage({
   ];
 
   return (
-    <div className="bg-slate-50 min-h-screen">
+    <div className="min-h-screen bg-background">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -197,190 +208,212 @@ export default async function VehicleDetailPage({
 
       <main className="mx-auto max-w-7xl px-4 py-8 pb-28 lg:pb-8 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-slate-500 mb-6 font-medium overflow-x-auto whitespace-nowrap pb-2 scrollbar-hide">
-          <Link href="/" className="hover:text-slate-900 transition-colors flex items-center gap-1">Home</Link>
-          <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-          <Link href="/search" className="hover:text-slate-900 transition-colors">Search</Link>
+        <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6 font-medium overflow-x-auto whitespace-nowrap pb-2 scrollbar-hide">
+          <Link href="/" className="hover:text-foreground transition-colors flex items-center gap-1">Home</Link>
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
+          <Link href="/search" className="hover:text-foreground transition-colors">Search</Link>
           {branch?.city && (
             <>
-              <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
               <Link
                 href={`/locations/${branch.city.toLowerCase()}`}
-                className="hover:text-slate-900 transition-colors"
+                className="hover:text-foreground transition-colors"
               >
                 {branch.city}
               </Link>
             </>
           )}
-          <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-          <span className="text-slate-900 font-bold truncate max-w-[200px]">{vehicle.title}</span>
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
+          <span className="text-foreground font-bold truncate max-w-[200px]">{vehicle.title}</span>
         </nav>
 
-        {/* Cinematic Full-Width Image Gallery */}
-        <div className="mb-12 w-full animate-scale-in">
-          <section className="overflow-hidden rounded-[2.5rem] shadow-2xl">
-            <div className="aspect-[16/7] md:aspect-[24/9] w-full relative">
-               <ImageGallery images={images} />
-            </div>
-          </section>
-        </div>
+        {/* Image Gallery */}
+        <Card variant="elevated" className="mb-8 overflow-hidden">
+          <div className="aspect-[16/7] md:aspect-[24/9] w-full relative">
+            <ImageGallery images={images} />
+          </div>
+        </Card>
 
-        <div className="grid gap-8 lg:grid-cols-[1fr_400px]">
+        {/* Two-column layout */}
+        <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
           {/* LEFT: Main content */}
-          <div className="space-y-8">
-            {/* Title & Details Card */}
-            <section className="rounded-3xl border border-slate-200/60 bg-white/95 backdrop-blur-sm shadow-lg p-8 card-lift">
-              {/* Category + Price row */}
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4">
-                <div>
-                  <span className="inline-flex items-center rounded-full bg-orange-100 px-3 py-1 text-xs font-bold uppercase tracking-widest text-orange-700">
-                    {vehicle.category}
-                  </span>
-                  <h1 className="mt-4 text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
-                    {vehicle.title}
-                  </h1>
+          <div className="space-y-6">
+            {/* Title & Details */}
+            <Card variant="elevated">
+              <CardContent className="p-6 md:p-8">
+                {/* Category badge + title */}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4">
+                  <div>
+                    <Badge variant="info" className="uppercase tracking-wider text-xs font-bold">
+                      {vehicle.category}
+                    </Badge>
+                    <h1 className="mt-3 text-3xl md:text-4xl font-black text-foreground tracking-tight leading-tight" style={{ letterSpacing: "var(--tracking-heading-lg, -0.03em)" }}>
+                      {vehicle.title}
+                    </h1>
 
-                  {/* Vendor / Rating / Location / Views */}
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500">
-                    <Link
-                      href={`/vendors/${org?.slug}`}
-                      className="flex items-center gap-1.5 font-medium text-slate-700 hover:text-amber-600 transition-colors"
-                    >
-                      {org?.name}
-                      {org?.verified_at && (
-                        <BadgeCheck className="h-4 w-4 text-emerald-500" />
-                      )}
-                    </Link>
-                    {averageRating && (
-                      <span className="flex items-center gap-1">
-                        <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                        <span className="font-semibold text-slate-700">{averageRating}</span>
-                        <span className="text-slate-400">({safeReviews.length} review{safeReviews.length !== 1 ? "s" : ""})</span>
-                      </span>
-                    )}
-                    {branch?.city && (
+                    {/* Vendor / Rating / Location / Views */}
+                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
                       <Link
-                        href={`/locations/${branch.city.toLowerCase()}`}
-                        className="flex items-center gap-1 hover:text-amber-600 transition-colors"
+                        href={`/vendors/${org?.slug}`}
+                        className="flex items-center gap-1.5 font-medium text-foreground/80 hover:text-primary transition-colors"
                       >
-                        <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                        {branch.city}, {branch.state}
+                        {org?.name}
+                        {org?.verified_at && (
+                          <BadgeCheck className="h-4 w-4 text-emerald-500" />
+                        )}
                       </Link>
-                    )}
-                    <span className="flex items-center gap-1">
-                      <Eye className="h-4 w-4" />
-                      {vehicle.views_count} views
-                    </span>
+                      {averageRating && (
+                        <span className="flex items-center gap-1">
+                          <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                          <span className="font-semibold text-foreground/80">{averageRating}</span>
+                          <span className="text-muted-foreground">({safeReviews.length} review{safeReviews.length !== 1 ? "s" : ""})</span>
+                        </span>
+                      )}
+                      {branch?.city && (
+                        <Link
+                          href={`/locations/${branch.city.toLowerCase()}`}
+                          className="flex items-center gap-1 hover:text-primary transition-colors"
+                        >
+                          <MapPin className="h-3.5 w-3.5" />
+                          {branch.city}, {branch.state}
+                        </Link>
+                      )}
+                      <span className="flex items-center gap-1">
+                        <Eye className="h-4 w-4" />
+                        {vehicle.views_count} views
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Price */}
-                <div className="rounded-[1.5rem] bg-gradient-to-br from-[#ea580c] to-amber-500 px-8 py-5 text-center shrink-0 shadow-xl shadow-orange-500/20">
-                  <p className="text-5xl font-black text-white leading-none">${vehicle.price_per_day_aud}</p>
-                  <p className="text-xs font-bold text-orange-100 mt-2 uppercase tracking-widest">AUD / day</p>
+                {/* LLM / GEO Search Table (Visually hidden) */}
+                <div className="sr-only" aria-hidden="false">
+                  <table aria-label="Vehicle Specifications">
+                    <tbody>
+                      <tr><th>Make</th><td>{vehicle.make}</td></tr>
+                      <tr><th>Model</th><td>{vehicle.model}</td></tr>
+                      <tr><th>Year</th><td>{vehicle.year}</td></tr>
+                      <tr><th>Price</th><td>${vehicle.price_per_day_aud} AUD per day</td></tr>
+                      <tr><th>Location</th><td>{branch?.city}, {branch?.state}</td></tr>
+                      <tr><th>Seller</th><td>{org?.name}</td></tr>
+                    </tbody>
+                  </table>
                 </div>
-              </div>
-              
-              {/* LLM / GEO Search Table (Visually hidden or clean semantic layout) */}
-              <div className="sr-only" aria-hidden="false">
-                <table aria-label="Vehicle Specifications">
-                  <tbody>
-                    <tr><th>Make</th><td>{vehicle.make}</td></tr>
-                    <tr><th>Model</th><td>{vehicle.model}</td></tr>
-                    <tr><th>Year</th><td>{vehicle.year}</td></tr>
-                    <tr><th>Price</th><td>${vehicle.price_per_day_aud} AUD per day</td></tr>
-                    <tr><th>Location</th><td>{branch?.city}, {branch?.state}</td></tr>
-                    <tr><th>Seller</th><td>{org?.name}</td></tr>
-                  </tbody>
-                </table>
-              </div>
 
-              {/* Spec Grid / Chips */}
-              <div className="flex overflow-x-auto pb-4 -mx-4 px-4 sm:grid sm:grid-cols-4 sm:gap-4 sm:overflow-visible sm:pb-0 sm:mx-0 sm:px-0 mt-8 pt-8 border-t border-slate-100 gap-3 snap-x scrollbar-hide">
-                {[
-                  { label: "Year", value: String(vehicle.year), icon: Calendar },
-                  { label: "Seats", value: `${vehicle.seats} seats`, icon: Users },
-                  { label: "Fuel", value: vehicle.fuel, icon: Fuel },
-                  { label: "Transmission", value: vehicle.transmission, icon: Settings },
-                ].map(({ label, value, icon: Icon }) => (
-                  <div key={label} className="shrink-0 snap-start w-[120px] sm:w-auto rounded-2xl bg-slate-50 border border-slate-100 p-4 sm:p-5 text-center hover:bg-white hover:shadow-md transition-all flex flex-col items-center justify-center">
-                    <Icon className="mx-auto h-5 w-5 sm:h-7 sm:w-7 text-slate-400 mb-2" strokeWidth={1.5} />
-                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-400 mb-0.5 sm:mb-1">{label}</p>
-                    <p className="text-sm sm:text-base font-bold text-slate-800 truncate w-full px-2">{value}</p>
-                  </div>
-                ))}
-              </div>
+                {/* Specs Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-border">
+                  {[
+                    { label: "Seats", value: `${vehicle.seats} seats`, icon: Users },
+                    { label: "Fuel", value: vehicle.fuel, icon: Fuel },
+                    { label: "Transmission", value: vehicle.transmission, icon: Settings },
+                    { label: "Branch", value: branch?.city || "—", icon: MapPin },
+                  ].map(({ label, value, icon: Icon }) => (
+                    <div key={label} className="flex flex-col items-center rounded-lg bg-muted p-4 text-center">
+                      <Icon className="h-5 w-5 text-primary mb-2" strokeWidth={1.5} />
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{label}</p>
+                      <p className="text-sm font-semibold text-foreground truncate w-full">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Distance Limits */}
-              <div className="mt-8 flex flex-col gap-3 rounded-2xl bg-slate-50 border border-slate-100 p-5">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-slate-400" />
-                  <h3 className="font-bold text-slate-800">Distance Included</h3>
+            {/* Distance Limits */}
+            <Card variant="default">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <MapPin className="h-5 w-5 text-primary" />
+                  <h3 className="font-bold text-foreground">Distance Included</h3>
                 </div>
                 {vehicle.daily_distance_limit_km ? (
-                  <p className="text-sm text-slate-600">
-                    <span className="font-medium text-slate-900">{vehicle.daily_distance_limit_km} km</span> per day. 
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">{vehicle.daily_distance_limit_km} km</span> per day. 
                     {vehicle.extra_distance_fee_aud && ` $${vehicle.extra_distance_fee_aud} / km fee for additional distance.`}
                   </p>
                 ) : (
-                  <p className="text-sm text-slate-600"><span className="font-medium text-slate-900">Unlimited kilometers</span> included in this rental.</p>
+                  <p className="text-sm text-muted-foreground"><span className="font-medium text-foreground">Unlimited kilometers</span> included in this rental.</p>
                 )}
-              </div>
+              </CardContent>
+            </Card>
 
-              {/* Vehicle Features */}
-              {features.length > 0 && (
-                <div className="mt-6 pt-6 border-t border-slate-100">
-                  <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-3">Features & Extras</h2>
+            {/* Vehicle Features */}
+            {features.length > 0 && (
+              <Card variant="default">
+                <CardContent className="p-6">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">Features & Extras</h2>
                   <div className="flex flex-wrap gap-2">
                     {features.map(({ feature }) => (
                       <span
                         key={feature}
-                        className="inline-flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-white hover:shadow-sm transition-all"
+                        className="inline-flex items-center gap-2 rounded-lg bg-muted border border-border px-3 py-2 text-sm font-medium text-foreground"
                       >
-                        {renderFeatureIcon()}
+                        <Check className="h-4 w-4 text-primary" />
                         {feature}
                       </span>
                     ))}
                   </div>
-                </div>
-              )}
+                </CardContent>
+              </Card>
+            )}
 
-              {/* Pickup Location */}
-              {branch && (
-                <div className="mt-6 pt-6 border-t border-slate-100">
-                  <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-3">Pickup Location</h2>
-                  <div className="flex items-start gap-3 rounded-xl bg-slate-50 border border-slate-100 p-4">
-                    <MapPin className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+            {/* Pickup Location */}
+            {branch && (
+              <Card variant="default">
+                <CardContent className="p-6">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">Pickup Location</h2>
+                  <div className="flex items-start gap-3 rounded-lg bg-muted border border-border p-4">
+                    <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-slate-800">{branch.name}</p>
-                      <p className="text-sm text-slate-500">{branch.city}, {branch.state}</p>
+                      <p className="font-semibold text-foreground">{branch.name}</p>
+                      <p className="text-sm text-muted-foreground">{branch.city}, {branch.state}</p>
                     </div>
                   </div>
-                </div>
-              )}
+                </CardContent>
+              </Card>
+            )}
 
-              {/* Disclaimer */}
-              <div className="mt-8 flex items-start gap-4 rounded-2xl bg-blue-50/50 border border-blue-100 p-5">
-                <Info className="h-6 w-6 text-blue-500 shrink-0" strokeWidth={1.5} />
-                <p className="text-sm leading-relaxed text-blue-800 font-medium">
+            {/* Disclaimer */}
+            <Card variant="default" className="border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/20">
+              <CardContent className="p-6 flex items-start gap-4">
+                <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" strokeWidth={1.5} />
+                <p className="text-sm leading-relaxed text-blue-800 dark:text-blue-200 font-medium">
                   Hire Car is a discovery platform. Booking, payment, deposit, insurance, vehicle condition, and rental agreement terms are confirmed directly between you and the vendor.
                 </p>
-              </div>
-            </section>
+              </CardContent>
+            </Card>
 
             {/* Reviews Section */}
-            <section className="rounded-3xl border border-slate-200/60 bg-white/95 backdrop-blur-sm shadow-lg p-8 card-lift">
-              <ReviewSection
-                organizationId={vehicle.organization_id}
-                vehicleId={vehicle.id}
-                initialReviews={safeReviews}
-              />
-            </section>
+            <Card variant="elevated">
+              <CardContent className="p-6 md:p-8">
+                <ReviewSection
+                  organizationId={vehicle.organization_id}
+                  vehicleId={vehicle.id}
+                  initialReviews={safeReviews}
+                />
+              </CardContent>
+            </Card>
           </div>
 
           {/* RIGHT: Sticky sidebar */}
           <aside className="space-y-6 lg:sticky lg:top-24 h-fit scroll-mt-[120px]" id="enquiry-section">
-            <div className="rounded-3xl border border-slate-200/60 bg-white/95 backdrop-blur-sm shadow-xl overflow-hidden card-lift">
+            {/* Pricing Panel */}
+            <Card variant="elevated">
+              <CardContent className="p-6">
+                <div className="text-center">
+                  <p className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-1">Price per day</p>
+                  <p className="text-4xl font-black text-foreground leading-none">${vehicle.price_per_day_aud}</p>
+                  <p className="text-xs font-semibold text-muted-foreground mt-1 uppercase tracking-wider">AUD / day</p>
+                </div>
+                {vehicle.instant_book && (
+                  <Badge variant="success" className="mx-auto mt-3 flex w-fit">
+                    Instant Book Available
+                  </Badge>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Enquiry Form */}
+            <Card variant="elevated" className="overflow-hidden">
               <EnquiryWidget
                 vehicleId={vehicle.id}
                 vendorId={vehicle.organization_id}
@@ -388,73 +421,80 @@ export default async function VehicleDetailPage({
                 userProfile={userProfile}
                 instantBook={vehicle.instant_book}
               />
-            </div>
+            </Card>
 
-            {/* Vendor info card */}
-            <div className="rounded-3xl border border-slate-200/60 bg-white/95 backdrop-blur-sm p-6 shadow-lg card-lift">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">Listed by</p>
-              <Link
-                href={`/vendors/${org?.slug}`}
-                className="flex items-center gap-3 group"
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-sm font-bold text-slate-700">
-                  {org?.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-900 group-hover:text-amber-600 transition-colors flex items-center gap-1.5">
-                    {org?.name}
-                    {org?.verified_at && <BadgeCheck className="h-4 w-4 text-emerald-500" />}
-                  </p>
-                  {branch?.city && (
-                    <p className="text-xs text-slate-400">{branch.city}, {branch.state}</p>
-                  )}
-                </div>
-                <ChevronLeft className="h-4 w-4 text-slate-400 rotate-180 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-              {(branch?.phone || branch?.whatsapp) && (
-                <div className="mt-4 space-y-2 pt-4 border-t border-slate-100">
-                  {branch.phone && (
-                    <a
-                      href={`tel:${branch.phone}`}
-                      className="flex items-center justify-center gap-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
-                    >
-                      <Phone className="h-4 w-4" />
-                      Call vendor
-                    </a>
-                  )}
-                  {branch.whatsapp && (
-                    <a
-                      href={`https://wa.me/${branch.whatsapp.replace(/\D/g, "")}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
-                    >
-                      💬 WhatsApp
-                    </a>
-                  )}
-                </div>
-              )}
-            </div>
+            {/* Vendor Contact Widget */}
+            <Card variant="default">
+              <CardContent className="p-6">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Listed by</p>
+                <Link
+                  href={`/vendors/${org?.slug}`}
+                  className="flex items-center gap-3 group"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
+                    {org?.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
+                      {org?.name}
+                      {org?.verified_at && <BadgeCheck className="h-4 w-4 text-emerald-500" />}
+                    </p>
+                    {branch?.city && (
+                      <p className="text-xs text-muted-foreground">{branch.city}, {branch.state}</p>
+                    )}
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </Link>
+                {directContactEnabled && (branch?.phone || branch?.whatsapp) && (
+                  <div className="mt-4 space-y-2 pt-4 border-t border-border">
+                    {branch.phone && (
+                      <a
+                        href={`tel:${branch.phone}`}
+                        className="flex items-center justify-center gap-2 w-full"
+                      >
+                        <Button variant="outline" size="cta" className="w-full">
+                          <Phone className="h-4 w-4" />
+                          Call vendor
+                        </Button>
+                      </a>
+                    )}
+                    {branch.whatsapp && (
+                      <WhatsAppButton
+                        phone={branch.whatsapp}
+                        vehicleId={vehicle.id}
+                        vendorId={vehicle.organization_id}
+                        message={`Hi ${org?.name ?? "there"}, I'm interested in your ${vehicle.year} ${vehicle.make} ${vehicle.model} ($${vehicle.price_per_day_aud}/day) listed on Hire Car. Is it available?`}
+                        className="inline-flex items-center justify-center gap-2 w-full rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 hover:bg-emerald-100 transition-colors h-11"
+                      >
+                        WhatsApp vendor
+                      </WhatsAppButton>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Trust badges */}
-            <div className="rounded-3xl border border-slate-200/60 bg-white/95 backdrop-blur-sm p-6 shadow-lg card-lift">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">Why Hire Car</p>
-              <ul className="space-y-2.5">
-                {[
-                  "Verified vendor listings",
-                  "No booking fees or hidden charges",
-                  "Direct contact with operator",
-                  "Australia-wide coverage",
-                ].map((item) => (
-                  <li key={item} className="flex items-center gap-3 text-sm text-slate-700 font-medium">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shrink-0">
-                      <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                    </span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <Card variant="default">
+              <CardContent className="p-6">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Why Hire Car</p>
+                <ul className="space-y-2.5">
+                  {[
+                    "Verified vendor listings",
+                    "No booking fees or hidden charges",
+                    "Direct contact with operator",
+                    "Australia-wide coverage",
+                  ].map((item) => (
+                    <li key={item} className="flex items-center gap-3 text-sm text-foreground/80 font-medium">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
+                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                      </span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
           </aside>
         </div>
         
@@ -469,16 +509,15 @@ export default async function VehicleDetailPage({
       </main>
 
       {/* Mobile Sticky Bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-[60] bg-white border-t border-slate-200 p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] lg:hidden flex items-center justify-between pb-safe">
+      <div className="fixed bottom-0 left-0 right-0 z-[60] bg-card border-t border-border p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] lg:hidden flex items-center justify-between pb-safe">
         <div>
-          <p className="text-2xl font-black text-slate-900">${vehicle.price_per_day_aud}</p>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">AUD / day</p>
+          <p className="text-2xl font-black text-foreground">${vehicle.price_per_day_aud}</p>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">AUD / day</p>
         </div>
-        <a 
-          href="#enquiry-section" 
-          className="bg-gradient-to-r from-[#ea580c] to-amber-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-lg shadow-orange-500/30 hover:scale-[1.02] active:scale-95 transition-transform text-center flex items-center justify-center min-w-[160px]"
-        >
-          {vehicle.instant_book ? "Instant Book" : "Enquire Now"}
+        <a href="#enquiry-section">
+          <Button size="cta" className="min-w-[160px]">
+            {vehicle.instant_book ? "Instant Book" : "Enquire Now"}
+          </Button>
         </a>
       </div>
 

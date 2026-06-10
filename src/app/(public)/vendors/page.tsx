@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { EmptyState } from "@/components/empty-state";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MapPin, Car, Star, Building2, BadgeCheck } from "lucide-react";
 
@@ -149,11 +150,13 @@ export default async function VendorsDirectoryPage() {
           </div>
 
           {vendors.length === 0 && (
-            <div className="text-center py-20 rounded-3xl border border-slate-200 bg-white">
-              <Building2 className="mx-auto h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-lg font-bold text-slate-900">No operators found</h3>
-              <p className="mt-2 text-slate-500">Check back later for newly verified operators.</p>
-            </div>
+            <EmptyState
+              icon={<Building2 className="h-8 w-8 text-muted-foreground" />}
+              title="No operators found"
+              description="Check back later for newly verified operators."
+              actionLabel="Search vehicles"
+              actionHref="/search"
+            />
           )}
         </section>
       </main>

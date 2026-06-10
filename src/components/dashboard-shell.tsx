@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { ReactNode } from "react";
-import { 
-  LayoutDashboard, 
-  GitBranch, 
-  Car, 
-  MessageSquare, 
-  BarChart3, 
-  CreditCard, 
+import {
+  LayoutDashboard,
+  GitBranch,
+  Car,
+  MessageSquare,
+  BarChart3,
+  CreditCard,
   Settings,
   LayoutGrid,
   Users,
@@ -18,7 +19,9 @@ import {
   ClipboardList,
   ExternalLink,
   ShieldCheck,
-  LogOut
+  LogOut,
+  Menu,
+  X,
 } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 
@@ -53,6 +56,65 @@ export function DashboardShell({
 }) {
   const pathname = usePathname();
   const links = mode === "vendor" ? vendorLinks : adminLinks;
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  // Close drawer on route change
+  const prevPathname = useRef(pathname);
+  useEffect(() => {
+    if (prevPathname.current !== pathname) {
+      prevPathname.current = pathname;
+      setDrawerOpen(false);
+    }
+  }, [pathname]);
+
+  // Close drawer on Escape key
+  useEffect(() => {
+    if (!drawerOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setDrawerOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [drawerOpen]);
+
+  // Focus trap inside drawer
+  useEffect(() => {
+    if (!drawerOpen || !drawerRef.current) return;
+
+    const drawer = drawerRef.current;
+    const focusableElements = drawer.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+
+    if (focusableElements.length > 0) {
+      focusableElements[0].focus();
+    }
+
+    const handleTab = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+
+      const firstEl = focusableElements[0];
+      const lastEl = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey && document.activeElement === firstEl) {
+        e.preventDefault();
+        lastEl.focus();
+      } else if (!e.shiftKey && document.activeElement === lastEl) {
+        e.preventDefault();
+        firstEl.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleTab);
+    return () => document.removeEventListener("keydown", handleTab);
+  }, [drawerOpen]);
 
   const handleLogout = async () => {
     const supabase = createBrowserClient(
@@ -63,61 +125,153 @@ export function DashboardShell({
     window.location.href = "/";
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50/50">
-      <header className="sticky top-0 z-40 border-b border-slate-200/60 bg-white/80 backdrop-blur-md shadow-sm">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-2.5 text-lg font-bold text-slate-900 font-heading">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-              <ShieldCheck className="h-5 w-5" />
-            </span>
-            Hire Car {mode === "admin" ? "Admin" : "Vendor"}
+  const isLinkActive = useCallback(
+    (href: string) => {
+      if (mode === "vendor" && href === "/vendor/dashboard") {
+        return pathname === href;
+      }
+      if (mode === "admin" && href === "/admin") {
+        return pathname === href;
+      }
+      return pathname === href || pathname.startsWith(href + "/");
+    },
+    [pathname, mode]
+  );
+
+  const navContent = (
+    <>
+      <div className="mb-2 px-3">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          Navigation
+        </p>
+      </div>
+      {links.map(({ label, href, icon: Icon }) => {
+        const isActive = isLinkActive(href);
+        return (
+          <Link
+            key={href}
+            href={href}
+            className={`flex items-center gap-3 rounded-lg px-4 min-h-[44px] text-sm font-semibold transition-all duration-200 ${
+              isActive
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground"
+            }`}
+            aria-current={isActive ? "page" : undefined}
+          >
+            <Icon className="h-5 w-5 shrink-0" />
+            {label}
           </Link>
-          <Link href="/search" className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-primary transition-colors bg-slate-100/50 hover:bg-primary/5 px-3 py-1.5 rounded-lg border border-transparent hover:border-primary/10">
-            Public marketplace
+        );
+      })}
+
+      <div className="mt-8 px-3 border-t border-border pt-4">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-lg px-4 min-h-[44px] text-sm font-semibold text-muted-foreground hover:bg-accent hover:text-destructive transition-all duration-200"
+        >
+          <LogOut className="h-5 w-5 shrink-0" />
+          Logout
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md shadow-sm">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            {/* Mobile hamburger button */}
+            <button
+              ref={triggerRef}
+              onClick={() => setDrawerOpen(true)}
+              className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-foreground hover:bg-accent transition-colors md:hidden"
+              aria-label="Open navigation menu"
+              aria-expanded={drawerOpen}
+              aria-controls="mobile-nav-drawer"
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+            <Link
+              href="/"
+              className="flex items-center gap-2.5 text-lg font-bold text-foreground"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                <ShieldCheck className="h-5 w-5" />
+              </span>
+              Hire Car {mode === "admin" ? "Admin" : "Vendor"}
+            </Link>
+          </div>
+          <Link
+            href="/search"
+            className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary transition-colors bg-muted hover:bg-primary/5 px-3 py-1.5 rounded-lg border border-transparent hover:border-primary/10"
+          >
+            <span className="hidden sm:inline">Public marketplace</span>
             <ExternalLink className="h-4 w-4" />
           </Link>
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[260px_1fr] lg:px-8">
-        <aside className="rounded-2xl border border-slate-200/60 bg-white shadow-sm p-4 h-fit lg:sticky lg:top-24">
-          <nav className="grid gap-1.5">
-            <div className="mb-2 px-3">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Navigation</p>
-            </div>
-            {links.map(({ label, href, icon: Icon }) => {
-              // Active if exact match, or starts-with for sub-routes (but not /vendor/dashboard matching /vendor)
-              const isActive = pathname === href || (href !== "/vendor/dashboard" && href !== "/admin" && pathname.startsWith(href));
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`flex items-center gap-3.5 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200 ${
-                    isActive
-                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-[1.02]"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-primary"
-                  }`}
-                >
-                  <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? "" : "text-slate-400"}`} />
-                  {label}
-                </Link>
-              );
-            })}
-            
-            <div className="mt-8 px-3 border-t border-slate-100 pt-4">
+      {/* Mobile drawer overlay */}
+      {drawerOpen && (
+        <div
+          className="fixed inset-0 z-50 md:hidden"
+          aria-hidden="true"
+        >
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
+            onClick={() => {
+              setDrawerOpen(false);
+              triggerRef.current?.focus();
+            }}
+          />
+          {/* Drawer panel */}
+          <div
+            ref={drawerRef}
+            id="mobile-nav-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${mode === "admin" ? "Admin" : "Vendor"} navigation`}
+            className="absolute left-0 top-0 h-full w-[260px] max-w-[80vw] bg-background border-r border-border shadow-xl animate-slide-in-left"
+          >
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <span className="text-sm font-bold text-foreground">
+                Navigation
+              </span>
               <button
-                onClick={handleLogout}
-                className="flex w-full items-center gap-3.5 rounded-xl px-4 py-3 text-sm font-bold text-slate-500 hover:bg-slate-50 hover:text-red-600 transition-all duration-200"
+                onClick={() => {
+                  setDrawerOpen(false);
+                  triggerRef.current?.focus();
+                }}
+                className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                aria-label="Close navigation menu"
               >
-                <LogOut className="h-4.5 w-4.5 shrink-0" />
-                Logout
+                <X className="h-5 w-5" />
               </button>
             </div>
-          </nav>
-        </aside>
+            <nav className="grid gap-1 p-4">{navContent}</nav>
+          </div>
+        </div>
+      )}
 
-        <main className="min-w-0">{children}</main>
+      {/* Main layout with sidebar */}
+      <div
+        className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8"
+        inert={drawerOpen || undefined}
+      >
+        <div className="grid gap-6 md:grid-cols-[260px_1fr]">
+          {/* Desktop sidebar */}
+          <aside className="hidden md:block">
+            <div className="sticky top-20 rounded-xl border border-border bg-card shadow-sm p-4">
+              <nav className="grid gap-1">{navContent}</nav>
+            </div>
+          </aside>
+
+          {/* Content area - ≥90% viewport width on mobile */}
+          <main className="min-w-0 w-full">{children}</main>
+        </div>
       </div>
     </div>
   );

@@ -5,8 +5,8 @@ import { getVendorContext } from "@/lib/data/vendor";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   CheckCircle, Clock, AlertTriangle, Zap,
-  ArrowRight, Building2, Star, Package, TrendingUp, Shield,
-  ExternalLink, FileText, Download
+  ArrowRight, Building2, Package, TrendingUp, Shield,
+  FileText, Download
 } from "lucide-react";
 import { PortalForm, CheckoutForm } from "./_components/billing-forms";
 
@@ -18,29 +18,29 @@ const PLANS = [
   {
     code: "starter",
     name: "Starter",
-    price: { monthly: 49, quarterly: 135 },
-    vehicles: 5,
+    price: { monthly: 0, annual: 0 },
+    vehicles: 10,
     color: "border-slate-200",
     badge: null,
-    features: ["5 vehicle listings", "Lead notifications", "Vendor dashboard", "Basic analytics", "Email support"],
+    features: ["10 vehicle listings", "Vendor profile page", "Inquiry form leads", "Email lead notifications"],
   },
   {
     code: "growth",
     name: "Growth",
-    price: { monthly: 99, quarterly: 270 },
-    vehicles: 25,
+    price: { monthly: 49, annual: 529 },
+    vehicles: 20,
     color: "border-amber-400",
     badge: "Most Popular",
-    features: ["25 vehicle listings", "Priority lead alerts", "Advanced analytics", "Multi-branch support", "Priority support"],
+    features: ["20 vehicle listings", "WhatsApp click button", "Phone click tracking", "Analytics dashboard", "GPS Verified badge"],
   },
   {
     code: "pro",
     name: "Pro",
-    price: { monthly: 199, quarterly: 540 },
-    vehicles: 100,
+    price: { monthly: 99, annual: 1069 },
+    vehicles: 50,
     color: "border-slate-200",
     badge: null,
-    features: ["100 vehicle listings", "All Growth features", "Bulk upload tools", "API access", "Dedicated support"],
+    features: ["50 vehicle listings", "All Growth features", "Featured placement", "AI SEO content", "24/7 priority support"],
   },
 ] as const;
 
@@ -57,7 +57,7 @@ export default async function VendorBillingPage(props: { searchParams: Promise<{
   const user = await requireUser();
   const context = await getVendorContext(user.id);
   const searchParams = await props.searchParams;
-  const interval = searchParams.interval === "quarterly" ? "quarterly" : "monthly";
+  const interval = searchParams.interval === "annual" ? "annual" : "monthly";
 
   if (context.setupError) {
     return (
@@ -279,10 +279,10 @@ export default async function VendorBillingPage(props: { searchParams: Promise<{
               Monthly
             </Link>
             <Link 
-              href="?interval=quarterly" 
-              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${interval === "quarterly" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+              href="?interval=annual" 
+              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${interval === "annual" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
             >
-              Quarterly (-10%)
+              Annual (-10%)
             </Link>
           </div>
         </div>
@@ -320,9 +320,9 @@ export default async function VendorBillingPage(props: { searchParams: Promise<{
                   </h3>
                   <div className="flex items-baseline gap-1 mt-1">
                     <span className={`text-3xl font-black ${isCurrent ? "text-white" : "text-slate-900"}`}>
-                      ${interval === "quarterly" ? p.price.quarterly : p.price.monthly}
+                      ${interval === "annual" ? p.price.annual : p.price.monthly}
                     </span>
-                    <span className={`text-sm ${isCurrent ? "text-slate-400" : "text-slate-500"}`}>/{interval === "quarterly" ? "quarter" : "month"}</span>
+                    <span className={`text-sm ${isCurrent ? "text-slate-400" : "text-slate-500"}`}>/{interval === "annual" ? "year" : "month"}</span>
                   </div>
                   <p className={`text-sm mt-1 ${isCurrent ? "text-slate-300" : "text-slate-500"}`}>
                     Up to {p.vehicles} vehicles

@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
     userId: user.id,
     email: user.email,
     customerId: subscription?.stripe_customer_id ?? undefined,
-    couponCode: payload.data.couponCode,
   });
 
   if (!session.url) {

@@ -12,12 +12,12 @@ export function getStripe() {
   return stripeClient;
 }
 
-export function getStripePrice(plan: PlanCode, interval: "monthly" | "quarterly" = "monthly") {
-  if (interval === "quarterly") {
+export function getStripePrice(plan: PlanCode, interval: "monthly" | "annual" = "monthly") {
+  if (interval === "annual") {
     const priceEnvByPlan: Record<PlanCode, string> = {
-      starter: "STRIPE_PRICE_STARTER_QUARTERLY",
-      growth: "STRIPE_PRICE_GROWTH_QUARTERLY",
-      pro: "STRIPE_PRICE_PRO_QUARTERLY",
+      starter: "STRIPE_PRICE_STARTER_ANNUAL",
+      growth: "STRIPE_PRICE_GROWTH_ANNUAL",
+      pro: "STRIPE_PRICE_PRO_ANNUAL",
     };
     return requireEnv(priceEnvByPlan[plan]);
   }
@@ -31,28 +31,27 @@ export function getStripePrice(plan: PlanCode, interval: "monthly" | "quarterly"
   return requireEnv(priceEnvByPlan[plan]);
 }
 
-export function getPlanFromStripePrice(priceId: string): { plan: PlanCode; interval: "monthly" | "quarterly" } | null {
+export function getPlanFromStripePrice(priceId: string): { plan: PlanCode; interval: "monthly" | "annual" } | null {
   // Monthly
   if (priceId === process.env.STRIPE_PRICE_STARTER) return { plan: "starter", interval: "monthly" };
   if (priceId === process.env.STRIPE_PRICE_GROWTH) return { plan: "growth", interval: "monthly" };
   if (priceId === process.env.STRIPE_PRICE_PRO) return { plan: "pro", interval: "monthly" };
   
-  // Quarterly
-  if (priceId === process.env.STRIPE_PRICE_STARTER_QUARTERLY) return { plan: "starter", interval: "quarterly" };
-  if (priceId === process.env.STRIPE_PRICE_GROWTH_QUARTERLY) return { plan: "growth", interval: "quarterly" };
-  if (priceId === process.env.STRIPE_PRICE_PRO_QUARTERLY) return { plan: "pro", interval: "quarterly" };
+  // Annual
+  if (priceId === process.env.STRIPE_PRICE_STARTER_ANNUAL) return { plan: "starter", interval: "annual" };
+  if (priceId === process.env.STRIPE_PRICE_GROWTH_ANNUAL) return { plan: "growth", interval: "annual" };
+  if (priceId === process.env.STRIPE_PRICE_PRO_ANNUAL) return { plan: "pro", interval: "annual" };
   
   return null;
 }
 
 export async function createCheckoutSession(input: {
   plan: PlanCode;
-  interval?: "monthly" | "quarterly";
+  interval?: "monthly" | "annual";
   organizationId: string;
   userId: string;
   email?: string;
   customerId?: string;
-  couponCode?: string;
 }) {
   const params: Stripe.Checkout.SessionCreateParams = {
     mode: "subscription",
@@ -60,7 +59,6 @@ export async function createCheckoutSession(input: {
     success_url: `${getAppUrl()}/vendor/billing?checkout=success`,
     cancel_url: `${getAppUrl()}/vendor/billing?checkout=cancelled`,
     client_reference_id: input.organizationId,
-    allow_promotion_codes: true,
     metadata: {
       organization_id: input.organizationId,
       user_id: input.userId,
@@ -80,10 +78,6 @@ export async function createCheckoutSession(input: {
     params.customer = input.customerId;
   } else if (input.email) {
     params.customer_email = input.email;
-  }
-
-  if (input.couponCode === 'project2026') {
-    params.discounts = [{ coupon: 'itIoJnAT' }];
   }
 
   return getStripe().checkout.sessions.create(params);

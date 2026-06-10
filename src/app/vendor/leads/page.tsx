@@ -6,6 +6,11 @@ import { updateLeadStatus } from "./actions";
 import { RealtimeLeadsListener } from "@/components/realtime-leads-listener";
 import { MessageSquare, Mail, Phone, MapPin, Calendar, ChevronRight, Inbox } from "lucide-react";
 
+// NOTE: WhatsApp leads (whatsapp_leads table) are accessible to vendors via RLS
+// (vendor_id scoped). A dedicated WhatsApp leads section can be added here in a
+// future iteration. For MVP, vendors can view their WhatsApp leads through the
+// admin-provided notification emails and direct DB access via RLS.
+
 export const metadata = {
   title: "Leads",
 };
@@ -76,7 +81,7 @@ export default async function VendorLeadsPage({ searchParams }: LeadsPageProps) 
           </div>
           {context.organizations.length > 1 && (
             <select
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:border-slate-400 focus:outline-none"
+              className="rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all"
               onChange={(e) => { window.location.href = `/vendor/leads?org=${e.target.value}`; }}
               defaultValue={selectedOrgId}
             >
@@ -222,25 +227,29 @@ export default async function VendorLeadsPage({ searchParams }: LeadsPageProps) 
                     <form action={updateLeadStatus} className="flex flex-col gap-2">
                       <input type="hidden" name="leadId" value={lead.id} />
                       <input type="hidden" name="organizationId" value={selectedOrgId} />
+                      <label className="sr-only" htmlFor={`status-${lead.id}`}>Update status</label>
                       <select
+                        id={`status-${lead.id}`}
                         name="status"
                         defaultValue={lead.status}
-                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:border-slate-400 focus:outline-none"
+                        className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all"
                       >
                         <option value="new">New</option>
                         <option value="contacted">Contacted</option>
                         <option value="converted">Converted</option>
                         <option value="lost">Lost</option>
                       </select>
+                      <label className="sr-only" htmlFor={`notes-${lead.id}`}>Add a note</label>
                       <input
+                        id={`notes-${lead.id}`}
                         type="text"
                         name="notes"
                         placeholder="Add a note (optional)"
-                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+                        className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all"
                       />
                       <button
                         type="submit"
-                        className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+                        className="rounded-xl border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground hover:bg-accent transition-colors"
                       >
                         Update Status
                       </button>

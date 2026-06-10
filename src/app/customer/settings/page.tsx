@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { updateCustomerProfile, deleteCustomerAccount } from "@/app/actions/customer";
-import { User, Phone, Mail, AlertTriangle, Save, Loader2 } from "lucide-react";
+import { User, Phone, Mail, AlertTriangle, Save, Loader2, Bell, Heart, MessageSquare } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 
 export default function CustomerSettingsPage() {
@@ -180,27 +180,72 @@ export default function CustomerSettingsPage() {
           </form>
         </section>
 
-        {/* Danger Zone */}
-        <section className="bg-red-50 rounded-[2rem] border border-red-200 p-8">
-          <div className="flex items-start gap-4">
-            <div className="bg-red-100 p-3 rounded-xl">
-              <AlertTriangle className="h-6 w-6 text-red-600" />
+        {/* Notifications & Preferences */}
+        <section className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50">
+              <Bell className="h-5 w-5 text-[#ea580c]" />
             </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-red-900 mb-2">Danger Zone</h2>
-              <p className="text-sm text-red-700 font-medium mb-6">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">Notification Preferences</h2>
+              <p className="text-sm text-slate-500 font-medium">Control how we communicate with you.</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50">
+              <div className="flex items-start gap-3">
+                <MessageSquare className="h-5 w-5 text-slate-600 mt-0.5" />
+                <div>
+                  <p className="font-bold text-slate-900">Inquiry Updates</p>
+                  <p className="text-sm text-slate-500 font-medium">Get notified immediately when a vendor replies to you.</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" className="sr-only peer" defaultChecked />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#ea580c]"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50">
+              <div className="flex items-start gap-3">
+                <Heart className="h-5 w-5 text-slate-600 mt-0.5" />
+                <div>
+                  <p className="font-bold text-slate-900">Special Offers & Deals</p>
+                  <p className="text-sm text-slate-500 font-medium">Receive discounts from our top-rated local vendors.</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" className="sr-only peer" />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#ea580c]"></div>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        {/* Danger Zone */}
+        <section className="mt-12 pt-12 border-t border-slate-200">
+          <details className="group">
+            <summary className="flex items-center gap-2 text-red-600 font-bold cursor-pointer hover:text-red-700 transition-colors list-none">
+              <AlertTriangle className="h-5 w-5" />
+              Advanced Security & Deletion
+            </summary>
+            
+            <div className="mt-6 bg-white rounded-2xl border border-red-200 p-6 sm:p-8 shadow-sm">
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Delete Account</h2>
+              <p className="text-sm text-slate-500 font-medium mb-6">
                 Permanently delete your account and all associated data. This action cannot be undone.
               </p>
               
               {!showDeleteConfirm ? (
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="bg-white text-red-600 border border-red-200 hover:bg-red-600 hover:text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-sm"
+                  className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-sm"
                 >
                   Delete Account
                 </button>
               ) : (
-                <div className="bg-white p-5 rounded-xl border border-red-200 shadow-sm space-y-4">
+                <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
                   <p className="text-sm font-bold text-slate-900">
                     To confirm deletion, please type <span className="text-red-600 select-all">DELETE</span> below:
                   </p>
@@ -224,7 +269,7 @@ export default function CustomerSettingsPage() {
                         setShowDeleteConfirm(false);
                         setDeleteText("");
                       }}
-                      className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg transition-colors"
+                      className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-2.5 rounded-lg transition-colors"
                     >
                       Cancel
                     </button>
@@ -232,7 +277,7 @@ export default function CustomerSettingsPage() {
                 </div>
               )}
             </div>
-          </div>
+          </details>
         </section>
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 // usePathname removed
 import { Menu, X, ChevronDown, ShieldCheck, User, Headphones } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -100,21 +101,24 @@ export function SiteHeader() {
         <div
           className={`transition-all duration-300 w-full ${
             isScrolled
-              ? "bg-white/90 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.05)] border-b border-white/20 py-3"
-              : "bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100 py-4"
+              ? "bg-white/95 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.05)] border-b border-slate-100 py-1.5"
+              : "bg-white border-b border-slate-100 py-2.5"
           }`}
         >
           <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between">
               
-              {/* Vibrant Logo */}
-              <Link href="/" className="flex items-center gap-2.5 group">
-                <span className="flex h-11 w-11 items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-xl shadow-lg shadow-slate-900/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-primary/20">
-                  <ShieldCheck className="h-6 w-6 text-orange-400" strokeWidth={2.5} />
-                </span>
-                <span className="text-2xl font-black tracking-tight text-slate-900 group-hover:text-primary transition-colors duration-300">
-                  Carhire
-                </span>
+              {/* HireCar Marketplace Logo */}
+              <Link href="/" className="flex items-center gap-3.5 group hover:opacity-95 transition-opacity">
+                <div className="relative w-[180px] h-[48px] sm:w-[220px] sm:h-[56px] transition-transform duration-300 group-hover:scale-105">
+                  <Image 
+                    src="/LOGO.png" 
+                    alt="HireCar Marketplace" 
+                    fill 
+                    priority
+                    className="object-contain object-left mix-blend-multiply" 
+                  />
+                </div>
               </Link>
 
               {/* Desktop Nav */}
@@ -125,7 +129,7 @@ export function SiteHeader() {
                   onMouseEnter={() => setActiveDropdown("locations")}
                   onMouseLeave={() => setActiveDropdown(null)}
                 >
-                  <button className="flex items-center gap-1 font-bold text-sm text-slate-600 hover:text-primary transition-colors py-4 group">
+                  <button className="flex items-center gap-1 font-bold text-sm text-slate-600 hover:text-[#ea580c] transition-colors py-2 group">
                     Locations 
                     <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${activeDropdown === "locations" ? "rotate-180 text-primary" : "text-slate-400 group-hover:text-primary"}`} />
                   </button>
@@ -179,6 +183,14 @@ export function SiteHeader() {
 
                 <Link href="/pricing" className="relative font-bold text-sm text-slate-600 hover:text-primary transition-colors group">
                   Pricing
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
+                </Link>
+                <Link href="/for-vendors" className="relative font-bold text-sm text-slate-600 hover:text-primary transition-colors group">
+                  Vendors
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
+                </Link>
+                <Link href="/about" className="relative font-bold text-sm text-slate-600 hover:text-primary transition-colors group">
+                  About
                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
                 </Link>
                 <Link href="/contact" className="relative font-bold text-sm text-slate-600 hover:text-primary transition-colors group">
@@ -240,6 +252,8 @@ export function SiteHeader() {
               
               <div className="flex flex-col gap-4 mt-4">
                 <Link href="/pricing" onClick={closeMobileMenu} className="font-bold text-xl text-slate-800 hover:text-primary hover:translate-x-2 transition-transform">Pricing</Link>
+                <Link href="/for-vendors" onClick={closeMobileMenu} className="font-bold text-xl text-slate-800 hover:text-primary hover:translate-x-2 transition-transform">Vendors</Link>
+                <Link href="/about" onClick={closeMobileMenu} className="font-bold text-xl text-slate-800 hover:text-primary hover:translate-x-2 transition-transform">About</Link>
                 <Link href="/contact" onClick={closeMobileMenu} className="font-bold text-xl text-slate-800 hover:text-primary hover:translate-x-2 transition-transform">Contact</Link>
               </div>
               

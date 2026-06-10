@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/security/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { Badge } from "@/components/ui/badge";
+import { AdminVendorsTable } from "./vendors-table";
 
 export const metadata = {
   title: "Vendor Moderation",
@@ -115,17 +117,38 @@ export default async function AdminVendorsPage({ searchParams }: AdminVendorsPag
     rejected: allVendors?.filter((v) => v.status === "rejected").length ?? 0,
   };
 
+  // Transform vendors for the DataTable
+  const tableData = (vendors ?? []).map((vendor) => {
+    const branches = (vendor.branches as unknown as { id: string; name: string; city: string; status: string }[]) ?? [];
+    const members = (vendor.organization_members as unknown as { user_id: string; profiles: { full_name: string } }[]) ?? [];
+    const owner = members[0]?.profiles?.full_name ?? "Unknown";
+
+    return {
+      id: vendor.id,
+      name: vendor.name,
+      slug: vendor.slug,
+      abn: vendor.abn,
+      billing_email: vendor.billing_email ?? "",
+      phone: vendor.phone ?? "",
+      owner,
+      branchCount: branches.length,
+      status: vendor.status as string,
+      created_at: vendor.created_at,
+      suspended_at: vendor.suspended_at as string | null,
+    };
+  });
+
   return (
     <div className="space-y-6">
-      <section className="rounded-lg border border-slate-800 bg-slate-950 p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold">Vendor Moderation</h1>
-        <p className="mt-2 text-slate-400">
+      <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        <h1 className="text-2xl font-semibold text-foreground">Vendor Moderation</h1>
+        <p className="mt-2 text-muted-foreground">
           Approve, reject, suspend, and manage vendor organizations. All actions are logged to the audit trail.
         </p>
       </section>
 
       {/* Status Tabs */}
-      <div className="flex gap-2 border-b border-slate-800">
+      <div className="flex gap-2 border-b border-border">
         {[
           { key: "pending", label: "Pending", count: counts.pending },
           { key: "approved", label: "Approved", count: counts.approved },
@@ -135,165 +158,31 @@ export default async function AdminVendorsPage({ searchParams }: AdminVendorsPag
           <Link
             key={tab.key}
             href={`/admin/vendors?status=${tab.key}`}
-            className={`border-b-2 px-4 py-2 text-sm font-medium ${
+            className={`border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
               statusFilter === tab.key
-                ? "border-white text-white"
-                : "border-transparent text-slate-400 hover:text-slate-200"
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             {tab.label}
             {tab.count > 0 && (
-              <span
-                className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
-                  statusFilter === tab.key ? "bg-slate-950 text-white" : "bg-slate-800 text-slate-300"
-                }`}
+              <Badge
+                variant={statusFilter === tab.key ? "default" : "outline"}
+                className="ml-2"
               >
                 {tab.count}
-              </span>
+              </Badge>
             )}
           </Link>
         ))}
       </div>
 
-      {/* Vendors List */}
-      <div className="space-y-4">
-        {vendors?.length === 0 ? (
-          <div className="rounded-lg border border-slate-800 bg-slate-950 p-8 text-center">
-            <p className="text-slate-400">No {statusFilter} vendors found.</p>
-          </div>
-        ) : (
-          vendors?.map((vendor) => {
-            const branches = (vendor.branches as unknown as { id: string; name: string; city: string; status: string }[]) ?? [];
-            const members = (vendor.organization_members as unknown as { user_id: string; profiles: { full_name: string } }[]) ?? [];
-            const owner = members[0]?.profiles?.full_name ?? "Unknown";
-
-            return (
-              <div
-                key={vendor.id}
-                className="rounded-lg border border-slate-800 bg-slate-950 p-6 shadow-sm"
-              >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-semibold">{vendor.name}</h3>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          vendor.status === "approved"
-                            ? "bg-green-900/30 text-green-400"
-                            : vendor.status === "pending"
-                              ? "bg-amber-900/30 text-amber-400"
-                              : vendor.status === "suspended"
-                                ? "bg-red-900/30 text-red-400"
-                                : "bg-slate-800 text-slate-200"
-                        }`}
-                      >
-                        {vendor.status}
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-400">
-                      ABN: {vendor.abn} · Owner: {owner}
-                    </p>
-                    <div className="mt-2 text-sm text-slate-400">
-                      <p>
-                        <span className="font-medium">Email:</span> {vendor.billing_email}
-                      </p>
-                      <p>
-                        <span className="font-medium">Phone:</span> {vendor.phone}
-                      </p>
-                      <p>
-                        <span className="font-medium">Address:</span> {vendor.address}
-                      </p>
-                      {vendor.website && (
-                        <p>
-                          <span className="font-medium">Website:</span>{" "}
-                          <a
-                            href={vendor.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            {vendor.website}
-                          </a>
-                        </p>
-                      )}
-                    </div>
-                    <div className="mt-3">
-                      <p className="text-sm font-medium text-slate-300">Branches ({branches.length}):</p>
-                      <div className="mt-1 flex flex-wrap gap-2">
-                        {branches.map((b) => (
-                          <span
-                            key={b.id}
-                            className={`rounded-md px-2 py-1 text-xs ${
-                              b.status === "approved"
-                                ? "bg-green-900/30 text-green-400"
-                                : "bg-amber-900/30 text-amber-400"
-                            }`}
-                          >
-                            {b.name} ({b.city}) - {b.status}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <p className="mt-2 text-xs text-slate-400">
-                      Submitted {new Date(vendor.created_at).toLocaleDateString("en-AU")}
-                      {vendor.suspended_at && ` · Suspended ${new Date(vendor.suspended_at).toLocaleDateString("en-AU")}`}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {vendor.status === "pending" && (
-                      <>
-                        <form action={moderateVendor.bind(null, "approve", vendor.id, "Approved from admin dashboard")}>
-                          <button
-                            type="submit"
-                            className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-                          >
-                            Approve
-                          </button>
-                        </form>
-                        <form action={moderateVendor.bind(null, "reject", vendor.id, "Rejected from admin dashboard")}>
-                          <button
-                            type="submit"
-                            className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-                          >
-                            Reject
-                          </button>
-                        </form>
-                      </>
-                    )}
-                    {vendor.status === "approved" && (
-                      <form action={moderateVendor.bind(null, "suspend", vendor.id, "Suspended from admin dashboard")}>
-                        <button
-                          type="submit"
-                          className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
-                        >
-                          Suspend
-                        </button>
-                      </form>
-                    )}
-                    {(vendor.status === "suspended" || vendor.status === "rejected") && (
-                      <form action={moderateVendor.bind(null, "restore", vendor.id, "Restored from admin dashboard")}>
-                        <button
-                          type="submit"
-                          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                        >
-                          Restore
-                        </button>
-                      </form>
-                    )}
-                    <Link
-                      href={`/admin/audit?type=vendor&id=${vendor.id}`}
-                      className="rounded-md border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
-                    >
-                      View Audit Log
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
+      {/* Vendors Table */}
+      <AdminVendorsTable
+        data={tableData}
+        statusFilter={statusFilter}
+        moderateVendor={moderateVendor}
+      />
     </div>
   );
 }

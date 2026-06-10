@@ -152,11 +152,12 @@ export default function VehicleForm({
 
       {message && (
         <div
-          className={`mt-4 rounded-md p-4 ${
+          className={`mt-4 rounded-lg p-4 text-sm font-medium ${
             message.type === "success"
-              ? "bg-green-50 text-green-800"
-              : "bg-red-50 text-red-800"
+              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+              : "bg-destructive/10 text-destructive border border-destructive/20"
           }`}
+          role={message.type === "error" ? "alert" : "status"}
         >
           {message.text}
         </div>
@@ -172,7 +173,7 @@ export default function VehicleForm({
         {editVehicle && <input type="hidden" name="vehicleId" value={editVehicle.id} />}
 
         <div className="grid gap-4 md:grid-cols-3">
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             Title
             <input
               name="title"
@@ -180,11 +181,12 @@ export default function VehicleForm({
               required
               maxLength={140}
               placeholder="e.g., 2023 Toyota Camry Hybrid"
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all aria-invalid:border-destructive"
             />
+            <span className="text-xs text-muted-foreground">The listing title customers will see</span>
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             Make
             <input
               name="make"
@@ -192,11 +194,11 @@ export default function VehicleForm({
               required
               maxLength={80}
               placeholder="e.g., Toyota"
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all aria-invalid:border-destructive"
             />
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             Model
             <input
               name="model"
@@ -204,11 +206,11 @@ export default function VehicleForm({
               required
               maxLength={80}
               placeholder="e.g., Camry"
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all aria-invalid:border-destructive"
             />
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             Year
             <input
               name="year"
@@ -217,11 +219,11 @@ export default function VehicleForm({
               required
               min={1990}
               max={2030}
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all aria-invalid:border-destructive"
             />
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             Seats
             <input
               name="seats"
@@ -230,11 +232,11 @@ export default function VehicleForm({
               required
               min={2}
               max={12}
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all aria-invalid:border-destructive"
             />
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             Daily Price (AUD)
             <input
               name="pricePerDayAud"
@@ -244,11 +246,12 @@ export default function VehicleForm({
               min={20}
               max={2000}
               placeholder="e.g., 75"
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all aria-invalid:border-destructive"
             />
+            <span className="text-xs text-muted-foreground">Displayed on search results</span>
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             Daily Distance Limit (km)
             <input
               name="dailyDistanceLimitKm"
@@ -257,11 +260,12 @@ export default function VehicleForm({
               min={50}
               max={1000}
               placeholder="Leave blank for unlimited"
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all aria-invalid:border-destructive"
             />
+            <span className="text-xs text-muted-foreground">Leave blank for unlimited daily km</span>
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             Extra Distance Fee (AUD/km)
             <input
               name="extraDistanceFeeAud"
@@ -271,11 +275,12 @@ export default function VehicleForm({
               min={0.10}
               max={5.00}
               placeholder="e.g., 0.35"
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all aria-invalid:border-destructive"
             />
+            <span className="text-xs text-muted-foreground">Charged per km over the daily limit</span>
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             Hourly Rate (AUD)
             <input
               name="hourlyRateAud"
@@ -283,11 +288,11 @@ export default function VehicleForm({
               defaultValue={editVehicle?.hourly_rate_aud || ""}
               min={0}
               placeholder="e.g., 15"
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all aria-invalid:border-destructive"
             />
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             Weekly Rate (AUD)
             <input
               name="weeklyRateAud"
@@ -295,11 +300,11 @@ export default function VehicleForm({
               defaultValue={editVehicle?.weekly_rate_aud || ""}
               min={0}
               placeholder="e.g., 400"
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all aria-invalid:border-destructive"
             />
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             Monthly Rate (AUD)
             <input
               name="monthlyRateAud"
@@ -307,11 +312,11 @@ export default function VehicleForm({
               defaultValue={editVehicle?.monthly_rate_aud || ""}
               min={0}
               placeholder="e.g., 1200"
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all aria-invalid:border-destructive"
             />
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             Weekend Rate (AUD)
             <input
               name="weekendRateAud"
@@ -319,50 +324,52 @@ export default function VehicleForm({
               defaultValue={editVehicle?.weekend_rate_aud || ""}
               min={0}
               placeholder="e.g., 150"
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all aria-invalid:border-destructive"
             />
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             VIN (Vehicle ID Number)
             <input
               name="vin"
               defaultValue={editVehicle?.vin || ""}
               maxLength={100}
               placeholder="e.g., 1HGCM82633A004..."
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal uppercase"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all uppercase aria-invalid:border-destructive"
             />
+            <span className="text-xs text-muted-foreground">Internal use only — not shown publicly</span>
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             License Plate
             <input
               name="licensePlate"
               defaultValue={editVehicle?.license_plate || ""}
               maxLength={40}
               placeholder="e.g., ABC-123"
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal uppercase"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all uppercase aria-invalid:border-destructive"
             />
+            <span className="text-xs text-muted-foreground">Internal use only — not shown publicly</span>
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             Color
             <input
               name="color"
               defaultValue={editVehicle?.color || ""}
               maxLength={60}
               placeholder="e.g., White"
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all aria-invalid:border-destructive"
             />
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             Fuel Type
             <select
               name="fuel"
               defaultValue={editVehicle?.fuel || "Petrol"}
               required
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all"
             >
               {fuelTypes.map((t) => (
                 <option key={t} value={t}>
@@ -372,13 +379,13 @@ export default function VehicleForm({
             </select>
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             Transmission
             <select
               name="transmission"
               defaultValue={editVehicle?.transmission || "Automatic"}
               required
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all"
             >
               {transmissions.map((t) => (
                 <option key={t} value={t}>
@@ -388,13 +395,13 @@ export default function VehicleForm({
             </select>
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             Category
             <select
               name="category"
               defaultValue={editVehicle?.category || "Sedan"}
               required
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all"
             >
               {categories.map((c) => (
                 <option key={c} value={c}>
@@ -404,7 +411,7 @@ export default function VehicleForm({
             </select>
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700 md:col-span-3">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground md:col-span-3">
             Internal Notes
             <textarea
               name="notes"
@@ -412,18 +419,19 @@ export default function VehicleForm({
               maxLength={1000}
               rows={2}
               placeholder="Internal fleet notes, e.g., Public holiday rate may vary..."
-              className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all aria-invalid:border-destructive"
             />
+            <span className="text-xs text-muted-foreground">Only visible to your team</span>
           </label>
         </div>
 
-        <label className="grid gap-2 text-sm font-medium text-slate-700">
+        <label className="grid gap-1.5 text-sm font-medium text-foreground">
           Branch
           <select
             name="branchId"
             defaultValue={editVehicle?.branch_id || ""}
             required
-            className="rounded-md border border-slate-300 px-3 py-2 font-normal"
+            className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all"
           >
             <option value="">Select a branch</option>
             {branches.map((b) => (
@@ -432,6 +440,7 @@ export default function VehicleForm({
               </option>
             ))}
           </select>
+          <span className="text-xs text-muted-foreground">The pickup location for this vehicle</span>
         </label>
 
         <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">

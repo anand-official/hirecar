@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { requireAdmin } from "@/lib/security/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { Card, CardContent } from "@/components/ui/card";
+import { AdminFraudTable } from "./fraud-table";
 
 export const metadata = {
   title: "Fraud & Abuse",
@@ -101,10 +102,17 @@ export default async function AdminFraudPage() {
       }
 
       return {
-        ...flag,
-        vendorName,
-        vehicleTitle,
-        vendorId,
+        id: flag.id,
+        resource_type: flag.resource_type,
+        resource_id: flag.resource_id,
+        severity: flag.severity as string,
+        reason: flag.reason,
+        status: flag.status as string,
+        created_at: flag.created_at,
+        reviewed_at: flag.reviewed_at as string | null,
+        vendor_name: vendorName ?? "Unknown",
+        vehicle_title: vehicleTitle ?? "",
+        vendor_id: vendorId,
         reviewer: (flag.profiles as unknown as { full_name: string })?.full_name ?? null,
       };
     }),
@@ -116,148 +124,40 @@ export default async function AdminFraudPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg border border-slate-800 bg-slate-950 p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-white">Fraud & Abuse</h1>
-        <p className="mt-2 text-slate-400">
+      <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        <h1 className="text-2xl font-semibold text-foreground">Fraud & Abuse</h1>
+        <p className="mt-2 text-muted-foreground">
           Investigate suspicious leads, contact-click spikes, duplicate listings, and vendor reports.
         </p>
       </section>
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-lg border border-slate-800 bg-slate-950 p-4">
-          <div className="text-2xl font-bold text-red-500">{openCount}</div>
-          <div className="text-sm text-slate-400">Open Flags</div>
-        </div>
-        <div className="rounded-lg border border-slate-800 bg-slate-950 p-4">
-          <div className="text-2xl font-bold text-amber-500">{reviewingCount}</div>
-          <div className="text-sm text-slate-400">Under Review</div>
-        </div>
-        <div className="rounded-lg border border-slate-800 bg-slate-950 p-4">
-          <div className="text-2xl font-bold text-green-500">{closedCount}</div>
-          <div className="text-sm text-slate-400">Closed</div>
-        </div>
+        <Card variant="elevated" size="sm">
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">{openCount}</div>
+            <div className="text-sm text-muted-foreground">Open Flags</div>
+          </CardContent>
+        </Card>
+        <Card variant="elevated" size="sm">
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{reviewingCount}</div>
+            <div className="text-sm text-muted-foreground">Under Review</div>
+          </CardContent>
+        </Card>
+        <Card variant="elevated" size="sm">
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{closedCount}</div>
+            <div className="text-sm text-muted-foreground">Closed</div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Flags List */}
-      <div className="space-y-4">
-        {enrichedFlags.length === 0 ? (
-          <div className="rounded-lg border border-slate-800 bg-slate-950 p-8 text-center">
-            <p className="text-slate-400">No fraud flags found.</p>
-          </div>
-        ) : (
-          enrichedFlags.map((flag) => (
-            <div
-              key={flag.id}
-              className={`rounded-lg border ${flag.status === "open" ? "border-red-900/50" : "border-slate-800"} bg-slate-950 p-6 shadow-sm`}
-            >
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        flag.severity === "critical"
-                          ? "bg-red-900/30 text-red-400"
-                          : flag.severity === "high"
-                            ? "bg-orange-900/30 text-orange-400"
-                            : flag.severity === "medium"
-                              ? "bg-yellow-900/30 text-yellow-400"
-                              : "bg-slate-800 text-slate-300"
-                      }`}
-                    >
-                      {flag.severity}
-                    </span>
-                    <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium capitalize text-slate-300">
-                      {flag.resource_type.replace(/_/g, " ")}
-                    </span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        flag.status === "open"
-                          ? "bg-red-900/30 text-red-400"
-                          : flag.status === "reviewing"
-                            ? "bg-amber-900/30 text-amber-400"
-                            : "bg-green-900/30 text-green-400"
-                      }`}
-                    >
-                      {flag.status}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-slate-300">{flag.reason}</p>
-
-                  {flag.vendorName && (
-                    <p className="mt-1 text-sm text-slate-400">
-                      <span className="font-medium text-slate-300">Vendor:</span>{" "}
-                      {flag.vendorId ? (
-                        <Link href={`/admin/vendors?status=approved`} className="text-blue-500 hover:underline">
-                          {flag.vendorName}
-                        </Link>
-                      ) : (
-                        flag.vendorName
-                      )}
-                    </p>
-                  )}
-                  {flag.vehicleTitle && (
-                    <p className="text-sm text-slate-400">
-                      <span className="font-medium text-slate-300">Vehicle:</span> {flag.vehicleTitle}
-                    </p>
-                  )}
-
-                  <p className="mt-2 text-xs text-slate-500">
-                    Created {new Date(flag.created_at).toLocaleDateString("en-AU")}
-                    {flag.reviewed_at && (
-                      <>
-                        {" "}
-                        · Reviewed {new Date(flag.reviewed_at).toLocaleDateString("en-AU")} by {flag.reviewer}
-                      </>
-                    )}
-                  </p>
-                </div>
-
-                <div className="flex gap-2">
-                  {flag.status === "open" && (
-                    <>
-                      <form action={updateFraudFlagStatus.bind(null, "close", flag.id)}>
-                        <button
-                          type="submit"
-                          className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-                        >
-                          Close Flag
-                        </button>
-                      </form>
-                      <Link
-                        href={`/admin/audit?type=${flag.resource_type}&id=${flag.resource_id}`}
-                        className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
-                      >
-                        View Audit Log
-                      </Link>
-                    </>
-                  )}
-                  {flag.status === "reviewing" && (
-                    <>
-                      <form action={updateFraudFlagStatus.bind(null, "close", flag.id)}>
-                        <button
-                          type="submit"
-                          className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-                        >
-                          Close Flag
-                        </button>
-                      </form>
-                      <form action={updateFraudFlagStatus.bind(null, "reopen", flag.id)}>
-                        <button
-                          type="submit"
-                          className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
-                        >
-                          Reopen
-                        </button>
-                      </form>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+      {/* Fraud Flags Table */}
+      <AdminFraudTable
+        data={enrichedFlags}
+        updateFraudFlagStatus={updateFraudFlagStatus}
+      />
     </div>
   );
 }

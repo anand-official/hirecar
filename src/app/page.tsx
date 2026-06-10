@@ -4,287 +4,360 @@ import { SiteHeader } from "@/components/site-header";
 import { VehicleCard } from "@/components/vehicle-card";
 import { SearchWidget } from "@/components/search-widget";
 import { LocationCard } from "@/components/location-card";
+import { TrustSignals } from "@/components/trust-signals";
+import { HowItWorks } from "@/components/how-it-works";
 import { SiteFooter } from "@/components/site-footer";
 import { searchVehicles } from "@/lib/search/typesense";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { MotionScroll } from "@/components/motion-scroll";
-import { 
+import { Section } from "@/components/ui/section";
+import {
   ArrowRight,
-  ShieldCheck,
-  CheckCircle2,
-  Zap,
-  Car,
-  DollarSign,
   ChevronDown,
-  Search,
-  Star
+  Star,
+  CheckCircle2,
 } from "lucide-react";
 
 export const metadata = {
-  title: "Carhire | Premium Car Rental",
-  description: "Australia's trusted premium car rental marketplace",
+  title: "HireCar Marketplace | Premium Car Rental",
+  description: "Premium car rental. Without the premium price.",
 };
 
 const popularLocations = [
-  { name: "Sydney", imageUrl: "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=600&q=80", vehicleCount: 142, startingPrice: 45, href: "/search?city=Sydney" },
-  { name: "Melbourne", imageUrl: "https://images.unsplash.com/photo-1514395462725-fb4566210144?auto=format&fit=crop&w=600&q=80", vehicleCount: 98, startingPrice: 42, href: "/search?city=Melbourne" },
-  { name: "Brisbane", imageUrl: "https://images.unsplash.com/photo-1583416750470-965b4387ce43?auto=format&fit=crop&w=600&q=80", vehicleCount: 65, startingPrice: 40, href: "/search?city=Brisbane" },
+  { name: "Sydney", imageUrl: "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=600&q=80", href: "/search?city=Sydney" },
+  { name: "Melbourne", imageUrl: "https://images.unsplash.com/photo-1514395462725-fb4566210144?auto=format&fit=crop&w=600&q=80", href: "/search?city=Melbourne" },
+  { name: "Brisbane", imageUrl: "https://images.unsplash.com/photo-1554939437-ecc492c67b78?auto=format&fit=crop&w=600&q=80", href: "/search?city=Brisbane" },
+  { name: "Perth", imageUrl: "/perth.png", href: "/search?city=Perth" },
+  { name: "Adelaide", imageUrl: "https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=600&q=80", href: "/search?city=Adelaide" },
+  { name: "Gold Coast", imageUrl: "https://images.unsplash.com/photo-1535961652354-923cb08225a7?auto=format&fit=crop&w=600&q=80", href: "/search?city=Gold+Coast" },
 ];
 
-// testimonials array removed
+const testimonials = [
+  {
+    quote: "Found a great deal on a van in Melbourne. The vendor was responsive and the booking process was seamless. Will definitely use again.",
+    rating: 5,
+    name: "Sarah M.",
+  },
+  {
+    quote: "Compared prices across multiple operators in Sydney and saved over $200 on a week-long rental. Highly recommend this platform.",
+    rating: 5,
+    name: "James T.",
+  },
+  {
+    quote: "As a frequent traveller, having verified operators gives me peace of mind. Clean cars, fair prices, no surprises.",
+    rating: 4,
+    name: "Michelle K.",
+  },
+  {
+    quote: "Booked a ute for a weekend move in Brisbane. Direct contact with the owner made everything simple and stress-free.",
+    rating: 5,
+    name: "David R.",
+  },
+];
+
 export default async function Home() {
-  const { vehicles: featuredVehicles } = await searchVehicles("", {}, { page: 1, perPage: 4 });
+  const { vehicles: featuredVehicles } = await searchVehicles("", {}, { page: 1, perPage: 6 });
+
+  // Fetch live vehicle counts and min prices per city
+  const supabase = createAdminClient();
+  const { data: cityStats } = await supabase
+    .from("vehicles")
+    .select("price_per_day_aud, branches!inner(city, status)")
+    .eq("status", "approved")
+    .eq("branches.status", "approved");
+
+  const cityDataMap: Record<string, { count: number; minPrice: number }> = {};
+  cityStats?.forEach((v) => {
+    type BranchRecord = { city: string; status: string };
+    const branch = v.branches as unknown as BranchRecord;
+    if (branch?.city) {
+      if (!cityDataMap[branch.city]) {
+        cityDataMap[branch.city] = { count: 0, minPrice: v.price_per_day_aud };
+      }
+      cityDataMap[branch.city].count += 1;
+      if (v.price_per_day_aud < cityDataMap[branch.city].minPrice) {
+        cityDataMap[branch.city].minPrice = v.price_per_day_aud;
+      }
+    }
+  });
+
+  // Merge live data with location configs
+  const locationsWithData = popularLocations.map((loc) => ({
+    ...loc,
+    vehicleCount: cityDataMap[loc.name]?.count ?? 0,
+    startingPrice: cityDataMap[loc.name]?.minPrice ?? 0,
+  }));
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans overflow-x-hidden selection:bg-[#ea580c] selection:text-white">
+    <div className="min-h-screen bg-white text-foreground font-sans overflow-x-hidden">
       <SiteHeader />
-      
+
       <main>
-        {/* Cinematic Hero Section */}
-        <section className="relative h-[650px] flex flex-col items-center justify-center pt-24 pb-16 overflow-hidden">
-          {/* Base Image */}
-          <Image
-            src="https://images.unsplash.com/photo-1542282088-fe8426682b8f?auto=format&fit=crop&q=80"
-            alt="Yellow sports car"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover scale-105 transform-gpu"
-          />
-          {/* Advanced Color Grading / Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0f172a]/90 via-[#0f172a]/40 to-transparent mix-blend-multiply" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,0,0,0)_0%,_rgba(0,0,0,0.6)_100%)]" />
-          
-          <MotionScroll variant="fade-up" className="relative z-10 text-center px-4 -mt-10 md:-mt-20">
-            <h1 className="text-4xl sm:text-5xl md:text-[6rem] font-black tracking-tight leading-[0.95]">
-              <span className="text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.4)]">Premium car rental.</span>
-              <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ea580c] to-amber-500 drop-shadow-[0_4px_12px_rgba(234,88,12,0.4)]">
-                Without the premium price.
-              </span>
-            </h1>
-            <p className="mt-6 md:mt-8 text-lg md:text-xl text-slate-200 font-medium max-w-2xl mx-auto drop-shadow-lg leading-relaxed">
-              Book directly with verified Australian operators. Transparent pricing, instant confirmation, zero hidden fees.
-            </p>
-          </MotionScroll>
+        {/* ===== 1. HERO SECTION ===== */}
+        <section className="relative bg-white pb-0">
+          <div className="relative overflow-hidden bg-slate-950 min-h-[520px] flex items-center">
+            {/* Background car image */}
+            <Image
+              src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1600&q=80"
+              alt="Premium rental car"
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover object-right opacity-90"
+            />
+            {/* Gradient overlays for depth + legibility */}
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-transparent" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(234,88,12,0.18)_0%,_transparent_55%)]" />
+
+            {/* Content */}
+            <div className="relative z-10 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8">
+              <div className="max-w-2xl py-16 lg:py-20">
+                <h1 className="text-4xl sm:text-5xl lg:text-[3.75rem] font-black text-white tracking-tight leading-[1.05]">
+                  Find the right vehicle,{" "}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#fb923c] to-[#ea580c]">
+                    direct from trusted operators.
+                  </span>
+                </h1>
+
+                <p className="mt-6 text-lg text-slate-300 max-w-lg leading-relaxed">
+                  Compare cars, vans, utes and luxury vehicles from verified Australian rental businesses. No marketplace fees, ever.
+                </p>
+
+                <div className="mt-9 flex flex-wrap items-center gap-4">
+                  <Link
+                    href="/search"
+                    className="group inline-flex items-center gap-2 rounded-xl bg-[#ea580c] px-7 py-3.5 text-sm font-bold text-white hover:bg-[#f97316] transition-all shadow-xl shadow-[#ea580c]/30 hover:scale-[1.02]"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    Search Vehicles
+                  </Link>
+                  <Link
+                    href="/for-vendors"
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 backdrop-blur-sm px-6 py-3.5 text-sm font-bold text-white hover:bg-white/10 transition-colors"
+                  >
+                    List Your Fleet Free <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+
+                {/* Inline mini trust row */}
+                <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-400">
+                  <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-emerald-400" /> Verified businesses</span>
+                  <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-emerald-400" /> No hidden fees</span>
+                  <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-emerald-400" /> Australia-wide</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Search Widget — overlapping the banner */}
+          <div className="relative z-20 -mt-10 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
+            <SearchWidget variant="hero" />
+          </div>
         </section>
 
-        {/* Search Widget Container */}
-        <MotionScroll variant="scale-in" delay={0.2} className="relative z-20 -mt-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-          <SearchWidget variant="hero" />
-        </MotionScroll>
+        {/* ===== 2. TRUST SIGNALS ===== */}
+        <TrustSignals />
 
-        {/* Why rent with Carhire? - Bento Grid Style */}
-        <section className="pt-16 pb-20 md:pt-24 md:pb-32 bg-slate-50 relative overflow-hidden">
-          {/* Subtle background glow */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-orange-100/50 rounded-full blur-3xl -z-10" />
+        {/* ===== 3. HOW IT WORKS ===== */}
+        <HowItWorks />
 
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-            <MotionScroll variant="fade-up" className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-black mb-4 text-slate-900 tracking-tight">Why rent with Carhire?</h2>
-              <p className="text-lg text-slate-500 max-w-2xl mx-auto font-medium">
-                We connect you directly with verified local rental operators. No middlemen, no surprises.
+        {/* ===== 4. FEATURED VEHICLES ===== */}
+        {featuredVehicles.length > 0 && (
+          <Section variant="default" size="md" container>
+            <MotionScroll variant="fade-up" className="mb-10">
+              <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+                Featured Vehicles
+              </h2>
+              <p className="mt-3 text-muted-foreground text-lg">
+                Browse top-rated rentals available now
               </p>
             </MotionScroll>
 
-            <MotionScroll variant="stagger-container" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
-              {[
-                { icon: ShieldCheck, title: "Best price guaranteed", desc: "Compare and save with verified local operators. No hidden fees or surprises.", color: "from-blue-500 to-blue-600", light: "bg-blue-50", iconColor: "text-blue-600" },
-                { icon: Car, title: "Premium vehicle fleet", desc: "From economy to luxury, all vehicles maintained to high standards.", color: "from-purple-500 to-purple-600", light: "bg-purple-50", iconColor: "text-purple-600" },
-                { icon: DollarSign, title: "No hidden fees", desc: "Transparent pricing. What you see is what you pay. Full cost breakdown.", color: "from-emerald-500 to-emerald-600", light: "bg-emerald-50", iconColor: "text-emerald-600" },
-                { icon: Zap, title: "Instant confirmation", desc: "Book directly with vendors. No waiting, no middleman fees. Get driving.", color: "from-orange-500 to-orange-600", light: "bg-orange-50", iconColor: "text-[#ea580c]" }
-              ].map((feature, i) => (
-                <MotionScroll key={i} variant="stagger-item" className="bg-white rounded-[2rem] p-8 shadow-xl shadow-slate-200/50 border border-slate-100 hover:-translate-y-2 transition-all duration-300 group">
-                  <div className={`h-14 w-14 ${feature.light} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                    <feature.icon className={`h-7 w-7 ${feature.iconColor}`} />
-                  </div>
-                  <h3 className="text-xl font-bold mb-3 text-slate-900">{feature.title}</h3>
-                  <p className="text-slate-500 text-sm leading-relaxed font-medium">
-                    {feature.desc}
-                  </p>
+            <MotionScroll variant="stagger-container" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredVehicles.map((vehicle) => (
+                <MotionScroll key={vehicle.id} variant="stagger-item">
+                  <VehicleCard vehicle={vehicle} priority={false} />
                 </MotionScroll>
               ))}
             </MotionScroll>
-          </div>
-        </section>
 
-        {/* How Carhire works */}
-        <section className="py-16 md:py-32 bg-white text-center">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <MotionScroll variant="fade-up" className="mb-24">
-              <h2 className="text-4xl md:text-5xl font-black mb-4 text-slate-900 tracking-tight">How Carhire works</h2>
-              <p className="text-lg text-slate-500 max-w-2xl mx-auto font-medium">
-                Renting a car has never been easier. Three simple steps to get you on the road.
-              </p>
-            </MotionScroll>
-
-            <div className="relative">
-              {/* Vibrant Connecting Line */}
-              <div className="hidden md:block absolute top-12 left-[15%] right-[15%] h-1.5 bg-gradient-to-r from-[#ea580c]/20 via-[#ea580c] to-amber-500/20 rounded-full -z-10" />
-
-              <MotionScroll variant="stagger-container" className="grid grid-cols-1 md:grid-cols-3 gap-16 text-center">
-                {[
-                  { icon: Search, step: "1", title: "Search & Compare", desc: "Browse vehicles from verified local operators. Filter by location, dates, and vehicle type." },
-                  { icon: CheckCircle2, step: "2", title: "Book Directly", desc: "Contact vendors instantly, no middleman fees. Get transparent pricing and instant confirmation." },
-                  { icon: Car, step: "3", title: "Pick Up & Drive", desc: "Collect your vehicle and enjoy the journey. All vendors are verified and rated by customers." }
-                ].map((item, i) => (
-                  <MotionScroll key={i} variant="stagger-item" className="flex flex-col items-center relative group">
-                    <div className="h-24 w-24 bg-gradient-to-br from-[#ea580c] to-amber-500 rounded-[2rem] rotate-3 flex items-center justify-center mb-8 shadow-2xl shadow-orange-500/40 text-white group-hover:rotate-0 group-hover:scale-110 transition-all duration-300">
-                      <item.icon className="h-10 w-10 -rotate-3 group-hover:rotate-0 transition-all duration-300" strokeWidth={2.5} />
-                    </div>
-                    <div className="absolute top-[-10px] right-[25%] bg-slate-900 text-white w-10 h-10 rounded-xl flex items-center justify-center font-black shadow-lg border-2 border-white z-10 rotate-12 group-hover:rotate-0 transition-all">
-                      {item.step}
-                    </div>
-                    <h3 className="text-2xl font-black mb-4 text-slate-900">{item.title}</h3>
-                    <p className="text-slate-500 text-base leading-relaxed max-w-[280px] font-medium">
-                      {item.desc}
-                    </p>
-                  </MotionScroll>
-                ))}
-              </MotionScroll>
-            </div>
-          </div>
-        </section>
-
-        {/* Bento Grid Promos - Upgraded Gradients and Imagery */}
-        <section className="py-16 pb-20 md:py-24 md:pb-32 bg-slate-950">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <MotionScroll variant="fade-up" className="mb-12">
-              <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">Unlock special deals</h2>
-              <p className="mt-4 text-lg text-slate-400 font-medium">Exclusive offers from our premium vendor network.</p>
-            </MotionScroll>
-
-            <MotionScroll variant="stagger-container" className="grid grid-cols-1 md:grid-cols-2 gap-8 h-auto md:h-[550px]">
-              
-              {/* Weekend Getaway Image Card */}
-              <MotionScroll variant="stagger-item" className="relative rounded-[2.5rem] overflow-hidden group h-[400px] md:h-full shadow-2xl border border-white/10">
-                <Image
-                  src="https://images.unsplash.com/photo-1527668752968-14ce70a31294?auto=format&fit=crop&q=80"
-                  alt="Weekend getaway"
-                  fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-cover group-hover:scale-105 transition-transform duration-1000 ease-out"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a]/90 via-[#0f172a]/40 to-transparent" />
-                <div className="absolute inset-0 p-10 md:p-12 flex flex-col justify-end">
-                  <div className="absolute top-10 left-10 bg-gradient-to-r from-[#ea580c] to-amber-500 text-white text-xs font-black px-4 py-2 rounded-full shadow-lg tracking-wider">
-                    UP TO 20% OFF
-                  </div>
-                  <h3 className="text-4xl md:text-5xl font-black text-white mb-4 leading-[1.1] tracking-tight">Weekend<br/>getaway deals</h3>
-                  <p className="text-slate-300 mb-8 max-w-sm font-medium leading-relaxed">Book 3+ day rentals with verified local operators and save big on your next adventure.</p>
-                  <div>
-                    <Link href="/search" className="inline-flex items-center gap-2 bg-white text-slate-900 hover:bg-slate-100 px-8 py-4 rounded-full font-bold transition-all shadow-xl hover:scale-105">
-                      Explore deals <ArrowRight className="h-5 w-5" />
-                    </Link>
-                  </div>
-                </div>
-              </MotionScroll>
-
-              {/* Stacked Solid Cards */}
-              <div className="grid grid-rows-2 gap-8 h-full">
-                {/* Vendor Bonus Green Card */}
-                <MotionScroll variant="stagger-item" className="relative bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-[2.5rem] p-10 text-white flex flex-col justify-center shadow-2xl overflow-hidden group">
-                  <div className="absolute -right-10 -bottom-10 opacity-20 group-hover:scale-110 transition-transform duration-700">
-                    <Star className="w-64 h-64" />
-                  </div>
-                  <div className="relative z-10">
-                    <h3 className="text-3xl md:text-4xl font-black mb-2 tracking-tight">First-time vendor?</h3>
-                    <p className="text-xl font-bold mb-4 text-emerald-100">List free for 30 days</p>
-                    <p className="text-emerald-50/80 mb-8 max-w-sm font-medium">Join as a vendor and list your first vehicle with no subscription fees.</p>
-                    <div>
-                      <Link href="/vendor/onboarding" className="inline-flex items-center gap-2 bg-white/20 hover:bg-white text-white hover:text-emerald-900 px-6 py-3 rounded-full font-bold transition-colors backdrop-blur-md">
-                        Become a vendor <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    </div>
-                  </div>
-                </MotionScroll>
-
-                {/* Family Vacation Blue Card */}
-                <MotionScroll variant="stagger-item" className="relative bg-gradient-to-br from-blue-600 to-indigo-800 rounded-[2.5rem] p-10 text-white flex flex-col justify-center shadow-2xl overflow-hidden group">
-                  <div className="absolute -right-10 -bottom-10 opacity-20 group-hover:scale-110 transition-transform duration-700">
-                    <Car className="w-64 h-64" />
-                  </div>
-                  <div className="relative z-10">
-                    <h3 className="text-3xl md:text-4xl font-black mb-2 tracking-tight">Family specials</h3>
-                    <p className="text-xl font-bold mb-4 text-blue-200">People movers & SUVs</p>
-                    <p className="text-blue-100/80 mb-8 max-w-sm font-medium">Spacious vehicles for family trips starting from just $75/day.</p>
-                    <div>
-                      <Link href="/search?category=SUV" className="inline-flex items-center gap-2 bg-white/20 hover:bg-white text-white hover:text-blue-900 px-6 py-3 rounded-full font-bold transition-colors backdrop-blur-md">
-                        View SUVs <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    </div>
-                  </div>
-                </MotionScroll>
-              </div>
-            </MotionScroll>
-          </div>
-        </section>
-
-        {/* Popular Locations Section */}
-        <section className="py-16 md:py-32 bg-[#fafafa]">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <MotionScroll variant="fade-up" className="flex flex-col md:flex-row md:items-end justify-between mb-16">
-              <div>
-                <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">Popular Destinations</h2>
-                <p className="mt-4 text-lg text-slate-500 font-medium">Find the perfect car in Australia&apos;s top cities</p>
-              </div>
+            <div className="mt-10 flex justify-center">
               <Link
                 href="/search"
-                className="mt-6 md:mt-0 inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-900 border border-slate-200 px-6 py-3 rounded-full font-bold shadow-sm transition-all hover:shadow-md"
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
               >
-                Browse all cities <ArrowRight className="h-4 w-4" />
+                View All Vehicles <ArrowRight className="h-4 w-4" />
               </Link>
-            </MotionScroll>
+            </div>
+          </Section>
+        )}
 
-            <MotionScroll variant="stagger-container" className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {popularLocations.map((location) => (
-                <MotionScroll key={location.name} variant="stagger-item">
-                  <LocationCard
-                    name={location.name}
-                    imageUrl={location.imageUrl}
-                    vehicleCount={location.vehicleCount}
-                    startingPrice={location.startingPrice}
-                    href={location.href}
-                  />
-                </MotionScroll>
-              ))}
-            </MotionScroll>
+        {/* ===== 5. TESTIMONIALS ===== */}
+        <Section variant="default" size="md" container>
+          <MotionScroll variant="fade-up" className="mb-10 text-center">
+            <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+              What Our Customers Say
+            </h2>
+            <p className="mt-3 text-muted-foreground text-lg max-w-2xl mx-auto">
+              Trusted by thousands of renters across Australia
+            </p>
+          </MotionScroll>
+
+          <MotionScroll variant="stagger-container" className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {testimonials.map((testimonial, index) => (
+              <MotionScroll key={index} variant="stagger-item">
+                <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                  {/* Star rating */}
+                  <div className="flex items-center gap-1 mb-4">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`h-4 w-4 ${
+                          i < testimonial.rating
+                            ? "text-yellow-400 fill-yellow-400"
+                            : "text-muted-foreground/30"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  {/* Quote */}
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                    &ldquo;{testimonial.quote}&rdquo;
+                  </p>
+                  {/* Reviewer name */}
+                  <p className="text-sm font-bold text-foreground">
+                    {testimonial.name}
+                  </p>
+                </div>
+              </MotionScroll>
+            ))}
+          </MotionScroll>
+        </Section>
+
+        {/* ===== 6. POPULAR LOCATIONS ===== */}
+        <Section variant="muted" size="md" container>
+          <MotionScroll variant="fade-up" className="mb-10">
+            <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+              Popular Locations
+            </h2>
+            <p className="mt-3 text-muted-foreground text-lg">
+              Explore car hire options across Australia
+            </p>
+          </MotionScroll>
+
+          <MotionScroll variant="stagger-container" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {locationsWithData.map((location) => (
+              <MotionScroll key={location.name} variant="stagger-item">
+                <LocationCard
+                  name={location.name}
+                  imageUrl={location.imageUrl}
+                  vehicleCount={location.vehicleCount}
+                  startingPrice={location.startingPrice || 35}
+                  href={location.href}
+                />
+              </MotionScroll>
+            ))}
+          </MotionScroll>
+
+          <div className="mt-10 flex justify-center">
+            <Link
+              href="/locations"
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-bold text-foreground hover:bg-accent transition-colors"
+            >
+              View All Locations <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </Section>
+
+        {/* ===== 7. VENDOR CTA ===== */}
+        <section className="relative py-24 md:py-32 overflow-hidden">
+          {/* Dramatic background */}
+          <div className="absolute inset-0">
+            <Image
+              src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=1600&q=80"
+              alt="Fleet of premium cars"
+              fill
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0f172a] via-[#0f172a]/90 to-transparent" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(234,88,12,0.15)_0%,_transparent_60%)]" />
+          </div>
+
+          {/* Floating decorative elements */}
+          <div className="absolute top-10 right-10 w-72 h-72 rounded-full bg-[#ea580c]/5 blur-3xl" />
+          <div className="absolute bottom-10 left-1/3 w-96 h-96 rounded-full bg-blue-500/5 blur-3xl" />
+
+          <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 rounded-full bg-[#ea580c]/10 border border-[#ea580c]/20 px-4 py-1.5 mb-8">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ea580c] opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#ea580c]" />
+                </span>
+                <span className="text-xs font-bold text-[#ea580c] uppercase tracking-wider">Now accepting new operators</span>
+              </div>
+
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.1] mb-6">
+                Get More Leads<br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ea580c] to-amber-400">
+                  for Your Fleet
+                </span>
+              </h2>
+
+              <p className="text-lg md:text-xl text-slate-300 font-medium mb-10 max-w-lg leading-relaxed">
+                Join verified operators reaching thousands of renters every month across Australia.
+              </p>
+
+              {/* Benefits with premium styling */}
+              <div className="grid sm:grid-cols-2 gap-4 mb-10">
+                {[
+                  "Reach more customers Australia-wide",
+                  "Direct enquiries — no middleman fees",
+                  "Verified operator badge builds trust",
+                  "Analytics dashboard included",
+                ].map((benefit) => (
+                  <div
+                    key={benefit}
+                    className="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-4 py-3"
+                  >
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#ea580c] text-white text-xs font-bold shadow-lg shadow-[#ea580c]/20">
+                      ✓
+                    </span>
+                    <span className="text-sm font-medium text-slate-200">{benefit}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA with glow effect */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <Link
+                  href="/vendor/onboarding"
+                  className="group relative inline-flex items-center gap-2 rounded-full bg-[#ea580c] px-8 py-4 font-bold text-white text-lg hover:bg-[#dc5409] transition-all shadow-xl shadow-[#ea580c]/25 hover:shadow-[#ea580c]/40 hover:scale-[1.02]"
+                >
+                  List Your Fleet Free
+                  <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                </Link>
+                <span className="text-sm text-slate-400 font-medium">
+                  No credit card required · 2 min setup
+                </span>
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* Featured Vehicles Section */}
-        {featuredVehicles.length > 0 && (
-          <section className="py-16 md:py-32 bg-white border-t border-slate-100">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-              <MotionScroll variant="fade-up" className="flex flex-col md:flex-row md:items-end justify-between mb-16">
-                <div>
-                  <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">Featured vehicles</h2>
-                  <p className="mt-4 text-lg text-slate-500 font-medium">Hand-picked premium vehicles from our top-rated vendors</p>
-                </div>
-                <Link
-                  href="/search"
-                  className="mt-6 md:mt-0 inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-900 border border-slate-200 px-6 py-3 rounded-full font-bold shadow-sm transition-all hover:shadow-md"
-                >
-                  View all vehicles <ArrowRight className="h-4 w-4" />
-                </Link>
-              </MotionScroll>
-
-              <MotionScroll variant="stagger-container" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {featuredVehicles.map((vehicle) => (
-                  <MotionScroll key={vehicle.id} variant="stagger-item">
-                    <VehicleCard vehicle={vehicle} priority={false} />
-                  </MotionScroll>
-                ))}
-              </MotionScroll>
-            </div>
-          </section>
-        )}
+        {/* ===== ADDITIONAL SECTIONS (SEO & FAQ — not in spec order but add value) ===== */}
 
         {/* FAQ Section */}
-        <section className="py-16 md:py-32 bg-slate-50 border-t border-slate-100">
+        <section className="py-16 md:py-24 bg-muted/50 border-t border-border">
           <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-            <MotionScroll variant="fade-up" className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-6 tracking-tight">Frequently Asked Questions</h2>
-              <p className="text-lg text-slate-500 font-medium">Everything you need to know about booking with Carhire.</p>
+            <MotionScroll variant="fade-up" className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-extrabold text-foreground tracking-tight mb-4">
+                Frequently Asked Questions
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                Everything you need to know about booking with HireCar Marketplace.
+              </p>
             </MotionScroll>
 
             <MotionScroll variant="stagger-container" className="space-y-4">
@@ -295,14 +368,14 @@ export default async function Home() {
                 { q: "Do I need a special license?", a: "A valid standard driver's license from your home country is required. International drivers may need an International Driving Permit (IDP)." },
               ].map((faq, index) => (
                 <MotionScroll key={index} variant="stagger-item">
-                  <details className="group bg-white border border-slate-200 rounded-[1.5rem] p-8 cursor-pointer hover:border-orange-200 hover:shadow-lg hover:shadow-orange-100/50 transition-all">
-                    <summary className="flex justify-between items-center font-bold text-xl text-slate-900 list-none">
+                  <details className="group bg-card border border-border rounded-xl p-6 cursor-pointer hover:shadow-md transition-all">
+                    <summary className="flex justify-between items-center font-bold text-lg text-foreground list-none">
                       {faq.q}
-                      <span className="transition-transform duration-300 group-open:rotate-180 bg-slate-50 p-2 rounded-full group-hover:bg-orange-50 group-hover:text-[#ea580c]">
-                        <ChevronDown className="h-5 w-5" />
+                      <span className="transition-transform duration-300 group-open:rotate-180 bg-muted p-2 rounded-full">
+                        <ChevronDown className="h-4 w-4" />
                       </span>
                     </summary>
-                    <p className="text-slate-500 mt-6 leading-relaxed text-lg font-medium animate-fade-in border-t border-slate-100 pt-6">
+                    <p className="text-muted-foreground mt-4 leading-relaxed border-t border-border pt-4">
                       {faq.a}
                     </p>
                   </details>
@@ -312,6 +385,71 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* SEO Section */}
+        <section className="relative py-20 md:py-28 overflow-hidden">
+          {/* Background image */}
+          <div className="absolute inset-0">
+            <Image
+              src="https://images.unsplash.com/photo-1523482580672-f109ba8cb9be?auto=format&fit=crop&w=1600&q=80"
+              alt="Australian road"
+              fill
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0f172a]/95 via-[#0f172a]/85 to-[#0f172a]/70" />
+          </div>
+
+          <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-black text-white mb-6 tracking-tight leading-tight">
+                  Car Hire Across<br />Australia
+                </h2>
+                <div className="space-y-4 text-base text-slate-300 leading-relaxed">
+                  <p>
+                    HireCar Marketplace makes it easy to find the right vehicle from trusted rental operators across Australia. Compare options from verified businesses in one place.
+                  </p>
+                  <p>
+                    We work with rental companies in all major cities. From small cars to large vans and utes, hire vehicles for business or personal use with confidence.
+                  </p>
+                </div>
+
+                <div className="mt-8 flex flex-wrap gap-2">
+                  {["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Gold Coast"].map((city) => (
+                    <Link
+                      key={city}
+                      href={`/search?city=${city}`}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20 transition-colors"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-[#ea580c]" />
+                      {city}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              <div className="hidden md:flex flex-col items-center justify-center">
+                <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+                  <div className="rounded-2xl bg-white/10 border border-white/10 backdrop-blur-sm p-6 text-center">
+                    <p className="text-3xl font-black text-white">12+</p>
+                    <p className="text-sm text-slate-400 mt-1">Cities Covered</p>
+                  </div>
+                  <div className="rounded-2xl bg-white/10 border border-white/10 backdrop-blur-sm p-6 text-center">
+                    <p className="text-3xl font-black text-white">150+</p>
+                    <p className="text-sm text-slate-400 mt-1">Operators</p>
+                  </div>
+                  <div className="rounded-2xl bg-white/10 border border-white/10 backdrop-blur-sm p-6 text-center">
+                    <p className="text-3xl font-black text-[#ea580c]">$0</p>
+                    <p className="text-sm text-slate-400 mt-1">Booking Fees</p>
+                  </div>
+                  <div className="rounded-2xl bg-white/10 border border-white/10 backdrop-blur-sm p-6 text-center">
+                    <p className="text-3xl font-black text-white">24/7</p>
+                    <p className="text-sm text-slate-400 mt-1">Support</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
       <SiteFooter />

@@ -3,6 +3,7 @@ import { Inter, Outfit } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "sonner";
+import { WhatsAppFloat } from "@/components/whatsapp-float";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -18,11 +19,11 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: {
-    default: "Hire Car Marketplace — Australia's Trusted Car Rental Platform",
-    template: "%s | Hire Car Marketplace",
+    default: "HireCar Marketplace — Premium car rental. Without the premium price.",
+    template: "%s | HireCar Marketplace",
   },
   description:
-    "Australia's trusted marketplace for verified car rental operators. Compare vehicles from independent fleet owners for your next journey. No booking fees, direct contact with vendors.",
+    "Premium car rental. Without the premium price. Australia's trusted marketplace for verified car rental operators. Compare vehicles from independent fleet owners for your next journey.",
   keywords: ["car rental", "car hire", "Australia", "Sydney", "Melbourne", "Brisbane", "Perth", "rental marketplace"],
   metadataBase: new URL("https://www.hirecar.com.au"),
   alternates: {
@@ -33,24 +34,24 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_AU",
     url: "https://www.hirecar.com.au",
-    siteName: "Hire Car Marketplace",
-    title: "Hire Car Marketplace — Australia's Trusted Car Rental Platform",
+    siteName: "HireCar Marketplace",
+    title: "HireCar Marketplace — Premium car rental.",
     description:
-      "Compare vehicles from verified Australian rental operators. Transparent pricing, instant enquiries, zero hidden fees.",
+      "Premium car rental. Without the premium price. Compare vehicles from verified Australian rental operators.",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Hire Car Marketplace — Premium Car Rental in Australia",
+        alt: "HireCar Marketplace — Premium Car Rental in Australia",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Hire Car Marketplace — Australia's Trusted Car Rental Platform",
+    title: "HireCar Marketplace — Premium car rental.",
     description:
-      "Compare vehicles from verified Australian rental operators. Transparent pricing, zero hidden fees.",
+      "Premium car rental. Without the premium price. Compare vehicles from verified Australian rental operators.",
     images: ["/og-image.jpg"],
     creator: "@hirecarau",
   },
@@ -101,6 +102,7 @@ export default function RootLayout({
           </>
         )}
         {children}
+        <WhatsAppFloat phone={process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP ?? "61412345678"} />
         <Toaster richColors position="top-right" />
       </body>
     </html>

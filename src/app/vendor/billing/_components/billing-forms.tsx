@@ -68,7 +68,6 @@ export function CheckoutForm({
   buttonText: string;
 }) {
   const [loading, setLoading] = useState(false);
-  const [couponCode, setCouponCode] = useState("");
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -98,17 +97,6 @@ export function CheckoutForm({
       <input type="hidden" name="plan" value={plan} />
       <input type="hidden" name="interval" value={interval} />
       <input type="hidden" name="organizationId" value={organizationId} />
-      <input type="hidden" name="couponCode" value={couponCode} />
-      
-      <div className="relative">
-        <input 
-          type="text" 
-          placeholder="Promo code (optional)" 
-          value={couponCode}
-          onChange={(e) => setCouponCode(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm placeholder-slate-400 focus:border-[#ea580c] focus:outline-none focus:ring-1 focus:ring-[#ea580c] bg-white text-slate-900"
-        />
-      </div>
 
       <button
         type="submit"
