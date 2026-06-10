@@ -5,6 +5,21 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type Stripe from "stripe";
 
 export async function POST(request: NextRequest) {
+  try {
+    return await handleWebhook(request);
+  } catch (err) {
+    // Top-level safety net: surface the real error instead of a generic Vercel 500
+    const message = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack?.slice(0, 500) : undefined;
+    console.error("[stripe-webhook] Unhandled error:", message, stack);
+    return NextResponse.json(
+      { error: "Internal webhook error", detail: message },
+      { status: 500 },
+    );
+  }
+}
+
+async function handleWebhook(request: NextRequest) {
   const signature = request.headers.get("stripe-signature");
 
   if (!signature) {
