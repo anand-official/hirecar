@@ -41,7 +41,13 @@ export async function claimStripeWebhookEvent(
   const processingPayload = {
     id: event.id,
     event_type: event.type,
-    payload: serializeStripeEvent(event),
+    // Store a compact payload in the idempotency table; full event is saved in subscription_events.
+    payload: {
+      id: event.id,
+      type: event.type,
+      created: event.created,
+      livemode: event.livemode,
+    },
     processing_status: "processing" as const,
     received_at: receivedAt,
     processed_at: null,

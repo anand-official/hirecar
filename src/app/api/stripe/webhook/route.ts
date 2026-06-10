@@ -19,6 +19,7 @@ import type { PlanCode } from "@/lib/types";
 import type Stripe from "stripe";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   try {
@@ -81,7 +82,7 @@ async function handleWebhook(request: NextRequest) {
     const { error: subscriptionEventError } = await supabase.from("subscription_events").insert({
       stripe_event_id: event.id,
       event_type: event.type,
-      payload: event,
+      payload: JSON.parse(JSON.stringify(event)),
     });
 
     if (subscriptionEventError) {
@@ -214,7 +215,14 @@ async function processStripeEvent(
       }
 
       if (invoice.status === "paid" || event.type !== "invoice.finalized") {
-        await syncInvoiceRecord(supabase, invoice);
+        try {
+          await syncInvoiceRecord(supabase, invoice);
+        } catch (invoiceError) {
+          console.error(
+            `[stripe-webhook] Invoice sync failed for ${invoice.id}:`,
+            invoiceError instanceof Error ? invoiceError.message : invoiceError,
+          );
+        }
       }
       break;
     }
