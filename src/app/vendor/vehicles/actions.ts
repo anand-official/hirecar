@@ -9,6 +9,7 @@ import {
 } from "@/lib/data/vendor";
 import { vehicleSchema } from "@/lib/validation/schemas";
 import { uniqueSlug } from "@/lib/slug";
+import { invalidatePseoForVehicle } from "@/lib/seo/vehicle-invalidation";
 
 export type VehicleActionResult =
   | { success: true; vehicleId: string }
@@ -140,6 +141,7 @@ export async function createVehicle(formData: FormData): Promise<VehicleActionRe
 
     revalidatePath("/vendor/vehicles");
     revalidatePath("/vendor/dashboard");
+    await invalidatePseoForVehicle(supabase, vehicle.id);
 
     return { success: true, vehicleId: vehicle.id };
   } catch (err) {
@@ -302,6 +304,7 @@ export async function updateVehicle(formData: FormData): Promise<VehicleActionRe
 
   revalidatePath("/vendor/vehicles");
   revalidatePath(`/vendor/vehicles/${vehicleId}`);
+  await invalidatePseoForVehicle(supabase, vehicleId);
 
   return { success: true, vehicleId };
 }
@@ -372,6 +375,8 @@ export async function deleteVehicle(formData: FormData): Promise<VehicleActionRe
     operation: "delete",
     status: "pending",
   });
+
+  await invalidatePseoForVehicle(supabase, vehicleId);
 
   // Delete vehicle
   const { error } = await supabase.from("vehicles").delete().eq("id", vehicleId);

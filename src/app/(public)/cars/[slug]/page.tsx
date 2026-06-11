@@ -17,6 +17,16 @@ import { Button } from "@/components/ui/button";
 import { headers } from "next/headers";
 import { hashIpForStorage } from "@/lib/security/rate-limit";
 import type { Metadata } from "next";
+import {
+  cityToSlug,
+  categoryToSlug,
+  vehicleTitle,
+  vehicleDescription,
+  buildBreadcrumbSchema,
+  buildProductSchema,
+  buildFaqSchema,
+  serializeSchemas,
+} from "@/lib/seo";
 
 export const revalidate = 3600; // Cache for 1 hour at edge (ISR)
 
@@ -29,7 +39,7 @@ export async function generateMetadata({
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("vehicles")
-    .select("title, make, model, year, category, price_per_day_aud, branches(city, state)")
+    .select("title, make, model, year, category, price_per_day_aud, vehicle_images(storage_path, approved, sort_order), branches(city, state)")
     .eq("slug", slug)
     .eq("status", "approved")
     .single();
@@ -37,15 +47,36 @@ export async function generateMetadata({
   if (!data) return {};
 
   type BranchMeta = { city: string; state: string };
+  type ImageRecord = { storage_path: string; approved: boolean; sort_order: number };
   const branch = data.branches as unknown as BranchMeta | null;
-  const title = `${data.title} – Car Hire${branch ? ` in ${branch.city}` : ""} | Hire Car`;
-  const description = `Hire a ${data.year} ${data.make} ${data.model} (${data.category}) for $${data.price_per_day_aud}/day${branch ? ` in ${branch.city}, ${branch.state}` : ""}. Verified local rental operator.`;
+  const title = vehicleTitle(data.title, branch?.city);
+  const description = vehicleDescription({
+    year: data.year,
+    make: data.make,
+    model: data.model,
+    category: data.category,
+    pricePerDayAud: data.price_per_day_aud,
+    city: branch?.city,
+    state: branch?.state,
+  });
 
-  return { 
-    title, 
-    description, 
-    openGraph: { title, description },
-    alternates: { canonical: `/cars/${slug}` }
+  const images = (data.vehicle_images as unknown as ImageRecord[]) ?? [];
+  const firstImage = images
+    .filter((img) => img.approved)
+    .sort((a, b) => a.sort_order - b.sort_order)[0];
+  const ogImage = firstImage
+    ? supabase.storage.from("vehicle-images").getPublicUrl(firstImage.storage_path).data.publicUrl
+    : undefined;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      ...(ogImage ? { images: [{ url: ogImage }] } : {}),
+    },
+    alternates: { canonical: `/cars/${slug}` },
   };
 }
 
@@ -154,55 +185,57 @@ export default async function VehicleDetailPage({
     ? (safeReviews.reduce((acc, rev) => acc + rev.rating, 0) / safeReviews.length).toFixed(1)
     : null;
 
+  const citySlug = branch?.city ? cityToSlug(branch.city) : null;
+  const categorySlug = categoryToSlug(vehicle.category);
+  const breadcrumbItems = [
+    { name: "Home", path: "/" },
+    { name: "Locations", path: "/locations" },
+    ...(citySlug && branch?.city
+      ? [{ name: branch.city, path: `/locations/${citySlug}` }]
+      : []),
+    ...(citySlug && branch?.city
+      ? [{ name: vehicle.category, path: `/locations/${citySlug}/${categorySlug}` }]
+      : []),
+    { name: vehicle.title, path: `/cars/${vehicle.slug}` },
+  ];
+
   const jsonLd = [
-    {
-      "@context": "https://schema.org",
-      "@type": "Product",
+    buildBreadcrumbSchema(breadcrumbItems),
+    buildProductSchema({
       name: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-      image: images[0]?.url || "",
-      description: `Hire a ${vehicle.year} ${vehicle.make} ${vehicle.model} (${vehicle.category}) for $${vehicle.price_per_day_aud}/day in ${branch?.city}, ${branch?.state}.`,
-      sku: vehicle.slug,
-      offers: {
-        "@type": "Offer",
-        url: `https://www.hirecar.com.au/cars/${vehicle.slug}`,
-        priceCurrency: "AUD",
-        price: vehicle.price_per_day_aud,
-        availability: "https://schema.org/InStock",
-        seller: {
-          "@type": "Organization",
-          name: org?.name
-        }
-      }
-    },
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      mainEntity: [
-        {
-          "@type": "Question",
-          name: `What is the daily rental price for the ${vehicle.make} ${vehicle.model}?`,
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: `The ${vehicle.year} ${vehicle.make} ${vehicle.model} is available for $${vehicle.price_per_day_aud} per day.`
-          }
-        },
-        {
-          "@type": "Question",
-          name: `Where can I pick up the ${vehicle.make} ${vehicle.model}?`,
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: `This vehicle is available for pickup at ${org?.name} in ${branch?.city}, ${branch?.state}.`
-          }
-        }
-      ]
-    }
+      description: vehicleDescription({
+        year: vehicle.year,
+        make: vehicle.make,
+        model: vehicle.model,
+        category: vehicle.category,
+        pricePerDayAud: vehicle.price_per_day_aud,
+        city: branch?.city,
+        state: branch?.state,
+      }),
+      slug: vehicle.slug,
+      imageUrl: images[0]?.url,
+      pricePerDayAud: vehicle.price_per_day_aud,
+      vendorName: org?.name ?? "Hire Car Vendor",
+      city: branch?.city,
+      state: branch?.state,
+    }),
+    buildFaqSchema([
+      {
+        question: `What is the daily rental price for the ${vehicle.make} ${vehicle.model}?`,
+        answer: `The ${vehicle.year} ${vehicle.make} ${vehicle.model} is available for $${vehicle.price_per_day_aud} per day.`,
+      },
+      {
+        question: `Where can I pick up the ${vehicle.make} ${vehicle.model}?`,
+        answer: `This vehicle is available for pickup at ${org?.name} in ${branch?.city}, ${branch?.state}.`,
+      },
+    ]),
   ];
 
   return (
     <div className="min-h-screen bg-background">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeSchemas(jsonLd) }}
       />
       <SiteHeader />
 
@@ -211,15 +244,19 @@ export default async function VehicleDetailPage({
         <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6 font-medium overflow-x-auto whitespace-nowrap pb-2 scrollbar-hide">
           <Link href="/" className="hover:text-foreground transition-colors flex items-center gap-1">Home</Link>
           <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
-          <Link href="/search" className="hover:text-foreground transition-colors">Search</Link>
-          {branch?.city && (
+          <Link href="/locations" className="hover:text-foreground transition-colors">Locations</Link>
+          {branch?.city && citySlug && (
             <>
               <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
+              <Link href={`/locations/${citySlug}`} className="hover:text-foreground transition-colors">
+                {branch.city}
+              </Link>
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
               <Link
-                href={`/locations/${branch.city.toLowerCase()}`}
+                href={`/locations/${citySlug}/${categorySlug}`}
                 className="hover:text-foreground transition-colors"
               >
-                {branch.city}
+                {vehicle.category}
               </Link>
             </>
           )}
@@ -271,7 +308,7 @@ export default async function VehicleDetailPage({
                       )}
                       {branch?.city && (
                         <Link
-                          href={`/locations/${branch.city.toLowerCase()}`}
+                          href={`/locations/${citySlug}`}
                           className="flex items-center gap-1 hover:text-primary transition-colors"
                         >
                           <MapPin className="h-3.5 w-3.5" />

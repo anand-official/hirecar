@@ -1,3 +1,4 @@
+import { ensureUserCanManageOrganization } from "@/lib/data/vendor";
 import { requireUser } from "@/lib/security/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ChatInterface } from "@/components/chat-interface";
@@ -28,13 +29,10 @@ export default async function VendorChatRoomPage({
     notFound();
   }
 
-  // Ensure this user is part of the vendor organization
-  const { data: isMember } = await supabase.rpc("is_org_member", {
-    target_organization_id: lead.vendor_id
-  });
-
-  if (!isMember) {
-    notFound(); // Not authorized
+  try {
+    await ensureUserCanManageOrganization(user.id, lead.vendor_id);
+  } catch {
+    notFound();
   }
 
   // Fetch existing messages

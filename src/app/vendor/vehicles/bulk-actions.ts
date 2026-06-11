@@ -4,21 +4,38 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/security/auth";
 import { ensureUserCanManageOrganization, getVehicleLimitInfo } from "@/lib/data/vendor";
+import { requirePlanFeature } from "@/lib/plan-features";
+import { invalidatePseoForVehicle } from "@/lib/seo/vehicle-invalidation";
 import * as xlsx from "xlsx";
 import { uniqueSlug } from "@/lib/slug";
+
+const MAX_UPLOAD_SIZE_BYTES = 8 * 1024 * 1024;
+const SUPPORTED_EXTENSIONS = new Set(["csv", "xlsx", "xls"]);
 
 export async function processBulkUpload(formData: FormData) {
   try {
     const user = await requireUser();
     const organizationId = formData.get("organizationId") as string;
     const branchId = formData.get("branchId") as string;
-    const file = formData.get("file") as File;
+    const fileValue = formData.get("file");
 
-    if (!organizationId || !branchId || !file) {
+    if (!organizationId || !branchId || !(fileValue instanceof File)) {
       return { success: false, error: "Missing required fields" };
     }
 
+    const file = fileValue;
+    const extension = file.name.split(".").pop()?.toLowerCase();
+
+    if (!extension || !SUPPORTED_EXTENSIONS.has(extension)) {
+      return { success: false, error: "Unsupported file type. Upload a CSV, XLSX, or XLS file." };
+    }
+
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+      return { success: false, error: "The uploaded file is too large. Please upload a file smaller than 8 MB." };
+    }
+
     await ensureUserCanManageOrganization(user.id, organizationId);
+    await requirePlanFeature(organizationId, "bulkUpload");
 
     const supabase = createAdminClient();
 
@@ -36,8 +53,13 @@ export async function processBulkUpload(formData: FormData) {
 
     // Read the file using xlsx
     const buffer = await file.arrayBuffer();
-    const workbook = xlsx.read(buffer, { type: "array" });
+    const workbook = xlsx.read(buffer, { type: "array", cellDates: false });
     const firstSheetName = workbook.SheetNames[0];
+
+    if (!firstSheetName) {
+      return { success: false, error: "The uploaded file does not contain any sheets." };
+    }
+
     const worksheet = workbook.Sheets[firstSheetName];
     
     // Convert to JSON
@@ -134,6 +156,10 @@ export async function processBulkUpload(formData: FormData) {
           status: "pending",
         }));
         await supabase.from("search_index_jobs").insert(jobs);
+
+        for (const v of data) {
+          await invalidatePseoForVehicle(supabase, v.id);
+        }
 
         // Audit Log
         await supabase.from("audit_logs").insert({

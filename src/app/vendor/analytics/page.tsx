@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { MetricCard } from "@/components/metric-card";
 import { requireUser } from "@/lib/security/auth";
 import { getVendorContext, getDashboardMetrics } from "@/lib/data/vendor";
+import { organizationHasFeature } from "@/lib/plan-features";
+import Link from "next/link";
 import { Eye, Phone, MessageCircle, Lightbulb, Car, CheckCircle, Clock } from "lucide-react";
 
 export const metadata = {
@@ -22,10 +24,29 @@ export default async function VendorAnalyticsPage() {
   }
 
   if (context.organizations.length === 0) {
-    redirect("/vendor/onboarding");
+    redirect("/vendor/upgrade");
   }
 
   const organization = context.organizations[0];
+  const hasAnalytics = await organizationHasFeature(organization.id, "contactAnalytics");
+
+  if (!hasAnalytics) {
+    return (
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center">
+        <h1 className="text-lg font-bold text-amber-900">Analytics requires Growth or Pro</h1>
+        <p className="mt-2 text-sm text-amber-800">
+          Upgrade your plan to unlock phone/WhatsApp click tracking and performance insights.
+        </p>
+        <Link
+          href="/vendor/billing"
+          className="mt-4 inline-flex rounded-xl bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-700"
+        >
+          View plans
+        </Link>
+      </div>
+    );
+  }
+
   const metrics = await getDashboardMetrics(organization.id, user.id);
 
   const leadConversionRate = metrics.totalLeads > 0

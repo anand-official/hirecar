@@ -60,3 +60,41 @@ export async function updateOrganizationProfile(formData: FormData) {
 
   revalidatePath("/vendor/settings");
 }
+
+export async function uploadVendorDocument(formData: FormData) {
+  const user = await requireUser();
+  const organizationId = String(formData.get("organizationId") ?? "");
+  const documentType = String(formData.get("documentType") ?? "abn_certificate");
+  const file = formData.get("file") as File | null;
+
+  if (!organizationId || !file?.size) {
+    throw new Error("Organization and file are required.");
+  }
+
+  await ensureUserCanManageOrganization(user.id, organizationId);
+
+  const supabase = createAdminClient();
+  const ext = file.name.split(".").pop() ?? "pdf";
+  const path = `${organizationId}/${documentType}-${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("vendor-documents")
+    .upload(path, file, { upsert: false });
+
+  if (uploadError) {
+    throw new Error(uploadError.message);
+  }
+
+  const { error: dbError } = await supabase.from("vendor_documents").insert({
+    organization_id: organizationId,
+    document_type: documentType,
+    storage_path: path,
+    status: "pending",
+  });
+
+  if (dbError) {
+    throw new Error(dbError.message);
+  }
+
+  revalidatePath("/vendor/settings");
+}

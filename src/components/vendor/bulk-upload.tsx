@@ -4,6 +4,10 @@ import { useState } from "react";
 import { UploadCloud, FileSpreadsheet, X, CheckCircle2, AlertCircle } from "lucide-react";
 import { processBulkUpload } from "@/app/vendor/vehicles/bulk-actions";
 
+const MAX_UPLOAD_SIZE_BYTES = 8 * 1024 * 1024;
+const MAX_UPLOAD_SIZE_MB = MAX_UPLOAD_SIZE_BYTES / 1024 / 1024;
+const ACCEPTED_UPLOAD_TYPES = ".csv,.xlsx,.xls";
+
 interface BulkUploadProps {
   organizationId: string;
   branches: Array<{ id: string; name: string }>;
@@ -18,7 +22,24 @@ export function BulkUpload({ organizationId, branches }: BulkUploadProps) {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      const extension = selectedFile.name.split(".").pop()?.toLowerCase();
+
+      if (!extension || !["csv", "xlsx", "xls"].includes(extension)) {
+        setFile(null);
+        setResult({ errors: ["Please upload a CSV or Excel spreadsheet (.csv, .xlsx, or .xls)."] });
+        e.target.value = "";
+        return;
+      }
+
+      if (selectedFile.size > MAX_UPLOAD_SIZE_BYTES) {
+        setFile(null);
+        setResult({ errors: [`Please upload a file smaller than ${MAX_UPLOAD_SIZE_MB} MB.`] });
+        e.target.value = "";
+        return;
+      }
+
+      setFile(selectedFile);
       setResult(null);
     }
   };
@@ -43,8 +64,13 @@ export function BulkUpload({ organizationId, branches }: BulkUploadProps) {
       } else {
         setResult({ errors: response.errors || [response.error || "Upload failed"] });
       }
-    } catch {
-      setResult({ errors: ["An unexpected error occurred during upload."] });
+    } catch (error) {
+      console.error("Bulk upload request failed:", error);
+      setResult({
+        errors: [
+          `The upload request failed before the import could run. Please try a CSV or Excel file smaller than ${MAX_UPLOAD_SIZE_MB} MB.`,
+        ],
+      });
     } finally {
       setIsUploading(false);
     }
@@ -57,7 +83,7 @@ export function BulkUpload({ organizationId, branches }: BulkUploadProps) {
         className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
       >
         <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
-        Bulk Upload CSV
+        Bulk Upload Vehicles
       </button>
     );
   }
@@ -78,7 +104,7 @@ export function BulkUpload({ organizationId, branches }: BulkUploadProps) {
         <div className="flex-1">
           <h2 className="text-lg font-bold text-slate-900">Bulk Upload Vehicles</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Upload your fleet spreadsheet. We support standard CSV formats. Ensure your columns match: Make, Model, Year, Category, Daily Rate, etc.
+            Upload your fleet spreadsheet. We support CSV and Excel formats. Ensure your columns match: Make, Model, Year, Category, Daily Rate, etc.
           </p>
 
           <form onSubmit={handleUpload} className="mt-6 space-y-4 max-w-xl">
@@ -97,7 +123,7 @@ export function BulkUpload({ organizationId, branches }: BulkUploadProps) {
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-semibold text-slate-700">CSV File</label>
+              <label className="text-sm font-semibold text-slate-700">Fleet File</label>
               <div className="flex items-center justify-center w-full">
                 <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-white hover:bg-slate-50 transition-colors">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
@@ -105,9 +131,9 @@ export function BulkUpload({ organizationId, branches }: BulkUploadProps) {
                     <p className="mb-2 text-sm text-slate-500">
                       <span className="font-semibold text-emerald-600">Click to upload</span> or drag and drop
                     </p>
-                    <p className="text-xs text-slate-400">CSV or Excel (converted to CSV)</p>
+                    <p className="text-xs text-slate-400">CSV, XLSX, or XLS up to {MAX_UPLOAD_SIZE_MB} MB</p>
                   </div>
-                  <input type="file" className="hidden" accept=".csv" onChange={handleFileChange} required />
+                  <input type="file" className="hidden" accept={ACCEPTED_UPLOAD_TYPES} onChange={handleFileChange} required />
                 </label>
               </div>
               {file && <p className="text-sm font-medium text-emerald-700 mt-1 flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4" /> {file.name} selected</p>}

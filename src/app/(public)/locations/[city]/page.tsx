@@ -7,23 +7,20 @@ import { EmptyState } from "@/components/empty-state";
 import { searchVehicles } from "@/lib/search/typesense";
 import { MapPin, Car, ArrowLeft, Filter } from "lucide-react";
 import type { Metadata } from "next";
+import {
+  getCityMeta,
+  cityTitle,
+  cityDescription,
+  cityRobots,
+  categoryToSlug,
+  VEHICLE_CATEGORIES,
+  buildBreadcrumbSchema,
+  buildFaqSchema,
+  buildItemListSchema,
+  serializeSchemas,
+} from "@/lib/seo";
 
-// Known cities — used for better SEO metadata
-export const revalidate = 3600; // ISR for PSEO performance
-const CITY_META: Record<string, { title: string; state: string; description: string }> = {
-  sydney: { title: "Sydney", state: "NSW", description: "Find cheap car hire in Sydney, NSW — compare vehicles from verified local operators in the CBD, North Shore, Western Suburbs and more." },
-  melbourne: { title: "Melbourne", state: "VIC", description: "Car hire in Melbourne, VIC. Browse rental cars from verified operators across the CBD, Bayside, Dandenong ranges and surrounding suburbs." },
-  brisbane: { title: "Brisbane", state: "QLD", description: "Rental cars in Brisbane, QLD — compare vehicles in the CBD, Southbank, Ipswich and nearby suburbs from trusted local operators." },
-  perth: { title: "Perth", state: "WA", description: "Car hire in Perth, WA. Compare vehicles near the CBD, Fremantle, Swan Valley and surrounding areas from verified operators." },
-  adelaide: { title: "Adelaide", state: "SA", description: "Find car hire in Adelaide, SA — browse vehicles across the city and Adelaide Hills from verified local rental companies." },
-  "gold-coast": { title: "Gold Coast", state: "QLD", description: "Car hire on the Gold Coast, QLD — compare vehicles near Surfers Paradise, Broadbeach, Coolangatta from local operators." },
-  cairns: { title: "Cairns", state: "QLD", description: "Car hire in Cairns, QLD — explore the Great Barrier Reef and Tropical North with vehicles from verified local operators." },
-  darwin: { title: "Darwin", state: "NT", description: "Car hire in Darwin, NT — discover the Top End and Kakadu with vehicles from trusted Northern Territory operators." },
-  hobart: { title: "Hobart", state: "TAS", description: "Car hire in Hobart, TAS — explore Tasmania with vehicles from verified Hobart operators, near the CBD and surrounds." },
-  canberra: { title: "Canberra", state: "ACT", description: "Car hire in Canberra, ACT — compare vehicles across the capital territory from verified local rental operators." },
-  newcastle: { title: "Newcastle", state: "NSW", description: "Car hire in Newcastle, NSW — browse vehicles near the Hunter Valley and Lake Macquarie from local operators." },
-  wollongong: { title: "Wollongong", state: "NSW", description: "Car hire in Wollongong, NSW — explore the Illawarra coast and escarpment with vehicles from local operators." },
-};
+export const revalidate = 3600;
 
 export async function generateMetadata({
   params,
@@ -31,28 +28,21 @@ export async function generateMetadata({
   params: Promise<{ city: string }>;
 }): Promise<Metadata> {
   const { city } = await params;
-  const meta = CITY_META[city.toLowerCase()] ?? null;
-  const displayCity = meta?.title ?? decodeURIComponent(city);
-  const state = meta?.state ?? "Australia";
+  const slug = city.toLowerCase();
+  const meta = getCityMeta(slug);
+  const searchCity = meta.title;
 
-  // Normalize city for search
-  const searchCity = meta?.title ?? decodeURIComponent(city).replace(/-/g, " ");
-  
-  // Thin-page prevention rule
   const { total } = await searchVehicles("", { city: searchCity }, { page: 1, perPage: 1 });
-  const robots = total < 5 ? { index: false, follow: true } : { index: true, follow: true };
 
   return {
-    title: `Car Hire ${displayCity} ${state} | Hire Car`,
-    description:
-      meta?.description ??
-      `Find cheap car hire in ${displayCity}. Compare vehicles from verified local rental operators.`,
+    title: cityTitle(slug, meta.state),
+    description: cityDescription(slug, meta.state),
     openGraph: {
-      title: `Car Hire ${displayCity} | Hire Car`,
-      description: meta?.description,
+      title: cityTitle(slug, meta.state),
+      description: cityDescription(slug, meta.state),
     },
-    alternates: { canonical: `/locations/${city}` },
-    robots
+    alternates: { canonical: `/locations/${slug}` },
+    robots: cityRobots(total),
   };
 }
 
@@ -63,16 +53,14 @@ export default async function LocationPage({
 }) {
   const { city } = await params;
   const slug = city.toLowerCase();
-  const meta = CITY_META[slug];
-
-  // Normalize city name for search (handle dashes → spaces)
-  const searchCity = meta?.title ?? decodeURIComponent(city).replace(/-/g, " ");
+  const meta = getCityMeta(slug);
+  const searchCity = meta.title;
 
   // Fetch vehicles via search
   const { vehicles, total } = await searchVehicles("", { city: searchCity }, { page: 1, perPage: 24 });
 
-  const displayCity = meta?.title ?? searchCity;
-  const state = meta?.state ?? "";
+  const displayCity = meta.title;
+  const state = meta.state;
 
   // Category breakdown from results
   const categories = Array.from(new Set(vehicles.map((v) => v.category))).slice(0, 4);
@@ -89,65 +77,28 @@ export default async function LocationPage({
       ? Math.round(vehicles.reduce((acc, v) => acc + v.pricePerDayAud, 0) / vehicles.length)
       : null;
 
-  const breadcrumbJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": [
+  const schemas = [
+    buildBreadcrumbSchema([
+      { name: "Home", path: "/" },
+      { name: "Locations", path: "/locations" },
+      { name: displayCity, path: `/locations/${slug}` },
+    ]),
+    buildItemListSchema(vehicles.map((v) => v.slug)),
+    buildFaqSchema([
       {
-        "@type": "ListItem",
-        "position": 1,
-        "name": "Home",
-        "item": "https://www.hirecar.com.au/"
+        question: `What is the average cost of car hire in ${displayCity}?`,
+        answer: avgPrice
+          ? `Based on active listings, the average car hire in ${displayCity} costs $${avgPrice} AUD per day.`
+          : `Car hire prices in ${displayCity} vary based on season and vehicle type.`,
       },
-      {
-        "@type": "ListItem",
-        "position": 2,
-        "name": "Locations",
-        "item": "https://www.hirecar.com.au/locations"
-      },
-      {
-        "@type": "ListItem",
-        "position": 3,
-        "name": displayCity,
-        "item": `https://www.hirecar.com.au/locations/${slug}`
-      }
-    ]
-  };
-
-  const faqJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": `What is the average cost of car hire in ${displayCity}?`,
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": avgPrice 
-            ? `Based on active listings, the average car hire in ${displayCity} costs $${avgPrice} AUD per day.`
-            : `Car hire prices in ${displayCity} vary based on season and vehicle type.`
-        }
-      }
-    ]
-  };
-
-  const itemListJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    "itemListElement": vehicles.map((v, index) => ({
-      "@type": "ListItem",
-      "position": index + 1,
-      "url": `https://www.hirecar.com.au/cars/${v.slug}`
-    }))
-  };
-
-  const schemas = [breadcrumbJsonLd, itemListJsonLd, faqJsonLd];
+    ]),
+  ];
 
   return (
     <div className="min-h-screen bg-slate-50">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schemas) }}
+        dangerouslySetInnerHTML={{ __html: serializeSchemas(schemas) }}
       />
       <SiteHeader />
 
@@ -274,10 +225,10 @@ export default async function LocationPage({
                 fuel type, or price to find the right vehicle for your trip.
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
-                {["Sedan", "SUV", "People mover", "Van", "Ute", "Luxury"].map((cat) => (
+                {VEHICLE_CATEGORIES.map((cat) => (
                   <Link
                     key={cat}
-                    href={`/search?city=${encodeURIComponent(searchCity)}&category=${encodeURIComponent(cat)}`}
+                    href={`/locations/${slug}/${categoryToSlug(cat)}`}
                     className="rounded-full border border-slate-200 bg-slate-50 px-4 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-colors"
                   >
                     {cat} hire in {displayCity}

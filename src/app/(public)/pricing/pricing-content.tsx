@@ -16,13 +16,13 @@ const PLANS = [
     name: "Starter",
     monthlyPrice: 0,
     annualPrice: 0,
-    vehicles: 10,
+    vehicles: 5,
     highlight: false,
     badge: null,
     cta: "Get started free",
     description: "Perfect for small local operators just getting started.",
     features: {
-      listings: "10 vehicles",
+      listings: "5 vehicles",
       branches: "1 branch",
       leads: true,
       realtime: false,
@@ -49,7 +49,7 @@ const PLANS = [
       leads: true,
       realtime: true,
       analytics: "Advanced",
-      support: "Priority email",
+      support: "Priority email + Phone",
       api: false,
       bulk: false,
       featured: true,
@@ -71,7 +71,7 @@ const PLANS = [
       leads: true,
       realtime: true,
       analytics: "Full + exports",
-      support: "Priority + phone",
+      support: "Dedicated Phone, Priority Email, Account Manager, Same-Day Response",
       api: true,
       bulk: true,
       featured: true,
@@ -241,7 +241,7 @@ export function PricingContent() {
 
                   <div className="mt-auto">
                     <Link
-                      href={`/vendor/onboarding?plan=${plan.code}`}
+                      href={`/vendor/upgrade?plan=${plan.code}`}
                       className={`w-full rounded-full py-4 text-base font-bold transition-all flex items-center justify-center gap-2 ${
                         plan.highlight
                           ? "bg-gradient-to-r from-[#ea580c] to-amber-500 text-white hover:shadow-lg hover:shadow-orange-500/30 hover:scale-[1.02]"
@@ -279,7 +279,7 @@ export function PricingContent() {
               </div>
             </div>
             <Link
-              href="/contact"
+              href="/contact?plan=enterprise"
               className="shrink-0 inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-4 text-base font-bold text-slate-900 hover:bg-slate-100 transition-all hover:scale-105"
             >
               Talk to Sales <ArrowRight className="h-5 w-5" />
@@ -392,14 +392,14 @@ export function PricingContent() {
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                href="/vendor/onboarding"
+                href="/vendor/upgrade"
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#ea580c] to-amber-500 px-8 py-4 text-base font-bold text-white hover:scale-105 transition-transform shadow-xl shadow-orange-500/20"
               >
                 <Zap className="h-5 w-5" />
                 Start free trial
               </Link>
               <Link
-                href="/contact"
+                href="/contact?plan=enterprise"
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-white/10 px-8 py-4 text-base font-bold text-white hover:bg-white/20 transition-colors backdrop-blur-sm"
               >
                 Talk to sales

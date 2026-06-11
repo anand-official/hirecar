@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { readJsonBody } from "@/lib/api/request";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { invalidatePseoForVehicle } from "@/lib/seo/vehicle-invalidation";
 import { requireApiAdmin } from "@/lib/security/auth";
 import { moderationSchema } from "@/lib/validation/schemas";
 import {
@@ -68,6 +69,9 @@ export async function POST(request: NextRequest) {
           operation: action === "approve" || action === "restore" ? "upsert" : "delete",
           status: "pending",
         });
+        if (action === "approve" || action === "restore") {
+          await invalidatePseoForVehicle(supabase, resourceId);
+        }
       }
 
       // For vendors (organizations), if approving, also approve their branches

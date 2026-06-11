@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/security/auth";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { LayoutDashboard, MessageCircle, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, MessageCircle, Settings, LogOut, Heart } from "lucide-react";
 
 export default async function CustomerLayout({
   children,
@@ -14,6 +14,7 @@ export default async function CustomerLayout({
   const navItems = [
     { name: "Dashboard", href: "/customer/dashboard", icon: LayoutDashboard },
     { name: "My Enquiries", href: "/customer/enquiries", icon: MessageCircle },
+    { name: "Saved", href: "/customer/saved", icon: Heart },
     { name: "Settings", href: "/customer/settings", icon: Settings },
   ];
 

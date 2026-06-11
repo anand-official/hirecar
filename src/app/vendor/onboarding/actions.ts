@@ -189,10 +189,10 @@ export async function submitVendorOnboarding(formData: FormData): Promise<Onboar
   revalidatePath("/vendor/branches");
 
   const plan = formData.get("plan");
-  if (plan && typeof plan === "string") {
-    redirect(`/vendor/billing?plan=${plan}`);
-  }
+  const planParam =
+    plan && typeof plan === "string" && ["starter", "growth", "pro"].includes(plan)
+      ? plan
+      : "starter";
 
-  // Always redirect to billing to push subscription checkout immediately
-  redirect("/vendor/billing");
+  redirect(`/vendor/billing?plan=${planParam}`);
 }

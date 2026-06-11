@@ -82,7 +82,11 @@ function SearchContent() {
     transmission: searchParams.get("transmission") || undefined,
     fuel: searchParams.get("fuel") || undefined,
     make: searchParams.get("make") || undefined,
+    pickup: searchParams.get("pickup") || undefined,
+    returnDate: searchParams.get("return") || undefined,
   }));
+
+  const [facetCounts, setFacetCounts] = useState<Record<string, Record<string, number>>>({});
 
   const [page, setPage] = useState(() => {
     const p = parseInt(searchParams.get("page") || "1");
@@ -113,15 +117,16 @@ function SearchContent() {
       if (currentFilters.minPrice !== undefined) params.set("minPrice", String(currentFilters.minPrice));
       if (currentFilters.maxPrice !== undefined) params.set("maxPrice", String(currentFilters.maxPrice));
       if (currentFilters.seats !== undefined) params.set("seats", String(currentFilters.seats));
+      if (currentFilters.pickup) params.set("pickup", currentFilters.pickup);
+      if (currentFilters.returnDate) params.set("return", currentFilters.returnDate);
       params.set("page", String(currentPage));
       params.set("perPage", String(PER_PAGE));
 
-      // Map sort option to API parameter
       const sortMap: Record<SortOption, string> = {
         "price-asc": "price_per_day_aud:asc",
         "price-desc": "price_per_day_aud:desc",
         "newest": "year:desc",
-        "rating": "price_per_day_aud:asc", // fallback until rating is a field
+        "rating": "avg_rating:desc",
       };
       params.set("sortBy", sortMap[currentSort]);
 
@@ -130,6 +135,7 @@ function SearchContent() {
       const data = await res.json();
       setVehicles(data.vehicles ?? []);
       setTotal(data.total ?? 0);
+      if (data.facetCounts) setFacetCounts(data.facetCounts);
     } catch {
       setError("Something went wrong loading vehicles. Please try again.");
       setVehicles([]);
@@ -164,6 +170,8 @@ function SearchContent() {
       if (updated.minPrice !== undefined) params.set("minPrice", String(updated.minPrice));
       if (updated.maxPrice !== undefined) params.set("maxPrice", String(updated.maxPrice));
       if (updated.seats !== undefined) params.set("seats", String(updated.seats));
+      if (updated.pickup) params.set("pickup", String(updated.pickup));
+      if (updated.returnDate) params.set("return", String(updated.returnDate));
       router.push(`/search?${params.toString()}`, { scroll: false });
     },
     [router],
@@ -237,6 +245,14 @@ function SearchContent() {
           <p className="text-muted-foreground mt-2 text-lg">
             From verified local operators across Australia
           </p>
+          {(filters.pickup || filters.returnDate) && (
+            <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-amber-50 border border-amber-200 px-4 py-1.5 text-sm font-medium text-amber-800">
+              Dates selected
+              {filters.pickup && ` · Pickup ${filters.pickup}`}
+              {filters.returnDate && ` · Return ${filters.returnDate}`}
+              <span className="text-amber-600 text-xs">(confirm availability with vendor)</span>
+            </p>
+          )}
         </div>
 
         <div className="flex gap-8">
@@ -247,6 +263,7 @@ function SearchContent() {
                 currentFilters={filters}
                 onFilterChange={handleFilterChange}
                 totalResults={total}
+                facetCounts={facetCounts}
                 mobileOpen={isMobileFilterOpen}
                 onMobileClose={() => setIsMobileFilterOpen(false)}
               />
@@ -348,6 +365,7 @@ function SearchContent() {
                 currentFilters={filters}
                 onFilterChange={handleFilterChange}
                 totalResults={total}
+                facetCounts={facetCounts}
                 mobileOpen={isMobileFilterOpen}
                 onMobileClose={() => setIsMobileFilterOpen(false)}
                 mobileOnly

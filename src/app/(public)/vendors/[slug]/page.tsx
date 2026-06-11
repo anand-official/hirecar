@@ -255,7 +255,7 @@ export default async function VendorPage({
     "@context": "https://schema.org",
     "@type": "AutoRental",
     name: vendor.name,
-    url: `https://hirecar.com.au/vendors/${vendor.slug}`,
+    url: `https://www.hirecar.com.au/vendors/${vendor.slug}`,
     ...(vendor.phone && { telephone: vendor.phone }),
     ...(vendor.email && { email: vendor.email }),
     address: {

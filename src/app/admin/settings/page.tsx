@@ -1,13 +1,24 @@
+import Link from "next/link";
 import { requireAdmin } from "@/lib/security/auth";
 import { Settings, Shield, Key } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { optionalEnv } from "@/lib/config";
 
 export const metadata = {
   title: "Platform Settings",
 };
 
+function maskSecret(value: string | undefined, visible = 4) {
+  if (!value) return "Not configured";
+  if (value.length <= visible) return "••••";
+  return `${value.slice(0, visible)}${"•".repeat(12)}`;
+}
+
 export default async function AdminSettingsPage() {
   await requireAdmin();
+
+  const stripeKey = optionalEnv("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY");
+  const mapsKey = optionalEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY");
 
   return (
     <div className="space-y-6">
@@ -17,12 +28,11 @@ export default async function AdminSettingsPage() {
           Platform Settings
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Manage global platform configurations, API keys, and security settings.
+          Read-only overview of platform security and integrations. Changes are made via environment variables and Supabase dashboard.
         </p>
       </section>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* General Settings */}
         <Card variant="elevated">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -30,29 +40,30 @@ export default async function AdminSettingsPage() {
               Security & Access
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-foreground">Require MFA for Admin Logins</p>
-                <p className="text-sm text-muted-foreground">Enforce multi-factor authentication</p>
-              </div>
-              <div className="h-6 w-11 rounded-full bg-emerald-500/20 p-1">
-                <div className="h-4 w-4 rounded-full bg-emerald-500 translate-x-5"></div>
-              </div>
+          <CardContent className="space-y-4 text-sm">
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-4">
+              <p className="font-medium text-foreground">Admin MFA enforced</p>
+              <p className="text-muted-foreground mt-1">
+                All admin routes require Supabase authenticator MFA (AAL2). Enroll at{" "}
+                <Link href="/auth/mfa" className="text-primary hover:underline">
+                  /auth/mfa
+                </Link>
+                .
+              </p>
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-foreground">Automatic Vendor Approval</p>
-                <p className="text-sm text-muted-foreground">Bypass manual review for trusted vendors</p>
-              </div>
-              <div className="h-6 w-11 rounded-full bg-muted p-1">
-                <div className="h-4 w-4 rounded-full bg-muted-foreground/40"></div>
-              </div>
+            <div className="rounded-lg border border-border p-4">
+              <p className="font-medium text-foreground">Vendor approval</p>
+              <p className="text-muted-foreground mt-1">
+                Manual review is required for new vendors and listings. Use the{" "}
+                <Link href="/admin/vendors" className="text-primary hover:underline">
+                  vendor queue
+                </Link>
+                .
+              </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* API Keys */}
         <Card variant="elevated">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -62,23 +73,26 @@ export default async function AdminSettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Stripe Public Key</label>
-              <input 
-                type="text" 
-                value="pk_live_********************" 
-                disabled 
-                className="mt-1 block w-full rounded-lg border border-border bg-muted px-3 py-2 text-foreground sm:text-sm" 
+              <label className="text-sm font-medium text-muted-foreground">Stripe publishable key</label>
+              <input
+                type="text"
+                value={maskSecret(stripeKey)}
+                disabled
+                className="mt-1 block w-full rounded-lg border border-border bg-muted px-3 py-2 text-foreground sm:text-sm"
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Google Maps API Key</label>
-              <input 
-                type="text" 
-                value="AIzaSy********************" 
-                disabled 
-                className="mt-1 block w-full rounded-lg border border-border bg-muted px-3 py-2 text-foreground sm:text-sm" 
+              <label className="text-sm font-medium text-muted-foreground">Google Maps API key</label>
+              <input
+                type="text"
+                value={maskSecret(mapsKey)}
+                disabled
+                className="mt-1 block w-full rounded-lg border border-border bg-muted px-3 py-2 text-foreground sm:text-sm"
               />
             </div>
+            <p className="text-xs text-muted-foreground">
+              Update keys in Vercel environment variables. Never store secrets in the database.
+            </p>
           </CardContent>
         </Card>
       </div>

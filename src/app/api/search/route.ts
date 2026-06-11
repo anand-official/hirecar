@@ -17,7 +17,12 @@ const searchParamsSchema = z.object({
   fuel: z.enum(["Petrol", "Diesel", "Hybrid", "Electric"]).optional(),
   page: z.coerce.number().int().min(1).default(1),
   perPage: z.coerce.number().int().min(1).max(100).default(20),
-  sortBy: z.enum(["price_per_day_aud:asc", "price_per_day_aud:desc", "year:desc"]).optional().default("price_per_day_aud:asc"),
+  sortBy: z
+    .enum(["price_per_day_aud:asc", "price_per_day_aud:desc", "year:desc", "avg_rating:desc"])
+    .optional()
+    .default("price_per_day_aud:asc"),
+  pickup: z.string().max(20).optional(),
+  return: z.string().max(20).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -51,6 +56,8 @@ export async function GET(request: NextRequest) {
     page: searchParams.get("page") ?? undefined,
     perPage: searchParams.get("perPage") ?? undefined,
     sortBy: searchParams.get("sortBy") ?? undefined,
+    pickup: searchParams.get("pickup") ?? undefined,
+    return: searchParams.get("return") ?? undefined,
   });
 
   if (!parsed.success) {
@@ -83,7 +90,13 @@ export async function GET(request: NextRequest) {
       },
     );
 
-    return NextResponse.json(results);
+    return NextResponse.json({
+      ...results,
+      dateRange:
+        params.pickup || params.return
+          ? { pickup: params.pickup, return: params.return }
+          : undefined,
+    });
   } catch (error) {
     console.error("Search error:", error);
     return NextResponse.json(

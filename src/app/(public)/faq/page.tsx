@@ -37,7 +37,7 @@ const faqs = [
     questions: [
       {
         q: "How much does it cost to list my fleet?",
-        a: "We offer tiered subscription plans based on the size of your fleet, starting at just $49/month. We do not charge commissions on your bookings. You keep 100% of your rental revenue. Check our Pricing page for more details."
+        a: "We offer tiered subscription plans based on fleet size. The Starter plan is free ($0/month) for up to 10 vehicles. Growth and Pro plans include a 14-day free trial. We do not charge commissions on your bookings — you keep 100% of your rental revenue. See our Pricing page for details."
       },
       {
         q: "How do I receive leads?",

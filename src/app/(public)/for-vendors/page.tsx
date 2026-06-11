@@ -123,7 +123,7 @@ export default function ForVendorsPage() {
 
               <div className="mt-10 flex flex-col sm:flex-row items-start gap-4">
                 <Link
-                  href="/vendor/onboarding"
+                  href="/vendor/upgrade"
                   className="group inline-flex items-center gap-2 rounded-full bg-[#ea580c] px-9 py-4 font-bold text-white text-lg hover:bg-[#f97316] transition-all shadow-2xl shadow-[#ea580c]/30 hover:scale-[1.03]"
                 >
                   List Your Fleet Free
@@ -292,7 +292,7 @@ export default function ForVendorsPage() {
               </p>
               <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
-                  href="/vendor/onboarding"
+                  href="/vendor/upgrade"
                   className="group inline-flex items-center gap-2 rounded-full bg-[#ea580c] px-10 py-5 font-bold text-white text-lg hover:bg-[#f97316] transition-all shadow-2xl shadow-[#ea580c]/40 hover:scale-[1.03]"
                 >
                   Start Listing Free

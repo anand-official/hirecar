@@ -17,6 +17,7 @@ import {
   List,
   AlertTriangle,
   ClipboardList,
+  Star,
   ExternalLink,
   ShieldCheck,
   LogOut,
@@ -40,11 +41,14 @@ const adminLinks = [
   { label: "Vendors", href: "/admin/vendors", icon: Users },
   { label: "Branches", href: "/admin/branches", icon: GitBranch },
   { label: "Listings", href: "/admin/listings", icon: List },
+  { label: "Featured", href: "/admin/featured", icon: Star },
   { label: "Leads", href: "/admin/leads", icon: MessageSquare },
   { label: "Billing", href: "/admin/billing", icon: CreditCard },
   { label: "Reviews", href: "/admin/reviews", icon: ClipboardList },
   { label: "Fraud", href: "/admin/fraud", icon: AlertTriangle },
   { label: "Audit", href: "/admin/audit", icon: ClipboardList },
+  { label: "WhatsApp", href: "/admin/whatsapp", icon: MessageSquare },
+  { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 export function DashboardShell({

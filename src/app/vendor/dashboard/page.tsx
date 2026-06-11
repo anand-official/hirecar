@@ -30,7 +30,7 @@ export default async function VendorDashboardPage() {
   }
 
   if (context.organizations.length === 0) {
-    redirect("/vendor/onboarding");
+    redirect("/vendor/upgrade");
   }
 
   const organization = context.organizations[0];

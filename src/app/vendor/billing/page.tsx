@@ -20,10 +20,10 @@ const PLANS = [
     code: "starter",
     name: "Starter",
     price: { monthly: 0, annual: 0 },
-    vehicles: 10,
+    vehicles: 5,
     color: "border-slate-200",
     badge: null,
-    features: ["10 vehicle listings", "Vendor profile page", "Inquiry form leads", "Email lead notifications"],
+    features: ["5 vehicle listings", "Vendor profile page", "Inquiry form leads", "Email lead notifications", "Email support"],
   },
   {
     code: "growth",
@@ -32,7 +32,7 @@ const PLANS = [
     vehicles: 20,
     color: "border-amber-400",
     badge: "Most Popular",
-    features: ["20 vehicle listings", "WhatsApp click button", "Phone click tracking", "Analytics dashboard", "GPS Verified badge"],
+    features: ["20 vehicle listings", "WhatsApp click button", "Phone click tracking", "Analytics dashboard", "Priority email + Phone support"],
   },
   {
     code: "pro",
@@ -41,7 +41,7 @@ const PLANS = [
     vehicles: 50,
     color: "border-slate-200",
     badge: null,
-    features: ["50 vehicle listings", "All Growth features", "Featured placement", "AI SEO content", "24/7 priority support"],
+    features: ["50 vehicle listings", "All Growth features", "Featured placement", "AI SEO content", "Dedicated Phone, Priority Email, Account Manager, Same-Day Response"],
   },
 ] as const;
 
@@ -55,7 +55,7 @@ const STATUS_CONFIG = {
 } as const;
 
 export default async function VendorBillingPage(props: {
-  searchParams: Promise<{ interval?: string; checkout?: string; session_id?: string; synced?: string }>;
+  searchParams: Promise<{ interval?: string; checkout?: string; session_id?: string; synced?: string; plan?: string }>;
 }) {
   const user = await requireUser();
   const context = await getVendorContext(user.id);
@@ -73,7 +73,7 @@ export default async function VendorBillingPage(props: {
   }
 
   if (context.organizations.length === 0) {
-    redirect("/vendor/onboarding");
+    redirect("/vendor/upgrade");
   }
 
   const organization = context.organizations[0];
@@ -147,6 +147,44 @@ export default async function VendorBillingPage(props: {
           <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
           <p className="text-sm text-emerald-800">
             Your subscription is now active. You can start listing vehicles on the marketplace.
+          </p>
+        </div>
+      )}
+
+      {subscription?.status === "past_due" && subscription.stripe_customer_id && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 shadow-sm flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+          <div className="text-sm text-red-800">
+            <p className="font-semibold">Payment failed</p>
+            <p className="mt-1">Update your payment method to keep listing vehicles and receiving leads.</p>
+            <div className="mt-3">
+              <PortalForm
+                organizationId={organization.id}
+                stripeCustomerId={subscription.stripe_customer_id}
+                buttonText="Update payment method"
+                buttonClassName="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {subscription?.status === "trialing" && periodEnd && (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm flex items-start gap-3">
+          <Clock className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+          <p className="text-sm text-blue-800">
+            Your <span className="font-semibold">14-day free trial</span> ends on{" "}
+            <span className="font-semibold">{periodEnd}</span>. Add a payment method before then to continue uninterrupted.
+          </p>
+        </div>
+      )}
+
+      {!hasActiveSub && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm flex items-start gap-3">
+          <Zap className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+          <p className="text-sm text-emerald-800">
+            <span className="font-semibold">Get started free:</span> activate the $0 Starter plan to list up to 5 vehicles.
+            Growth and Pro include a 14-day free trial with no credit card required.
           </p>
         </div>
       )}

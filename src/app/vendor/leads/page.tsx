@@ -4,12 +4,10 @@ import { requireUser } from "@/lib/security/auth";
 import { getVendorContext, getOrganizationLeads, getLeadStats } from "@/lib/data/vendor";
 import { updateLeadStatus } from "./actions";
 import { RealtimeLeadsListener } from "@/components/realtime-leads-listener";
+import { OrgSwitcher } from "@/components/vendor/org-switcher";
+import { organizationHasFeature } from "@/lib/plan-features";
 import { MessageSquare, Mail, Phone, MapPin, Calendar, ChevronRight, Inbox } from "lucide-react";
-
-// NOTE: WhatsApp leads (whatsapp_leads table) are accessible to vendors via RLS
-// (vendor_id scoped). A dedicated WhatsApp leads section can be added here in a
-// future iteration. For MVP, vendors can view their WhatsApp leads through the
-// admin-provided notification emails and direct DB access via RLS.
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = {
   title: "Leads",
@@ -41,7 +39,7 @@ export default async function VendorLeadsPage({ searchParams }: LeadsPageProps) 
   }
 
   if (context.organizations.length === 0) {
-    redirect("/vendor/onboarding");
+    redirect("/vendor/upgrade");
   }
 
   const selectedOrgId = params.org || context.organizations[0]?.id;
@@ -55,20 +53,28 @@ export default async function VendorLeadsPage({ searchParams }: LeadsPageProps) 
   const page = parseInt(params.page || "1", 10);
   const perPage = 20;
 
-  const [{ leads, total }, stats] = await Promise.all([
+  const supabase = createAdminClient();
+  const [{ leads, total }, stats, { data: whatsappLeads }] = await Promise.all([
     getOrganizationLeads(selectedOrgId, user.id, {
       status: statusFilter,
       limit: perPage,
       offset: (page - 1) * perPage,
     }),
     getLeadStats(selectedOrgId, user.id),
+    supabase
+      .from("whatsapp_leads")
+      .select("id, sender_name, sender_phone, message_body, created_at")
+      .eq("vendor_id", selectedOrgId)
+      .order("created_at", { ascending: false })
+      .limit(10),
   ]);
 
   const totalPages = Math.ceil(total / perPage);
+  const hasRealtime = await organizationHasFeature(selectedOrgId, "realtimeLeads");
 
   return (
     <div className="space-y-6">
-      <RealtimeLeadsListener organizationId={selectedOrgId} />
+      {hasRealtime && <RealtimeLeadsListener organizationId={selectedOrgId} />}
 
       {/* Header */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -79,17 +85,11 @@ export default async function VendorLeadsPage({ searchParams }: LeadsPageProps) 
               Customer enquiries for <span className="font-medium text-slate-700">{organization.name}</span>
             </p>
           </div>
-          {context.organizations.length > 1 && (
-            <select
-              className="rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all"
-              onChange={(e) => { window.location.href = `/vendor/leads?org=${e.target.value}`; }}
-              defaultValue={selectedOrgId}
-            >
-              {context.organizations.map((org) => (
-                <option key={org.id} value={org.id}>{org.name}</option>
-              ))}
-            </select>
-          )}
+          <OrgSwitcher
+            organizations={context.organizations}
+            selectedOrgId={selectedOrgId}
+            basePath="/vendor/leads"
+          />
         </div>
       </div>
 
@@ -131,6 +131,34 @@ export default async function VendorLeadsPage({ searchParams }: LeadsPageProps) 
           </Link>
         ))}
       </div>
+
+      {/* WhatsApp Leads */}
+      {whatsappLeads && whatsappLeads.length > 0 && (
+        <div className="rounded-2xl border border-green-200 bg-green-50/50 p-6">
+          <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <span className="text-green-600 font-black">WA</span>
+            Recent WhatsApp leads
+          </h2>
+          <div className="space-y-3">
+            {whatsappLeads.map((wa) => (
+              <div key={wa.id} className="rounded-xl border border-green-100 bg-white p-4">
+                <div className="flex justify-between items-start gap-4">
+                  <div>
+                    <p className="font-semibold text-slate-900">{wa.sender_name || "WhatsApp user"}</p>
+                    <a href={`https://wa.me/${wa.sender_phone.replace(/\D/g, "")}`} className="text-sm text-green-700 hover:underline">
+                      {wa.sender_phone}
+                    </a>
+                    <p className="mt-2 text-sm text-slate-600 line-clamp-2">{wa.message_body}</p>
+                  </div>
+                  <span className="text-xs text-slate-400 shrink-0">
+                    {new Date(wa.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Leads List */}
       <div className="space-y-3">

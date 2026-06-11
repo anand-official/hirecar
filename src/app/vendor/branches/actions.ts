@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getVendorContext, ensureUserCanManageOrganization } from "@/lib/data/vendor";
+import { getBranchLimit, getOrganizationPlanCode } from "@/lib/plan-features";
 import { requireUser } from "@/lib/security/auth";
 import { uniqueSlug } from "@/lib/slug";
 import { branchSchema } from "@/lib/validation/schemas";
+import { invalidatePseo } from "@/lib/seo/invalidate";
 
 export async function createBranch(formData: FormData) {
   const user = await requireUser();
@@ -22,6 +24,22 @@ export async function createBranch(formData: FormData) {
   await ensureUserCanManageOrganization(user.id, payload.organizationId);
 
   const supabase = createAdminClient();
+  const planCode = await getOrganizationPlanCode(payload.organizationId);
+  const branchLimit = getBranchLimit(planCode);
+
+  if (branchLimit !== null) {
+    const { count } = await supabase
+      .from("branches")
+      .select("*", { count: "exact", head: true })
+      .eq("organization_id", payload.organizationId);
+
+    if ((count ?? 0) >= branchLimit) {
+      throw new Error(
+        `Your ${planCode ?? "current"} plan allows up to ${branchLimit} branch(es). Please upgrade to add more.`,
+      );
+    }
+  }
+
   const { error } = await supabase.from("branches").insert({
     organization_id: payload.organizationId,
     name: payload.name,
@@ -47,6 +65,7 @@ export async function createBranch(formData: FormData) {
   });
 
   revalidatePath("/vendor/branches");
+  await invalidatePseo({ city: payload.city });
 }
 
 export async function getCurrentVendorContext() {

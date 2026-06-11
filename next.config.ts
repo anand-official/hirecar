@@ -6,6 +6,11 @@ const scriptSrc =
     : "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com;";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
+  },
   turbopack: {
     root: process.cwd(),
   },

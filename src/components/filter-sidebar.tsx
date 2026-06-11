@@ -22,27 +22,29 @@ interface FilterSidebarProps {
   onMobileClose?: () => void;
   /** When true, renders ONLY the mobile drawer (no desktop panel) */
   mobileOnly?: boolean;
+  /** Live facet counts from search API */
+  facetCounts?: Record<string, Record<string, number>>;
 }
 
 const categories = [
-  { value: "Sedan", label: "Sedan", count: 45 },
-  { value: "SUV", label: "SUV", count: 38 },
-  { value: "People mover", label: "People Mover", count: 12 },
-  { value: "Van", label: "Van", count: 23 },
-  { value: "Ute", label: "Ute", count: 18 },
-  { value: "Luxury", label: "Luxury", count: 8 },
+  { value: "Sedan", label: "Sedan" },
+  { value: "SUV", label: "SUV" },
+  { value: "People mover", label: "People Mover" },
+  { value: "Van", label: "Van" },
+  { value: "Ute", label: "Ute" },
+  { value: "Luxury", label: "Luxury" },
 ];
 
 const transmissions = [
-  { value: "Automatic", label: "Automatic", count: 89 },
-  { value: "Manual", label: "Manual", count: 55 },
+  { value: "Automatic", label: "Automatic" },
+  { value: "Manual", label: "Manual" },
 ];
 
 const fuelTypes = [
-  { value: "Petrol", label: "Petrol", count: 78 },
-  { value: "Diesel", label: "Diesel", count: 42 },
-  { value: "Hybrid", label: "Hybrid", count: 15 },
-  { value: "Electric", label: "Electric", count: 9 },
+  { value: "Petrol", label: "Petrol" },
+  { value: "Diesel", label: "Diesel" },
+  { value: "Hybrid", label: "Hybrid" },
+  { value: "Electric", label: "Electric" },
 ];
 
 const seatOptions = [
@@ -54,13 +56,22 @@ const seatOptions = [
 ];
 
 const popularMakes = [
-  { value: "Toyota", label: "Toyota", count: 28 },
-  { value: "Mazda", label: "Mazda", count: 22 },
-  { value: "Hyundai", label: "Hyundai", count: 18 },
-  { value: "Kia", label: "Kia", count: 15 },
-  { value: "Ford", label: "Ford", count: 12 },
-  { value: "BMW", label: "BMW", count: 8 },
+  { value: "Toyota", label: "Toyota" },
+  { value: "Mazda", label: "Mazda" },
+  { value: "Hyundai", label: "Hyundai" },
+  { value: "Kia", label: "Kia" },
+  { value: "Ford", label: "Ford" },
+  { value: "BMW", label: "BMW" },
 ];
+
+function facetCount(
+  facetCounts: Record<string, Record<string, number>> | undefined,
+  field: string,
+  value: string,
+): number | null {
+  const count = facetCounts?.[field]?.[value];
+  return count !== undefined ? count : null;
+}
 
 interface FilterSectionProps {
   title: string;
@@ -100,6 +111,7 @@ export function FilterSidebar({
   mobileOpen = false,
   onMobileClose,
   mobileOnly = false,
+  facetCounts,
 }: FilterSidebarProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>(["category", "price"]);
 
@@ -211,7 +223,11 @@ export function FilterSidebar({
                     <span className="flex-1 text-sm text-slate-700 group-hover:text-slate-900">
                       {cat.label}
                     </span>
-                    <span className="text-xs text-slate-400">({cat.count})</span>
+                    {facetCount(facetCounts, "category", cat.value) !== null && (
+                      <span className="text-xs text-slate-400">
+                        ({facetCount(facetCounts, "category", cat.value)})
+                      </span>
+                    )}
                   </label>
                 ))}
               </div>
@@ -293,7 +309,11 @@ export function FilterSidebar({
                     <span className="flex-1 text-sm text-slate-700 group-hover:text-slate-900">
                       {trans.label}
                     </span>
-                    <span className="text-xs text-slate-400">({trans.count})</span>
+                    {facetCount(facetCounts, "transmission", trans.value) !== null && (
+                      <span className="text-xs text-slate-400">
+                        ({facetCount(facetCounts, "transmission", trans.value)})
+                      </span>
+                    )}
                   </label>
                 ))}
               </div>
@@ -313,7 +333,11 @@ export function FilterSidebar({
                     <span className="flex-1 text-sm text-slate-700 group-hover:text-slate-900">
                       {fuel.label}
                     </span>
-                    <span className="text-xs text-slate-400">({fuel.count})</span>
+                    {facetCount(facetCounts, "fuel", fuel.value) !== null && (
+                      <span className="text-xs text-slate-400">
+                        ({facetCount(facetCounts, "fuel", fuel.value)})
+                      </span>
+                    )}
                   </label>
                 ))}
               </div>
@@ -333,7 +357,11 @@ export function FilterSidebar({
                     <span className="flex-1 text-sm text-slate-700 group-hover:text-slate-900">
                       {make.label}
                     </span>
-                    <span className="text-xs text-slate-400">({make.count})</span>
+                    {facetCount(facetCounts, "make", make.value) !== null && (
+                      <span className="text-xs text-slate-400">
+                        ({facetCount(facetCounts, "make", make.value)})
+                      </span>
+                    )}
                   </label>
                 ))}
               </div>

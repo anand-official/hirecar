@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { sendMessage } from "@/app/actions/chat";
 import { Send, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 type Message = {
   id: string;
@@ -75,8 +76,7 @@ export function ChatInterface({ leadId, currentUserId, initialMessages, otherPar
     try {
       const { data, error } = await sendMessage(leadId, tempBody);
       if (error) {
-        console.error("Failed to send message:", error);
-        // Optionally put the message back in the input or show a toast
+        toast.error(error);
         setNewMessage(tempBody);
       } else if (data) {
         // Optimistic update
@@ -95,13 +95,7 @@ export function ChatInterface({ leadId, currentUserId, initialMessages, otherPar
       {/* Chat Header */}
       <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
         <h2 className="text-lg font-semibold">Chat with {otherPartyName}</h2>
-        <p className="text-xs text-emerald-600 font-medium flex items-center gap-1">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          Online
-        </p>
+        <p className="text-xs text-slate-500">Messages are delivered by email when you&apos;re away.</p>
       </div>
 
       {/* Messages Area */}

@@ -71,6 +71,7 @@ export async function setupVehicleCollection() {
       { name: "branch_name", type: "string" as const, facet: false },
       { name: "status", type: "string" as const, facet: true },
       { name: "organization_id", type: "string" as const, facet: false },
+      { name: "avg_rating", type: "float" as const, facet: false, optional: true },
     ],
     default_sorting_field: "price_per_day_aud",
   };
@@ -134,7 +135,12 @@ export async function searchVehicles(
   query: string,
   filters: SearchFilters = {},
   options: { page?: number; perPage?: number; sortBy?: string } = {},
-): Promise<{ vehicles: Vehicle[]; total: number; page: number }> {
+): Promise<{
+  vehicles: Vehicle[];
+  total: number;
+  page: number;
+  facetCounts?: Record<string, Record<string, number>>;
+}> {
   const client = createTypesenseClient();
 
   if (!client) {
@@ -182,6 +188,8 @@ export async function searchVehicles(
     sort_by: sortBy ?? "price_per_day_aud:asc",
     page,
     per_page: perPage,
+    facet_by: "category,make,transmission,fuel",
+    max_facet_values: 30,
   };
 
   try {
@@ -214,10 +222,19 @@ export async function searchVehicles(
       }
     }
 
+    const facetCounts: Record<string, Record<string, number>> = {};
+    for (const facet of results.facet_counts ?? []) {
+      facetCounts[facet.field_name] = {};
+      for (const count of facet.counts ?? []) {
+        facetCounts[facet.field_name][count.value] = count.count;
+      }
+    }
+
     return {
       vehicles,
       total: results.found ?? 0,
       page,
+      facetCounts,
     };
   } catch (error) {
     console.error("Typesense search failed; falling back to database search:", error);
@@ -242,7 +259,12 @@ async function fallbackDatabaseSearch(
   query: string,
   filters: SearchFilters,
   options: { page?: number; perPage?: number; sortBy?: string },
-): Promise<{ vehicles: Vehicle[]; total: number; page: number }> {
+): Promise<{
+  vehicles: Vehicle[];
+  total: number;
+  page: number;
+  facetCounts?: Record<string, Record<string, number>>;
+}> {
   const supabase = createAdminClient();
   const { page = 1, perPage = 20, sortBy = "price_per_day_aud:asc" } = options;
 
@@ -320,9 +342,14 @@ async function fallbackDatabaseSearch(
     year: "year",
   };
   const dbSortField = validSortFields[sortField] ?? "price_per_day_aud";
+  const ratingSort = sortField === "avg_rating";
 
   const from = (page - 1) * perPage;
-  dbQuery = dbQuery.range(from, from + perPage - 1).order(dbSortField, { ascending });
+  if (ratingSort) {
+    dbQuery = dbQuery.limit(500);
+  } else {
+    dbQuery = dbQuery.range(from, from + perPage - 1).order(dbSortField, { ascending });
+  }
 
   const { data, error, count } = await dbQuery;
 
@@ -331,8 +358,28 @@ async function fallbackDatabaseSearch(
     return { vehicles: [], total: 0, page };
   }
 
+  let ratingMap: Record<string, number> = {};
+  if (ratingSort && data && data.length > 0) {
+    const ids = data.map((v) => v.id);
+    const { data: reviews } = await supabase
+      .from("reviews")
+      .select("vehicle_id, rating")
+      .in("vehicle_id", ids)
+      .eq("status", "approved");
+    const sums: Record<string, { total: number; count: number }> = {};
+    for (const r of reviews ?? []) {
+      if (!r.vehicle_id) continue;
+      if (!sums[r.vehicle_id]) sums[r.vehicle_id] = { total: 0, count: 0 };
+      sums[r.vehicle_id].total += r.rating;
+      sums[r.vehicle_id].count += 1;
+    }
+    ratingMap = Object.fromEntries(
+      Object.entries(sums).map(([id, s]) => [id, s.total / s.count]),
+    );
+  }
+
   // Transform to Vehicle type
-  const vehicles: Vehicle[] =
+  let vehicles: Vehicle[] =
     data?.map((v) => {
       const org = v.organizations as unknown as { name: string; slug: string };
       const branch = v.branches as unknown as { name: string; city: string; state: string };
@@ -370,11 +417,29 @@ async function fallbackDatabaseSearch(
       };
     }) ?? [];
 
+  if (ratingSort) {
+    vehicles = vehicles
+      .sort((a, b) => (ratingMap[b.id] ?? 0) - (ratingMap[a.id] ?? 0))
+      .slice(from, from + perPage);
+  }
+
   return {
     vehicles,
     total: count ?? 0,
     page,
   };
+}
+
+async function computeVehicleAvgRating(vehicleId: string): Promise<number> {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("reviews")
+    .select("rating")
+    .eq("vehicle_id", vehicleId)
+    .eq("status", "approved");
+  if (!data?.length) return 0;
+  const sum = data.reduce((acc, r) => acc + r.rating, 0);
+  return sum / data.length;
 }
 
 /**
@@ -434,6 +499,7 @@ export async function processSearchIndexJobs(limit = 10): Promise<{
           const branch = vehicle.branches as unknown as { name: string; city: string; state: string; status: string };
 
           if (org?.status === "approved" && branch?.status === "approved") {
+            const avgRating = await computeVehicleAvgRating(vehicle.id);
             const document = {
               id: vehicle.id,
               slug: vehicle.slug,
@@ -456,6 +522,7 @@ export async function processSearchIndexJobs(limit = 10): Promise<{
               branch_name: branch.name,
               status: vehicle.status,
               organization_id: vehicle.organization_id,
+              avg_rating: avgRating,
             };
 
             await upsertVehicleDocument(document);

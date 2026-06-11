@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getIndexableSitemapUrls } from "@/lib/seo/discovery";
 
 const PAGE_SIZE = 1000;
 const base = "https://www.hirecar.com.au";
@@ -11,46 +12,70 @@ export async function generateSitemaps() {
       .from("vehicles")
       .select("id", { count: "exact", head: true })
       .eq("status", "approved");
-      
+
     const total = count || 0;
     const numChunks = Math.ceil(total / PAGE_SIZE) || 1;
-    
+
     return Array.from({ length: numChunks }, (_, i) => ({ id: i }));
   } catch {
-    // Fallback to a single chunk if the DB fails during build
     return [{ id: 0 }];
   }
 }
 
 export default async function sitemap({ id }: { id: number }): Promise<MetadataRoute.Sitemap> {
   const chunkId = typeof id === "number" ? id : 0;
-  
-  // Static routes (only output on first chunk)
+
   const staticRoutes: MetadataRoute.Sitemap = chunkId === 0 ? [
     { url: base, lastModified: new Date(), changeFrequency: "daily", priority: 1 },
-    { url: `${base}/search`, lastModified: new Date(), changeFrequency: "hourly", priority: 0.9 },
+    { url: `${base}/locations`, lastModified: new Date(), changeFrequency: "daily", priority: 0.85 },
+    { url: `${base}/search`, lastModified: new Date(), changeFrequency: "hourly", priority: 0.5 },
+    { url: `${base}/about`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
+    { url: `${base}/faq`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.6 },
+    { url: `${base}/for-vendors`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.7 },
+    { url: `${base}/for-vendors/api`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
     { url: `${base}/pricing`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.7 },
     { url: `${base}/contact`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
+    { url: `${base}/vendors`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.6 },
     { url: `${base}/legal/privacy`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.3 },
     { url: `${base}/legal/terms`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.3 },
   ] : [];
 
-  // Location pages (only output on first chunk)
-  const cities = ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Gold Coast"];
-  const locationRoutes: MetadataRoute.Sitemap = chunkId === 0 ? cities.map((city) => ({
-    url: `${base}/search?city=${encodeURIComponent(city)}`,
-    lastModified: new Date(),
-    changeFrequency: "daily" as const,
-    priority: 0.8,
-  })) : [];
+  let pseoRoutes: MetadataRoute.Sitemap = [];
+  if (chunkId === 0) {
+    try {
+      const { cityUrls, categoryUrls, cityCategoryUrls } = await getIndexableSitemapUrls();
+      const now = new Date();
+      pseoRoutes = [
+        ...cityUrls.map((path) => ({
+          url: `${base}${path}`,
+          lastModified: now,
+          changeFrequency: "daily" as const,
+          priority: 0.8,
+        })),
+        ...categoryUrls.map((path) => ({
+          url: `${base}${path}`,
+          lastModified: now,
+          changeFrequency: "weekly" as const,
+          priority: 0.75,
+        })),
+        ...cityCategoryUrls.map((path) => ({
+          url: `${base}${path}`,
+          lastModified: now,
+          changeFrequency: "daily" as const,
+          priority: 0.7,
+        })),
+      ];
+    } catch {
+      // graceful fallback
+    }
+  }
 
-  // Dynamic vehicle pages from DB for this chunk
   let vehicleRoutes: MetadataRoute.Sitemap = [];
   try {
     const supabase = createAdminClient();
     const start = chunkId * PAGE_SIZE;
     const end = start + PAGE_SIZE - 1;
-    
+
     const { data: vehicles } = await supabase
       .from("vehicles")
       .select("slug, updated_at")
@@ -67,10 +92,9 @@ export default async function sitemap({ id }: { id: number }): Promise<MetadataR
       }));
     }
   } catch {
-    // Sitemap generation fails gracefully if DB is unavailable
+    // graceful fallback
   }
 
-  // Dynamic vendor pages from DB (only output on first chunk)
   let vendorRoutes: MetadataRoute.Sitemap = [];
   if (chunkId === 0) {
     try {
@@ -79,7 +103,7 @@ export default async function sitemap({ id }: { id: number }): Promise<MetadataR
         .from("organizations")
         .select("slug, updated_at")
         .eq("status", "approved")
-        .limit(2000); // 2k vendors max in first chunk is fine
+        .limit(2000);
 
       if (vendors) {
         vendorRoutes = vendors.map((v) => ({
@@ -90,9 +114,9 @@ export default async function sitemap({ id }: { id: number }): Promise<MetadataR
         }));
       }
     } catch {
-      // Fails gracefully
+      // graceful fallback
     }
   }
 
-  return [...staticRoutes, ...locationRoutes, ...vehicleRoutes, ...vendorRoutes];
+  return [...staticRoutes, ...pseoRoutes, ...vehicleRoutes, ...vendorRoutes];
 }

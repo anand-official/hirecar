@@ -7,6 +7,8 @@ import { getVehicleImages } from "./image-actions";
 import VehicleForm from "./vehicle-form";
 import { DeleteVehicleButton } from "./delete-button";
 import { BulkUpload } from "@/components/vendor/bulk-upload";
+import { OrgSwitcher } from "@/components/vendor/org-switcher";
+import { organizationHasFeature } from "@/lib/plan-features";
 import { Car, MapPin, Tag, Fuel, Settings2, Users, AlertCircle, Edit2 } from "lucide-react";
 
 export const metadata = {
@@ -32,7 +34,7 @@ export default async function VendorVehiclesPage({ searchParams }: VehiclesPageP
   }
 
   if (context.organizations.length === 0) {
-    redirect("/vendor/onboarding");
+    redirect("/vendor/upgrade");
   }
 
   const selectedOrgId = params.org || context.organizations[0]?.id;
@@ -43,6 +45,8 @@ export default async function VendorVehiclesPage({ searchParams }: VehiclesPageP
   }
 
   const limitInfo = await getVehicleLimitInfo(selectedOrgId);
+  const hasBulkUpload = await organizationHasFeature(selectedOrgId, "bulkUpload");
+  const canUseAi = await organizationHasFeature(selectedOrgId, "aiSeoContent");
   const vehicles = await getOrganizationVehicles(selectedOrgId);
 
   let editVehicle: (typeof vehicles)[number] | null = null;
@@ -68,17 +72,11 @@ export default async function VendorVehiclesPage({ searchParams }: VehiclesPageP
               Manage your fleet listings for <span className="font-medium text-slate-700">{organization.name}</span>.
             </p>
           </div>
-          {context.organizations.length > 1 && (
-            <select
-              className="rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all"
-              onChange={(e) => { window.location.href = `/vendor/vehicles?org=${e.target.value}`; }}
-              value={selectedOrgId}
-            >
-              {context.organizations.map((org) => (
-                <option key={org.id} value={org.id}>{org.name}</option>
-              ))}
-            </select>
-          )}
+          <OrgSwitcher
+            organizations={context.organizations}
+            selectedOrgId={selectedOrgId}
+            basePath="/vendor/vehicles"
+          />
         </div>
 
         {/* Plan Usage */}
@@ -108,12 +106,16 @@ export default async function VendorVehiclesPage({ searchParams }: VehiclesPageP
         </div>
       </div>
 
-      {/* Bulk Upload Feature */}
-      {!editVehicle && (
-        <BulkUpload 
-          organizationId={selectedOrgId} 
-          branches={organization.branches} 
+      {!editVehicle && hasBulkUpload && (
+        <BulkUpload
+          organizationId={selectedOrgId}
+          branches={organization.branches}
         />
+      )}
+      {!editVehicle && !hasBulkUpload && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          Bulk upload is available on the <Link href="/vendor/billing" className="font-semibold text-orange-600 hover:underline">Pro plan</Link>.
+        </div>
       )}
 
       {/* Vehicle Form */}
@@ -121,6 +123,7 @@ export default async function VendorVehiclesPage({ searchParams }: VehiclesPageP
         organizationId={selectedOrgId}
         branches={organization.branches}
         isAtLimit={isAtLimit}
+        canUseAi={canUseAi}
         editVehicle={editVehicle}
         editImages={editImages}
       />

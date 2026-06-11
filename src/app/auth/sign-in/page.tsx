@@ -16,6 +16,10 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  defaultDashboardForRole,
+  isValidRedirectForRole,
+} from "@/lib/routing";
 
 function SignInContent() {
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +28,16 @@ function SignInContent() {
 
   const searchParams = useSearchParams();
   const redirectedFrom = searchParams.get("redirectedFrom");
+  const plan = searchParams.get("plan");
+  const mfaRequired = searchParams.get("reason") === "mfa-required";
+
+  function resolveNextRoute(role: "customer" | "vendor") {
+    const fallback = defaultDashboardForRole(role, plan);
+    if (redirectedFrom && isValidRedirectForRole(redirectedFrom, role)) {
+      return redirectedFrom;
+    }
+    return fallback;
+  }
 
   async function signIn() {
     if (!selectedRole) {
@@ -35,17 +49,19 @@ function SignInContent() {
     setError(null);
     const supabase = createClient();
 
-    // Determine the next route based on the selected role, or use redirectedFrom if available
-    const fallbackRoute = selectedRole === "vendor" ? "/vendor/dashboard" : "/";
-    const nextRoute = redirectedFrom || fallbackRoute;
-
-    // Store the role in sessionStorage just in case client-side components need it
+    const nextRoute = resolveNextRoute(selectedRole);
     sessionStorage.setItem("auth_intended_role", selectedRole);
+
+    const callbackParams = new URLSearchParams({
+      next: nextRoute,
+      role: selectedRole,
+    });
+    if (plan) callbackParams.set("plan", plan);
 
     const { error: signInError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextRoute)}`,
+        redirectTo: `${window.location.origin}/auth/callback?${callbackParams.toString()}`,
         queryParams: {
           prompt: "select_account",
         },
@@ -139,6 +155,16 @@ function SignInContent() {
           </CardHeader>
 
           <CardContent className="space-y-6">
+            {mfaRequired && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
+                <p className="font-medium">Admin access requires two-factor authentication.</p>
+                <p className="mt-1">
+                  Sign in, enroll MFA in your account, then visit{" "}
+                  <a href="/auth/mfa" className="font-semibold underline">/auth/mfa</a>.
+                </p>
+              </div>
+            )}
+
             {/* Error State */}
             {error && (
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive" role="alert">
@@ -259,7 +285,7 @@ function SignInContent() {
                       setError(error.message);
                       setIsSubmitting(false);
                     } else {
-                      window.location.href = redirectedFrom || "/";
+                      window.location.href = resolveNextRoute("customer");
                     }
                   }}
                   disabled={isSubmitting}
@@ -282,7 +308,7 @@ function SignInContent() {
                       setError(error.message);
                       setIsSubmitting(false);
                     } else {
-                      window.location.href = redirectedFrom || "/vendor/dashboard";
+                      window.location.href = resolveNextRoute("vendor");
                     }
                   }}
                   disabled={isSubmitting}

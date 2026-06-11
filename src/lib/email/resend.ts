@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { optionalEnv } from "@/lib/config";
+import { getAppUrl, optionalEnv } from "@/lib/config";
 
 const apiKey = optionalEnv("RESEND_API_KEY");
 export const resend = apiKey ? new Resend(apiKey) : null;
@@ -18,6 +18,75 @@ export async function sendLeadAlert(input: {
     to: input.to,
     subject: `New rental lead for ${input.vehicleTitle}`,
     text: `${input.customerName} submitted a rental enquiry. Open the vendor dashboard to review and respond.`,
+  });
+
+  return { skipped: false };
+}
+
+export async function sendCustomerEnquiryConfirmation(input: {
+  to: string;
+  customerName: string;
+  vehicleTitle: string;
+  leadId: string;
+}) {
+  if (!resend) {
+    return { skipped: true };
+  }
+
+  const chatUrl = `${getAppUrl()}/messages/${input.leadId}`;
+  const signInUrl = `${getAppUrl()}/auth/sign-in?redirectedFrom=${encodeURIComponent(chatUrl)}`;
+
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM ?? "Hire Car <noreply@hirecarmarketplace.com.au>",
+    to: input.to,
+    subject: `Your enquiry for ${input.vehicleTitle}`,
+    text: [
+      `Hi ${input.customerName},`,
+      "",
+      `We've sent your rental enquiry for ${input.vehicleTitle} to the vendor.`,
+      "",
+      `Sign in to chat with the vendor and track your enquiry:`,
+      signInUrl,
+      "",
+      `Or open your conversation directly after signing in:`,
+      chatUrl,
+    ].join("\n"),
+  });
+
+  return { skipped: false };
+}
+
+export async function sendNewMessageNotification(input: {
+  to: string;
+  recipientName: string;
+  senderName: string;
+  vehicleTitle: string;
+  messagePreview: string;
+  leadId: string;
+  isVendorRecipient: boolean;
+}) {
+  if (!resend) {
+    return { skipped: true };
+  }
+
+  const preview = sanitizeMessagePreview(input.messagePreview);
+  const chatUrl = input.isVendorRecipient
+    ? `${getAppUrl()}/vendor/leads/${input.leadId}`
+    : `${getAppUrl()}/messages/${input.leadId}`;
+
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM ?? "Hire Car <noreply@hirecarmarketplace.com.au>",
+    to: input.to,
+    subject: `New message about ${input.vehicleTitle}`,
+    text: [
+      `Hi ${input.recipientName},`,
+      "",
+      `${input.senderName} sent you a message about ${input.vehicleTitle}:`,
+      "",
+      `"${preview}"`,
+      "",
+      `Reply here: ${chatUrl}`,
+    ].join("\n"),
   });
 
   return { skipped: false };

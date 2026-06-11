@@ -45,6 +45,9 @@ export function getPlanFromStripePrice(priceId: string): { plan: PlanCode; inter
   return null;
 }
 
+const PAID_PLANS: PlanCode[] = ["growth", "pro"];
+const TRIAL_DAYS = 14;
+
 export async function createCheckoutSession(input: {
   plan: PlanCode;
   interval?: "monthly" | "annual";
@@ -53,9 +56,21 @@ export async function createCheckoutSession(input: {
   email?: string;
   customerId?: string;
 }) {
-  const params: Stripe.Checkout.SessionCreateParams = {
+  const interval = input.interval ?? "monthly";
+  const isPaidPlan = PAID_PLANS.includes(input.plan);
+
+  const subscriptionData = {
+    metadata: {
+      organization_id: input.organizationId,
+      plan: input.plan,
+      interval,
+    },
+    ...(isPaidPlan ? { trial_period_days: TRIAL_DAYS } : {}),
+  };
+
+  const params: Parameters<Stripe["checkout"]["sessions"]["create"]>[0] = {
     mode: "subscription",
-    line_items: [{ price: getStripePrice(input.plan, input.interval), quantity: 1 }],
+    line_items: [{ price: getStripePrice(input.plan, interval), quantity: 1 }],
     success_url: `${getAppUrl()}/vendor/billing?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${getAppUrl()}/vendor/billing?checkout=cancelled`,
     client_reference_id: input.organizationId,
@@ -63,16 +78,14 @@ export async function createCheckoutSession(input: {
       organization_id: input.organizationId,
       user_id: input.userId,
       plan: input.plan,
-      interval: input.interval ?? "monthly",
+      interval,
     },
-    subscription_data: {
-      metadata: {
-        organization_id: input.organizationId,
-        plan: input.plan,
-        interval: input.interval ?? "monthly",
-      },
-    },
+    subscription_data: subscriptionData,
   };
+
+  if (isPaidPlan) {
+    params.payment_method_collection = "if_required";
+  }
 
   if (input.customerId) {
     params.customer = input.customerId;

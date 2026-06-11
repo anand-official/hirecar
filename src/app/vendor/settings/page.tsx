@@ -3,7 +3,9 @@ import Link from "next/link";
 import { requireUser } from "@/lib/security/auth";
 import { getVendorContext } from "@/lib/data/vendor";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { updateOrganizationProfile } from "./actions";
+import { updateOrganizationProfile, uploadVendorDocument } from "./actions";
+import { getOrganizationPlanCode, getSupportTierLabel, organizationHasFeature } from "@/lib/plan-features";
+import { ApiKeysPanel } from "@/components/vendor/api-keys-panel";
 import {
   Building2, Users, Phone, Globe, MapPin, Shield,
   CheckCircle, Clock, Hash, Mail, Image as ImageIcon, FileText, Bell, UserPlus, Info
@@ -27,7 +29,7 @@ export default async function VendorSettingsPage() {
   }
 
   if (context.organizations.length === 0) {
-    redirect("/vendor/onboarding");
+    redirect("/vendor/upgrade");
   }
 
   const organization = context.organizations[0];
@@ -48,6 +50,21 @@ export default async function VendorSettingsPage() {
     .order("created_at", { ascending: true });
 
   const isApproved = org?.status === "approved";
+  const planCode = await getOrganizationPlanCode(organization.id);
+  const supportTier = getSupportTierLabel(planCode);
+  const hasApiAccess = await organizationHasFeature(organization.id, "apiAccess");
+
+  const { data: apiKeys } = await supabase
+    .from("api_keys")
+    .select("id, label, key_prefix, created_at, last_used_at, revoked")
+    .eq("organization_id", organization.id)
+    .order("created_at", { ascending: false });
+
+  const { data: documents } = await supabase
+    .from("vendor_documents")
+    .select("id, document_type, status, created_at")
+    .eq("organization_id", organization.id)
+    .order("created_at", { ascending: false });
 
   const ROLE_LABELS: Record<string, string> = {
     owner: "Owner",
@@ -73,6 +90,9 @@ export default async function VendorSettingsPage() {
             <p className="mt-1 text-sm text-slate-500">
               Manage your organization profile and team for{" "}
               <span className="font-medium text-slate-700">{org?.name}</span>
+            </p>
+            <p className="mt-1 text-xs font-medium text-slate-400">
+              Support tier: {supportTier}
             </p>
           </div>
           <span
@@ -431,6 +451,41 @@ export default async function VendorSettingsPage() {
             <UserPlus className="h-4 w-4" /> Invite Member
           </button>
         </div>
+      </div>
+
+      <ApiKeysPanel
+        organizationId={organization.id}
+        keys={apiKeys ?? []}
+        hasAccess={hasApiAccess}
+      />
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-slate-900 mb-4">Business documents</h2>
+        <p className="text-sm text-slate-500 mb-4">
+          Upload ABN certificate, insurance, or GPS proof for admin verification.
+        </p>
+        <form action={uploadVendorDocument} className="flex flex-col sm:flex-row gap-3 mb-6">
+          <input type="hidden" name="organizationId" value={organization.id} />
+          <select name="documentType" className="rounded-xl border border-slate-200 px-3 py-2 text-sm">
+            <option value="abn_certificate">ABN certificate</option>
+            <option value="insurance">Insurance</option>
+            <option value="gps_proof">GPS proof</option>
+          </select>
+          <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png" required className="text-sm" />
+          <button type="submit" className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+            Upload
+          </button>
+        </form>
+        {documents && documents.length > 0 && (
+          <ul className="space-y-2 text-sm">
+            {documents.map((doc) => (
+              <li key={doc.id} className="flex justify-between rounded-lg bg-slate-50 px-3 py-2">
+                <span className="font-medium capitalize">{doc.document_type.replace("_", " ")}</span>
+                <span className="text-slate-500">{doc.status}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

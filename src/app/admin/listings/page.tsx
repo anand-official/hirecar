@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/security/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { invalidatePseoForVehicle } from "@/lib/seo/vehicle-invalidation";
 import { revalidatePath } from "next/cache";
 import { Badge } from "@/components/ui/badge";
 import { AdminListingsTable } from "./listings-table";
@@ -65,6 +66,7 @@ async function moderateListing(
       operation: "upsert",
       status: "pending",
     });
+    await invalidatePseoForVehicle(supabase, listingId);
   } else if (action === "suspend" || action === "reject") {
     await supabase.from("search_index_jobs").insert({
       vehicle_id: listingId,

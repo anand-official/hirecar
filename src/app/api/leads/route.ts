@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendLeadAlert } from "@/lib/email/resend";
+import { sendCustomerEnquiryConfirmation, sendLeadAlert } from "@/lib/email/resend";
 import { clientIp, hashIpForStorage } from "@/lib/security/rate-limit";
 import { rateLimitSlidingWindow } from "@/lib/security/rate-limit-redis";
 import { verifyTurnstile } from "@/lib/security/turnstile";
@@ -134,10 +134,10 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (duplicateLead) {
-    console.info(`[Lead API] Duplicate lead blocked for email ${payload.data.email} and vehicle ${payload.data.vehicleId}`);
+    console.info(`[Lead API] Returning existing lead for email ${payload.data.email} and vehicle ${payload.data.vehicleId}`);
     return NextResponse.json(
-      { error: "Duplicate lead detected. Please wait before submitting again." },
-      { status: 429 },
+      { leadId: duplicateLead.id, duplicate: true },
+      { status: 200 },
     );
   }
 
@@ -188,5 +188,16 @@ export async function POST(request: NextRequest) {
     console.info(`[Lead API] Successfully processed lead ${lead.id} but vendor has no billing email`);
   }
 
-  return NextResponse.json({ id: lead.id }, { status: 201 });
+  try {
+    await sendCustomerEnquiryConfirmation({
+      to: payload.data.email,
+      customerName: payload.data.name,
+      vehicleTitle: vehicle.title,
+      leadId: lead.id,
+    });
+  } catch (emailErr) {
+    console.error(`[Lead API] Lead ${lead.id} created but failed to send customer confirmation:`, emailErr);
+  }
+
+  return NextResponse.json({ leadId: lead.id, id: lead.id }, { status: 201 });
 }

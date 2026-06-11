@@ -16,31 +16,33 @@ export function SiteHeader() {
   // pathname removed
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [profileHref, setProfileHref] = useState("/customer/dashboard");
+  const [profileLabel, setProfileLabel] = useState("My Account");
+  const [isVendor, setIsVendor] = useState(false);
+  const [vendorUpgradeHref, setVendorUpgradeHref] = useState("/vendor/upgrade");
+  const [listFleetLabel, setListFleetLabel] = useState("List Your Fleet");
 
   const locations = [
-    { name: "Sydney", href: "/search?city=Sydney" },
-    { name: "Melbourne", href: "/search?city=Melbourne" },
-    { name: "Brisbane", href: "/search?city=Brisbane" },
-    { name: "Perth", href: "/search?city=Perth" },
-    { name: "Adelaide", href: "/search?city=Adelaide" },
-    { name: "Gold Coast", href: "/search?city=Gold Coast" },
-    { name: "Canberra", href: "/search?city=Canberra" },
-    { name: "Hobart", href: "/search?city=Hobart" },
-    { name: "Darwin", href: "/search?city=Darwin" },
-    { name: "Cairns", href: "/search?city=Cairns" },
+    { name: "Sydney", href: "/locations/sydney" },
+    { name: "Melbourne", href: "/locations/melbourne" },
+    { name: "Brisbane", href: "/locations/brisbane" },
+    { name: "Perth", href: "/locations/perth" },
+    { name: "Adelaide", href: "/locations/adelaide" },
+    { name: "Gold Coast", href: "/locations/gold-coast" },
+    { name: "Canberra", href: "/locations/canberra" },
+    { name: "Hobart", href: "/locations/hobart" },
+    { name: "Darwin", href: "/locations/darwin" },
+    { name: "Cairns", href: "/locations/cairns" },
   ];
 
   const vehicleCategories = [
-    { name: "Sedans", href: "/search?category=Sedan" },
-    { name: "SUVs", href: "/search?category=SUV" },
-    { name: "Hatchbacks", href: "/search?category=Hatchback" },
-    { name: "Utes & Trucks", href: "/search?category=Ute" },
-    { name: "People Movers", href: "/search?category=People mover" },
-    { name: "Luxury & Sports", href: "/search?category=Luxury" },
-    { name: "Convertibles", href: "/search?category=Convertible" },
-    { name: "Electric Vehicles", href: "/search?category=Electric" },
-    { name: "Vans & Commercial", href: "/search?category=Van" },
-    { name: "Campers", href: "/search?category=Camper" },
+    { name: "Sedans", href: "/categories/sedan" },
+    { name: "SUVs", href: "/categories/suv" },
+    { name: "Utes & Trucks", href: "/categories/ute" },
+    { name: "People Movers", href: "/categories/people-mover" },
+    { name: "Luxury", href: "/categories/luxury" },
+    { name: "Vans & Commercial", href: "/categories/van" },
+    { name: "Electric & Hybrid", href: "/search?fuel=Electric" },
   ];
 
   const openMobileMenu = () => setIsMobileMenuOpen(true);
@@ -56,16 +58,49 @@ export function SiteHeader() {
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
     );
     
+    const loadUserContext = async (hasSession: boolean) => {
+      if (!hasSession) {
+        setProfileHref("/customer/dashboard");
+        setProfileLabel("My Account");
+        setIsVendor(false);
+        setVendorUpgradeHref("/vendor/upgrade");
+        setListFleetLabel("List Your Fleet");
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/user/context");
+        if (res.ok) {
+          const data = await res.json();
+          setProfileHref(data.profileHref ?? "/customer/dashboard");
+          setProfileLabel(data.profileLabel ?? "My Account");
+          setIsVendor(!!data.isVendor);
+          setVendorUpgradeHref(data.vendorUpgradeHref ?? "/vendor/upgrade");
+          setListFleetLabel(data.listFleetLabel ?? "List Your Fleet");
+        }
+      } catch {
+        setProfileHref("/customer/dashboard");
+        setProfileLabel("My Account");
+        setIsVendor(false);
+        setVendorUpgradeHref("/vendor/upgrade");
+        setListFleetLabel("List Your Fleet");
+      }
+    };
+
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setIsLoggedIn(!!session);
+      const loggedIn = !!session;
+      setIsLoggedIn(loggedIn);
+      await loadUserContext(loggedIn);
       setIsLoadingAuth(false);
     };
     
     checkAuth();
     
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const loggedIn = !!session;
+      setIsLoggedIn(loggedIn);
+      await loadUserContext(loggedIn);
     });
     
     return () => {
@@ -203,10 +238,21 @@ export function SiteHeader() {
               <div className="flex items-center gap-4">
                 {!isLoadingAuth && (
                   isLoggedIn ? (
-                    <Link href="/customer/dashboard" className="hidden md:flex items-center gap-2 bg-gradient-to-r from-[#ea580c] to-amber-500 hover:from-[#c2410c] hover:to-[#ea580c] text-white font-bold text-sm px-7 py-3 rounded-full transition-all shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5">
-                      <User className="h-4 w-4" />
-                      Profile
-                    </Link>
+                    <div className="hidden md:flex items-center gap-3">
+                      {isVendor ? (
+                        <Link href="/customer/dashboard" className="text-sm font-semibold text-slate-600 hover:text-primary transition-colors">
+                          My Enquiries
+                        </Link>
+                      ) : (
+                        <Link href={vendorUpgradeHref} className="text-sm font-semibold text-slate-600 hover:text-primary transition-colors">
+                          {listFleetLabel}
+                        </Link>
+                      )}
+                      <Link href={profileHref} className="inline-flex items-center gap-2 bg-gradient-to-r from-[#ea580c] to-amber-500 hover:from-[#c2410c] hover:to-[#ea580c] text-white font-bold text-sm px-7 py-3 rounded-full transition-all shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5">
+                        <User className="h-4 w-4" />
+                        {profileLabel}
+                      </Link>
+                    </div>
                   ) : (
                     <Link href="/auth/sign-in" className="hidden md:flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-7 py-3 rounded-full transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
                       Log in / Sign up
@@ -260,9 +306,20 @@ export function SiteHeader() {
               <div className="mt-auto flex flex-col pt-8 border-t border-slate-100">
                 {!isLoadingAuth && (
                   isLoggedIn ? (
-                    <Link href="/customer/dashboard" onClick={closeMobileMenu} className="font-bold text-lg text-center bg-slate-100 text-slate-900 rounded-2xl py-4 hover:bg-slate-200 transition-colors flex justify-center items-center gap-2">
-                      <User className="h-5 w-5" /> Profile
-                    </Link>
+                    <div className="flex flex-col gap-3">
+                      {isVendor ? (
+                        <Link href="/customer/dashboard" onClick={closeMobileMenu} className="font-bold text-lg text-center bg-white border border-slate-200 text-slate-900 rounded-2xl py-4 hover:bg-slate-50 transition-colors flex justify-center items-center gap-2">
+                          My Enquiries
+                        </Link>
+                      ) : (
+                        <Link href={vendorUpgradeHref} onClick={closeMobileMenu} className="font-bold text-lg text-center bg-white border border-orange-200 text-orange-700 rounded-2xl py-4 hover:bg-orange-50 transition-colors flex justify-center items-center gap-2">
+                          {listFleetLabel}
+                        </Link>
+                      )}
+                      <Link href={profileHref} onClick={closeMobileMenu} className="font-bold text-lg text-center bg-slate-100 text-slate-900 rounded-2xl py-4 hover:bg-slate-200 transition-colors flex justify-center items-center gap-2">
+                        <User className="h-5 w-5" /> {profileLabel}
+                      </Link>
+                    </div>
                   ) : (
                     <Link href="/auth/sign-in" onClick={closeMobileMenu} className="font-bold text-lg text-center bg-slate-900 text-white rounded-2xl py-4 hover:bg-slate-800 transition-colors flex justify-center items-center gap-2">
                       Log in / Sign up

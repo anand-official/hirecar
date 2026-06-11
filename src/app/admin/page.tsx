@@ -30,7 +30,7 @@ export const metadata = {
 export default async function AdminOverviewPage() {
   await requireAdmin();
 
-  const [metrics, pendingVendors, , fraudFlags, , analytics] = await Promise.all(
+  const [metrics, pendingVendors, pendingListings, fraudFlags, pendingReviews, analytics] = await Promise.all(
     [
       getAdminDashboardMetrics(),
       getPendingVendors(5),
@@ -166,6 +166,64 @@ export default async function AdminOverviewPage() {
                       </Link>
                     </div>
                   </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Pending Listings */}
+        <Card variant="elevated">
+          <CardHeader>
+            <div className="flex items-center justify-between w-full">
+              <CardTitle className="flex items-center gap-2">
+                <Car className="h-5 w-5 text-primary" />
+                Pending Listings
+              </CardTitle>
+              <Link href="/admin/listings?status=pending" className="text-xs font-semibold uppercase tracking-wider text-primary hover:text-primary/80">
+                View All ({pendingListings.length})
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {pendingListings.length === 0 ? (
+              <EmptyState message="No listings awaiting approval." icon={CheckCircle2} iconColor="text-emerald-600" />
+            ) : (
+              <div className="space-y-3">
+                {pendingListings.map((listing) => (
+                  <Link key={listing.id} href="/admin/listings?status=pending" className="block rounded-lg border border-border p-3 hover:bg-muted/50">
+                    <div className="font-semibold text-foreground">{listing.title}</div>
+                    <div className="text-xs text-muted-foreground">{listing.vendorName}</div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Pending Reviews */}
+        <Card variant="elevated">
+          <CardHeader>
+            <div className="flex items-center justify-between w-full">
+              <CardTitle className="flex items-center gap-2">
+                <Star className="h-5 w-5 text-amber-500" />
+                Pending Reviews
+              </CardTitle>
+              <Link href="/admin/reviews" className="text-xs font-semibold uppercase tracking-wider text-primary hover:text-primary/80">
+                View All ({pendingReviews.length})
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {pendingReviews.length === 0 ? (
+              <EmptyState message="No reviews awaiting moderation." icon={CheckCircle2} iconColor="text-emerald-600" />
+            ) : (
+              <div className="space-y-3">
+                {pendingReviews.map((review) => (
+                  <Link key={review.id} href="/admin/reviews" className="block rounded-lg border border-border p-3 hover:bg-muted/50">
+                    <div className="font-semibold text-foreground">{review.customerName} — {review.rating}/5</div>
+                    <div className="text-xs text-muted-foreground line-clamp-1">{review.body}</div>
+                  </Link>
                 ))}
               </div>
             )}

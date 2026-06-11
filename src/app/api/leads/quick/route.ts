@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { readJsonBody } from "@/lib/api/request";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendCustomerEnquiryConfirmation, sendLeadAlert } from "@/lib/email/resend";
 import { requireApiUser } from "@/lib/security/auth";
 import { clientIp, hashIpForStorage } from "@/lib/security/rate-limit";
 
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     // 2. Validate vehicle and vendor
     const { data: vehicle } = await supabase
       .from("vehicles")
-      .select("id, branch_id")
+      .select("id, branch_id, title")
       .eq("id", vehicleId)
       .eq("organization_id", vendorId)
       .eq("status", "approved")
@@ -45,6 +46,12 @@ export async function POST(request: NextRequest) {
     if (!vehicle) {
       return NextResponse.json({ error: "Vehicle not available" }, { status: 404 });
     }
+
+    const { data: organization } = await supabase
+      .from("organizations")
+      .select("billing_email")
+      .eq("id", vendorId)
+      .single();
 
     // Get pickup city from branch
     const { data: branch } = await supabase
@@ -63,10 +70,11 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (duplicateLead) {
-      return NextResponse.json(
-        { error: "You have already expressed interest in this vehicle recently." },
-        { status: 429 }
-      );
+      return NextResponse.json({
+        success: true,
+        leadId: duplicateLead.id,
+        duplicate: true,
+      });
     }
 
     // 4. Create the lead
@@ -109,12 +117,34 @@ export async function POST(request: NextRequest) {
       body: "I am interested in this vehicle. Is it still available?",
     });
 
-    // Log event
     await supabase.from("lead_events").insert({
       lead_id: lead.id,
       event_type: "quick_interest_submitted",
       metadata: { ip_hash: ipHash, user_id: user.id },
     });
+
+    if (organization?.billing_email) {
+      try {
+        await sendLeadAlert({
+          to: organization.billing_email,
+          vehicleTitle: vehicle.title,
+          customerName: profile.full_name || "Interested User",
+        });
+      } catch (emailErr) {
+        console.error("[quick lead] vendor alert failed:", emailErr);
+      }
+    }
+
+    try {
+      await sendCustomerEnquiryConfirmation({
+        to: profile.email,
+        customerName: profile.full_name || "Customer",
+        vehicleTitle: vehicle.title,
+        leadId: lead.id,
+      });
+    } catch (emailErr) {
+      console.error("[quick lead] customer confirmation failed:", emailErr);
+    }
 
     return NextResponse.json({ success: true, leadId: lead.id });
   } catch (error) {

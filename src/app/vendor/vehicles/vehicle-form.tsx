@@ -3,7 +3,10 @@
 import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Sparkles } from "lucide-react";
 import { createVehicle, updateVehicle } from "./actions";
+import { generateVehicleSeoContent } from "./ai-actions";
 import { uploadVehicleImage, deleteVehicleImage } from "./image-actions";
 
 interface VehicleFormProps {
@@ -14,6 +17,7 @@ interface VehicleFormProps {
     city: string;
   }>;
   isAtLimit: boolean;
+  canUseAi?: boolean;
   editVehicle: {
     id: string;
     title: string;
@@ -57,6 +61,7 @@ export default function VehicleForm({
   organizationId,
   branches,
   isAtLimit,
+  canUseAi = false,
   editVehicle,
   editImages,
 }: VehicleFormProps) {
@@ -65,6 +70,35 @@ export default function VehicleForm({
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<File[]>([]);
+  const [notes, setNotes] = useState(editVehicle?.notes || "");
+  const [aiLoading, setAiLoading] = useState(false);
+
+  async function handleAiGenerate(form: HTMLFormElement) {
+    if (!canUseAi) return;
+    setAiLoading(true);
+    try {
+      const fd = new FormData(form);
+      const branchId = String(fd.get("branchId") ?? "");
+      const branch = branches.find((b) => b.id === branchId);
+      const result = await generateVehicleSeoContent({
+        organizationId,
+        make: String(fd.get("make") ?? ""),
+        model: String(fd.get("model") ?? ""),
+        year: Number(fd.get("year") ?? new Date().getFullYear()),
+        category: String(fd.get("category") ?? "Sedan"),
+        city: branch?.city,
+        seats: Number(fd.get("seats") ?? 5),
+        fuel: String(fd.get("fuel") ?? "Petrol"),
+        transmission: String(fd.get("transmission") ?? "Automatic"),
+      });
+      setNotes(result.description);
+      toast.success("AI description generated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "AI generation failed");
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   async function handleSubmit(formData: FormData) {
     setIsSubmitting(true);
@@ -412,16 +446,29 @@ export default function VehicleForm({
           </label>
 
           <label className="grid gap-1.5 text-sm font-medium text-foreground md:col-span-3">
-            Internal Notes
+            <span className="flex items-center justify-between">
+              Listing description / notes
+              {canUseAi && (
+                <button
+                  type="button"
+                  disabled={aiLoading}
+                  onClick={(e) => handleAiGenerate(e.currentTarget.closest("form")!)}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-orange-600 hover:text-orange-700 disabled:opacity-50"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {aiLoading ? "Generating..." : "Generate with AI"}
+                </button>
+              )}
+            </span>
             <textarea
               name="notes"
-              defaultValue={editVehicle?.notes || ""}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
               maxLength={1000}
-              rows={2}
-              placeholder="Internal fleet notes, e.g., Public holiday rate may vary..."
+              rows={3}
+              placeholder="Listing description and internal notes..."
               className="rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all aria-invalid:border-destructive"
             />
-            <span className="text-xs text-muted-foreground">Only visible to your team</span>
           </label>
         </div>
 

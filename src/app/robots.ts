@@ -11,6 +11,7 @@ export default function robots(): MetadataRoute.Robots {
           "/vendor/dashboard",
           "/vendor/leads",
           "/vendor/onboarding",
+          "/vendor/upgrade",
           "/auth/",
           "/api/",
           "/messages/",

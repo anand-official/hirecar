@@ -7,7 +7,7 @@ export default async function VendorBranchesPage() {
   const context = await getCurrentVendorContext();
   
   if (context.organizations.length === 0) {
-    redirect("/vendor/onboarding");
+    redirect("/vendor/upgrade");
   }
 
   const firstOrganization = context.organizations[0];

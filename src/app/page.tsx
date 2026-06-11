@@ -7,6 +7,7 @@ import { LocationCard } from "@/components/location-card";
 import { TrustSignals } from "@/components/trust-signals";
 import { HowItWorks } from "@/components/how-it-works";
 import { SiteFooter } from "@/components/site-footer";
+import { getActiveFeaturedVehicles } from "@/lib/data/featured";
 import { searchVehicles } from "@/lib/search/typesense";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MotionScroll } from "@/components/motion-scroll";
@@ -24,12 +25,21 @@ export const metadata = {
 };
 
 const popularLocations = [
-  { name: "Sydney", imageUrl: "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=600&q=80", href: "/search?city=Sydney" },
-  { name: "Melbourne", imageUrl: "https://images.unsplash.com/photo-1514395462725-fb4566210144?auto=format&fit=crop&w=600&q=80", href: "/search?city=Melbourne" },
-  { name: "Brisbane", imageUrl: "https://images.unsplash.com/photo-1554939437-ecc492c67b78?auto=format&fit=crop&w=600&q=80", href: "/search?city=Brisbane" },
-  { name: "Perth", imageUrl: "/perth.png", href: "/search?city=Perth" },
-  { name: "Adelaide", imageUrl: "https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=600&q=80", href: "/search?city=Adelaide" },
-  { name: "Gold Coast", imageUrl: "https://images.unsplash.com/photo-1535961652354-923cb08225a7?auto=format&fit=crop&w=600&q=80", href: "/search?city=Gold+Coast" },
+  { name: "Sydney", imageUrl: "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=600&q=80", href: "/locations/sydney" },
+  { name: "Melbourne", imageUrl: "https://images.unsplash.com/photo-1514395462725-fb4566210144?auto=format&fit=crop&w=600&q=80", href: "/locations/melbourne" },
+  { name: "Brisbane", imageUrl: "https://images.unsplash.com/photo-1554939437-ecc492c67b78?auto=format&fit=crop&w=600&q=80", href: "/locations/brisbane" },
+  { name: "Perth", imageUrl: "/perth.png", href: "/locations/perth" },
+  { name: "Adelaide", imageUrl: "https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=600&q=80", href: "/locations/adelaide" },
+  { name: "Gold Coast", imageUrl: "https://images.unsplash.com/photo-1535961652354-923cb08225a7?auto=format&fit=crop&w=600&q=80", href: "/locations/gold-coast" },
+];
+
+const browseCategories = [
+  { name: "Sedan", href: "/categories/sedan" },
+  { name: "SUV", href: "/categories/suv" },
+  { name: "People mover", href: "/categories/people-mover" },
+  { name: "Van", href: "/categories/van" },
+  { name: "Ute", href: "/categories/ute" },
+  { name: "Luxury", href: "/categories/luxury" },
 ];
 
 const testimonials = [
@@ -56,7 +66,32 @@ const testimonials = [
 ];
 
 export default async function Home() {
-  const { vehicles: featuredVehicles } = await searchVehicles("", {}, { page: 1, perPage: 6 });
+  const featuredFromDb = await getActiveFeaturedVehicles();
+  const { vehicles: searchFallback } = await searchVehicles("", {}, { page: 1, perPage: 6 });
+  const featuredVehicles =
+    featuredFromDb.length > 0
+      ? featuredFromDb.map((v) => ({
+          id: v.id,
+          slug: v.slug,
+          title: v.title,
+          make: v.make,
+          model: v.model,
+          year: v.year,
+          city: v.city,
+          state: "",
+          pricePerDayAud: v.pricePerDay,
+          seats: 5,
+          fuel: "Petrol",
+          transmission: "Automatic",
+          category: v.category,
+          imageUrl: v.imageUrl ?? "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=800&q=80",
+          vendorName: v.organizationName,
+          vendorSlug: "",
+          branchName: v.city,
+          verified: true,
+          instantBook: false,
+        }))
+      : searchFallback;
 
   // Fetch live vehicle counts and min prices per city
   const supabase = createAdminClient();
@@ -269,6 +304,29 @@ export default async function Home() {
           </div>
         </Section>
 
+        {/* ===== 6b. BROWSE BY CATEGORY ===== */}
+        <Section variant="default" size="md" container>
+          <MotionScroll variant="fade-up" className="mb-10">
+            <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+              Browse by Category
+            </h2>
+            <p className="mt-3 text-muted-foreground text-lg">
+              Find the right vehicle type for your trip
+            </p>
+          </MotionScroll>
+          <div className="flex flex-wrap gap-3 justify-center">
+            {browseCategories.map((cat) => (
+              <Link
+                key={cat.name}
+                href={cat.href}
+                className="rounded-full border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:border-primary hover:text-primary transition-colors"
+              >
+                {cat.name}
+              </Link>
+            ))}
+          </div>
+        </Section>
+
         {/* ===== 7. VENDOR CTA ===== */}
         <section className="relative py-24 md:py-32 overflow-hidden">
           {/* Dramatic background */}
@@ -332,7 +390,7 @@ export default async function Home() {
               {/* CTA with glow effect */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <Link
-                  href="/vendor/onboarding"
+                  href="/vendor/upgrade"
                   className="group relative inline-flex items-center gap-2 rounded-full bg-[#ea580c] px-8 py-4 font-bold text-white text-lg hover:bg-[#dc5409] transition-all shadow-xl shadow-[#ea580c]/25 hover:shadow-[#ea580c]/40 hover:scale-[1.02]"
                 >
                   List Your Fleet Free

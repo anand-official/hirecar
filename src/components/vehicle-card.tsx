@@ -5,15 +5,17 @@ import Image from "next/image";
 import { MapPin, ArrowRight, BadgeCheck, Zap } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SavedVehicleButton } from "@/components/saved-vehicle-button";
 import type { Vehicle } from "@/lib/types";
 
 interface VehicleCardProps {
   vehicle: Vehicle;
   priority?: boolean;
   variant?: "default" | "compact" | "featured";
+  saved?: boolean;
 }
 
-export function VehicleCard({ vehicle, priority = false, variant = "default" }: VehicleCardProps) {
+export function VehicleCard({ vehicle, priority = false, variant = "default", saved = false }: VehicleCardProps) {
   if (variant === "compact") {
     return (
       <Card variant="interactive" className="flex-row p-0 gap-0 card-lift border-slate-200/60 shadow-sm overflow-hidden bg-white/95">
@@ -65,10 +67,11 @@ export function VehicleCard({ vehicle, priority = false, variant = "default" }: 
             sizes="(max-width: 768px) 100vw, 33vw"
             className="object-cover group-hover/card:scale-105 transition-transform duration-500"
           />
-          <div className="absolute top-3 left-3 z-10">
+          <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
             <span className="inline-flex items-center rounded-full bg-slate-950/90 backdrop-blur-md px-2.5 py-1 text-xs font-bold text-white shadow-sm border border-white/10">
               Featured
             </span>
+            <SavedVehicleButton vehicleId={vehicle.id} initialSaved={saved} />
           </div>
           <div className="absolute top-3 right-3 z-10 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-sm border border-white/50">
             <p className="text-lg font-black text-slate-900">${vehicle.pricePerDayAud}</p>
@@ -121,6 +124,9 @@ export function VehicleCard({ vehicle, priority = false, variant = "default" }: 
           {/* Year Badge */}
           <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-slate-700 text-[10px] font-bold px-2 py-1 rounded">
             {vehicle.year || "2023"}
+          </div>
+          <div className="absolute top-3 right-3 z-10">
+            <SavedVehicleButton vehicleId={vehicle.id} initialSaved={saved} />
           </div>
         </div>
 

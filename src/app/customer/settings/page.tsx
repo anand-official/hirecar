@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { updateCustomerProfile, deleteCustomerAccount } from "@/app/actions/customer";
+import { updateNotificationPrefs } from "./actions";
 import { User, Phone, Mail, AlertTriangle, Save, Loader2, Bell, Heart, MessageSquare } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 
@@ -21,6 +22,11 @@ export default function CustomerSettingsPage() {
   });
 
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    inquiryUpdates: true,
+    specialOffers: false,
+  });
+  const [isSavingPrefs, setIsSavingPrefs] = useState(false);
 
   useEffect(() => {
     async function loadProfile() {
@@ -34,7 +40,7 @@ export default function CustomerSettingsPage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, phone, email")
+        .select("full_name, phone, email, notification_prefs")
         .eq("id", session.user.id)
         .single();
 
@@ -44,6 +50,13 @@ export default function CustomerSettingsPage() {
           phone: profile.phone || "",
           email: profile.email || session.user.email || "",
         });
+        const prefs = profile.notification_prefs as { inquiryUpdates?: boolean; specialOffers?: boolean } | null;
+        if (prefs) {
+          setNotificationPrefs({
+            inquiryUpdates: prefs.inquiryUpdates ?? true,
+            specialOffers: prefs.specialOffers ?? false,
+          });
+        }
       }
       setIsLoading(false);
     }
@@ -192,7 +205,24 @@ export default function CustomerSettingsPage() {
             </div>
           </div>
 
-          <div className="space-y-4">
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setIsSavingPrefs(true);
+              setMessage(null);
+              const data = new FormData();
+              if (notificationPrefs.inquiryUpdates) data.append("inquiryUpdates", "on");
+              if (notificationPrefs.specialOffers) data.append("specialOffers", "on");
+              const result = await updateNotificationPrefs(data);
+              if (result.error) {
+                setMessage({ type: "error", text: result.error });
+              } else {
+                setMessage({ type: "success", text: "Notification preferences saved." });
+              }
+              setIsSavingPrefs(false);
+            }}
+            className="space-y-4"
+          >
             <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50">
               <div className="flex items-start gap-3">
                 <MessageSquare className="h-5 w-5 text-slate-600 mt-0.5" />
@@ -202,7 +232,12 @@ export default function CustomerSettingsPage() {
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" defaultChecked />
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={notificationPrefs.inquiryUpdates}
+                  onChange={(e) => setNotificationPrefs((p) => ({ ...p, inquiryUpdates: e.target.checked }))}
+                />
                 <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#ea580c]"></div>
               </label>
             </div>
@@ -216,11 +251,23 @@ export default function CustomerSettingsPage() {
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" />
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={notificationPrefs.specialOffers}
+                  onChange={(e) => setNotificationPrefs((p) => ({ ...p, specialOffers: e.target.checked }))}
+                />
                 <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#ea580c]"></div>
               </label>
             </div>
-          </div>
+            <button
+              type="submit"
+              disabled={isSavingPrefs}
+              className="rounded-xl bg-[#ea580c] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+            >
+              {isSavingPrefs ? "Saving…" : "Save preferences"}
+            </button>
+          </form>
         </section>
 
         {/* Danger Zone */}

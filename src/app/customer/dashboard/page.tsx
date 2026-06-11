@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/security/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
-import { MessageCircle, Search, ChevronRight, User, Calendar, Clock, CheckCircle } from "lucide-react";
+import { MessageCircle, Search, ChevronRight, User, Calendar, Clock, CheckCircle, Store, ArrowRight } from "lucide-react";
 // import removed
 
 export const metadata = {
@@ -26,7 +26,7 @@ export default async function CustomerDashboardPage() {
     .from("leads")
     .select("id", { count: "exact", head: true })
     .eq("customer_email", email)
-    .neq("status", "closed");
+    .in("status", ["new", "contacted"]);
 
   // Get recent enquiries
   const { data: recentEnquiries } = await supabase
@@ -47,6 +47,29 @@ export default async function CustomerDashboardPage() {
           Welcome back, {firstName}!
         </h1>
         <p className="mt-2 text-slate-500 font-medium">Here is an overview of your rental activity.</p>
+      </div>
+
+      <div className="mb-8 rounded-[2rem] border border-orange-200 bg-gradient-to-r from-orange-50 via-white to-amber-50 p-6 sm:p-8 shadow-sm">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-[#ea580c]">
+              <Store className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-slate-900">Own a rental business?</h2>
+              <p className="mt-1 text-sm font-medium text-slate-600">
+                Upgrade to a vendor account to list your fleet, receive leads, and manage your business on Hire Car.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/vendor/upgrade"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#ea580c] to-amber-500 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl"
+          >
+            List your fleet
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
@@ -133,8 +156,9 @@ export default async function CustomerDashboardPage() {
               const o = lead.organizations as unknown as LeadOrg;
               
               const isNew = lead.status === "new";
-              const isInProgress = lead.status === "in_progress";
-              const isClosed = lead.status === "closed";
+              const isInProgress = lead.status === "contacted";
+              const isClosed = lead.status === "lost";
+              const isConverted = lead.status === "converted";
 
               return (
                 <Link
@@ -148,12 +172,13 @@ export default async function CustomerDashboardPage() {
                       {/* Status Badge */}
                       <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold tracking-wide ${
                         isNew ? "bg-blue-50 text-blue-700 border border-blue-200" :
-                        isInProgress ? "bg-amber-50 text-amber-700 border border-amber-200" : 
+                        isInProgress ? "bg-amber-50 text-amber-700 border border-amber-200" :
+                        isConverted ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
                         "bg-slate-100 text-slate-600 border border-slate-200"
                       }`}>
                         {isNew && <Clock className="h-3 w-3" />}
                         {isInProgress && <MessageCircle className="h-3 w-3" />}
-                        {isClosed && <CheckCircle className="h-3 w-3" />}
+                        {(isClosed || isConverted) && <CheckCircle className="h-3 w-3" />}
                         {lead.status.replace("_", " ").toUpperCase()}
                       </span>
                     </div>

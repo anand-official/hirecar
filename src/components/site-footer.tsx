@@ -7,7 +7,7 @@ const footerLinks = {
     { label: "Browse Cars", href: "/search" },
     { label: "Operators Directory", href: "/vendors" },
     { label: "Pricing", href: "/pricing" },
-    { label: "List Your Fleet", href: "/vendor/onboarding" },
+    { label: "List Your Fleet", href: "/vendor/upgrade" },
   ],
   company: [
     { label: "About Us", href: "/about" },

@@ -72,8 +72,10 @@ export default async function CustomerEnquiriesPage() {
                   <div className="flex items-start justify-between mb-3">
                     <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider ${
                       lead.status === "new" ? "bg-blue-100 text-blue-700" :
-                      lead.status === "in_progress" ? "bg-amber-100 text-amber-700" : 
-                      lead.status === "closed" ? "bg-slate-100 text-slate-600" : "bg-emerald-100 text-emerald-700"
+                      lead.status === "contacted" ? "bg-amber-100 text-amber-700" :
+                      lead.status === "lost" ? "bg-slate-100 text-slate-600" :
+                      lead.status === "converted" ? "bg-emerald-100 text-emerald-700" :
+                      "bg-slate-100 text-slate-600"
                     }`}>
                       {lead.status.replace("_", " ")}
                     </span>
